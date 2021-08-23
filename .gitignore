@@ -123,3 +123,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+dolphin/**/*.exe
+dolphin/**/*.dll
+dolphin/**/*.txt
+dolphin/Sys/*
+!dolphin/Sys/Scripts/
+dolphin/User
+*.dat
+*.rkg
+compare.sh
+mock_api/
+*.json
