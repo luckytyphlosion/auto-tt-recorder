@@ -21,7 +21,7 @@ end
 function onScriptUpdate()
 
   local text = ""
-	text = text .. string.format("\nFrame: %d\n", core.getFrameOfInput())
+	text = text .. string.format("\nFrame xxx: %d\n", core.getFrameOfInput())
 	text = text .. "\n\n===== Speed ====="
 	text = text .. string.format("\nX: %12.6f\nY: %12.6f\nZ: %12.6f\nXZ: %11.6f\nXYZ: %10.6f", core.getSpd().X, core.getSpd().Y, core.getSpd().Z, core.getSpd().XZ, core.getSpd().XYZ)
 	text = text .. "\n\n===== Rotation (Facing|Moving) ====="

@@ -147,6 +147,9 @@ class Rkg(BitManipulator):
     oGHOST_TYPE_bit = 7
     oGHOST_TYPE_size = 7
 
+    oDRIFT_TYPE = 0xd
+    oDRIFT_TYPE_bit = 6
+
     oINPUTS = 0x88
     oCOMPRESSED_LEN = 0x88
     oCOMPRESSED_INPUTS_HEADER = 0x8c
@@ -160,7 +163,7 @@ class Rkg(BitManipulator):
 
     __slots__ = ("filename", "data", "rkg_file", "_track_id", "_compressed", "data",
         "_compressed_len", "_uncompressed_len", "_has_ctgp_data", "_mii", "_ghost_type", "_vehicle_id",
-        "_character_id", "_controller", "_track_by_ghost_slot")
+        "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type")
 
     track_id_to_ghost_slot = {
         0x00: 4, 0x01: 1, 0x02: 2, 0x03: 10, 0x04: 3, 0x05: 5, 0x06: 6, 0x07: 7,
@@ -182,6 +185,7 @@ class Rkg(BitManipulator):
         self._vehicle_id = self.read_bits(Rkg.oVEHICLE_ID, Rkg.oVEHICLE_ID_bit, Rkg.oVEHICLE_ID_size)
         self._character_id = self.read_bits(Rkg.oCHARACTER_ID, Rkg.oCHARACTER_ID_bit, Rkg.oCHARACTER_ID_size)
         self._controller = self.read_bits(Rkg.oCONTROLLER_ID, Rkg.oCONTROLLER_ID_bit, Rkg.oCONTROLLER_ID_size)
+        self._drift_type = self.read_bit(Rkg.oDRIFT_TYPE, Rkg.oDRIFT_TYPE_bit)
         self._has_ctgp_data = True
 
     # track id
@@ -222,6 +226,10 @@ class Rkg(BitManipulator):
     @property
     def controller(self):
         return self._controller
+
+    @property
+    def drift_type(self):
+        return self._drift_type
 
     @property
     def mii(self):
@@ -413,7 +421,8 @@ def import_ghost_to_save(rksys_file, rkg_file, rksys_out_file, rfl_db_out_file):
     rksys.set_pb_ghost_and_mii(rkg)
 
     rksys.write_to_file(rksys_out_file)
-    
+
+    return rkg
 
 def main():
     MODE = 1

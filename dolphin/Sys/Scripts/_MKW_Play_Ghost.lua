@@ -8,83 +8,141 @@ function onScriptStart()
 		SetScreenText("")
 		CancelScript()
 	end
+	--SetScreenText(GetGameID())
+	initializePlayGhost()
 end
+
+local advanceToCharacterSelectSegment = {
+	{"none", 70},
+	{"A", 230},
+	{"A", 50},
+	{"A", 75},
+	{"A", 350},
+	{"down", 25},
+	{"A", 25},
+	{"done", 0},
+}
+
+local ADVANCE_TO_TRACK_SELECT = 1
+local CHOOSE_TRACK = 2
+
+local EXECUTING_ACTION = 1
+local IN_DELAY = 2
+
+local segments = {
+	[ADVANCE_TO_TRACK_SELECT] = advanceToCharacterSelectSegment
+}
+
+local curSegmentIndexG = ADVANCE_TO_TRACK_SELECT
+local curActionIndexG = 1
+local curStateG = EXECUTING_ACTION
+local delayEndFrameCountG = 0
+
+local curSegmentIndexForNextFrame = ADVANCE_TO_TRACK_SELECT
+local curActionIndexForNextFrame = 1
+local curStateForNextFrame = EXECUTING_ACTION
+local delayEndFrameCountForNextFrame = 0
+
+
+function initializeSegmentTable()
+	for i, segment in ipairs(segments) do
+		for i, action in ipairs(segment) do
+			segment[i] = {
+				command = action[1],
+				delay = action[2]
+			}
+		end
+	end
+end
+
+function initializePlayGhost()
+	initializeSegmentTable()
+end
+
+pressButtonCommands = {
+	["A"] = true,
+}
 
 function onScriptCancel()
 	SetScreenText("")
 end
 
-local actions = {
-	{
-		frame = 100,
-		action = "A",
-	},
-	{
-		frame = 400,
-		action = "A"
-	},
-	{
-		frame = 550,
-		action = "A"
-	},
-	{
-		frame = 600,
-		action = "A"
-	},
-	{
-		frame = 675,
-		action = "A"
-	},
-	{
-		frame = 1025,
-		action = "A"
-	},
-	{
-		frame = 1050,
-		action = "A",
-	},
-	{
-		frame = 1051,
-		action = "done"
-	}
-};
-
-local ADVANCE_TO_TRACK_SELECT = 0
-local CHOOSE_TRACK = 1
---local 
+local permaText = ""
+local pressedButton = ""
+local entryCount = 0
+local curEntryIndex = 1
+local prevFrame = -1
 
 function onScriptUpdate()
-	CancelScript()
-	if true then
-		return
-	end
-
 	local text = ""
 	local frame = GetFrameCount()
-	text = text .. string.format("\nFrame: %d\n", frame)
-	text = text .. string.format("\nRunning Play Ghost!\n")
-	SetScreenText(text)
-	
-	if frame == 100 then
-		PressButton("A")
-		SetFrameAndAudioDump(true)
-	elseif frame == 400 then
-		PressButton("A")
-	elseif frame == 550 then
-		PressButton("A")
-	elseif frame == 600 then
-		PressButton("A")
-	elseif frame == 675 then
-		PressButton("A")
-	elseif frame == 1025 then
-		SetMainStickY(0)
-	elseif frame == 1050 then
-		PressButton("A")
-		SetFrameAndAudioDump(false)
-	elseif frame == 1051 then
-		file = io.open("kill.txt", "w")
-		file:close()
+
+	if prevFrame ~= frame then
+		curSegmentIndexG = curSegmentIndexForNextFrame
+		curActionIndexG = curActionIndexForNextFrame
+		curStateG = curStateForNextFrame
+		delayEndFrameCountG = delayEndFrameCountForNextFrame
 	end
+	prevFrame = frame
+
+	local curSegmentIndex = curSegmentIndexG
+	local curActionIndex = curActionIndexG
+	local curState = curStateG
+	local delayEndFrameCount = delayEndFrameCountG
+
+	entryCount = entryCount + 1
+	text = text .. string.format("\n\n\n\n\n\nFrame: %d, entryCount: %d\n", frame, entryCount)
+	text = text .. string.format("\nRunning Play Ghost!\n")
+
+	if curState == IN_DELAY then
+		if frame >= delayEndFrameCount then
+			curSegment = segments[curSegmentIndex]
+			curActionIndex = curActionIndex + 1
+			if curActionIndex > #curSegment then
+				curSegmentIndex = curSegmentIndex + 1
+				curActionIndex = 1
+			end
+			curState = EXECUTING_ACTION
+		else
+			text = text .. "Waiting until frame " .. delayEndFrameCount .. "!\n"
+		end
+	end
+
+	if curState == EXECUTING_ACTION then
+		curAction = segments[curSegmentIndex][curActionIndex]
+		if type(curAction.command) == "string" then
+			if pressButtonCommands[curAction.command] == true then
+				PressButton(curAction.command)
+			elseif curAction.command == "up" then
+				SetMainStickY(255)
+			elseif curAction.command == "down" then
+				SetMainStickY(0)
+			elseif curAction.command == "left" then
+				SetMainStickX(0)
+			elseif curAction.command == "right" then
+				SetMainStickX(255)
+			elseif curAction.command == "done" then
+				CancelScript()
+			end
+		end
+		curState = IN_DELAY
+		delayEndFrameCount = frame + curAction.delay
+	end
+
+	curAction = segments[curSegmentIndex][curActionIndex]
+	--permaText = string.format("type(curAction.command): %s, curAction.command: %s\n", type(curAction.command), curAction.command)
+	--permaText = permaText .. string.format("curActionIndex: %d\n", curActionIndex)
+	--if pressedButton ~= "" then
+	--	permaText = permaText .. pressedButton
+	--end
+
+	curSegmentIndexForNextFrame = curSegmentIndex
+	curActionIndexForNextFrame = curActionIndex
+	curStateForNextFrame = curState
+	delayEndFrameCountForNextFrame = delayEndFrameCount
+
+	text = text -- .. "\n" .. permaText
+	SetScreenText(text)
 end
 
 function onStateLoaded()
