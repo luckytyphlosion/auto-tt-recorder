@@ -26,10 +26,11 @@ function onScriptUpdate()
 	text = text .. string.format("\nX: %12.6f\nY: %12.6f\nZ: %12.6f\nXZ: %11.6f\nXYZ: %10.6f", core.getSpd().X, core.getSpd().Y, core.getSpd().Z, core.getSpd().XZ, core.getSpd().XYZ)
 	text = text .. "\n\n===== Rotation (Facing|Moving) ====="
 	text = text .. string.format("\nX: %6.2f | %6.2f \nY: %6.2f | %6.2f \nZ: %6.2f | %6.2f", core.calculateEuler().X, core.calculateDirectX(), core.calculateEuler().Y, core.calculateDirectY(), core.calculateEuler().Z, core.calculateDirectZ())
-if core.isSinglePlayer() == false then
-	text = text .. "\n\n===== Time Difference ====="
-	text = text .. string.format("\nCurrent: %11.6f \nFinish: %11.6f", core.getDifference(), core.getFinishDifference())
-end
+	if core.isSinglePlayer() == false then
+		text = text .. "\n\n===== Time Difference ====="
+		text = text .. string.format("\nCurrent: %11.6f \nFinish: %11.6f", core.getDifference(), core.getFinishDifference())
+	end
+	text = text .. string.format("\nRace Completion: %11.6f", core.getRaceCompletion())
 	SetScreenText(text)
 end
 

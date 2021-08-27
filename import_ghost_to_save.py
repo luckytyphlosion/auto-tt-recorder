@@ -1,6 +1,7 @@
 import crclib
 from abc import ABC, abstractmethod
 import pathlib
+import util
 
 RKG_SIZE = 0x2800
 MII_SIZE = 0x4a
@@ -124,6 +125,18 @@ class BitManipulator(ABC):
         self.data[byte_offset] &= (1 << (7 - bit_offset)) ^ 0xff
 
 class Rkg(BitManipulator):
+    oMINUTES = 0x4
+    oMINUTES_bit = 0
+    oMINUTES_size = 7
+
+    oSECONDS = 0x4
+    oSECONDS_bit = 7
+    oSECONDS_size = 7
+
+    oMILLISECONDS = 0x5
+    oMILLISECONDS_bit = 6
+    oMILLISECONDS_size = 10
+
     oTRACK_ID = 0x7
     oTRACK_ID_bit = 0
     oTRACK_ID_size = 6
@@ -135,6 +148,10 @@ class Rkg(BitManipulator):
     oCHARACTER_ID = 0x8
     oCHARACTER_ID_bit = 6
     oCHARACTER_ID_size = 6
+
+    oYEAR = 0x9
+    oYEAR_bit = 4
+    oYEAR_size = 7
 
     oCONTROLLER_ID = 0xb
     oCONTROLLER_ID_bit = 4
@@ -163,7 +180,8 @@ class Rkg(BitManipulator):
 
     __slots__ = ("filename", "data", "rkg_file", "_track_id", "_compressed", "data",
         "_compressed_len", "_uncompressed_len", "_has_ctgp_data", "_mii", "_ghost_type", "_vehicle_id",
-        "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type")
+        "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type", "_track_by_human_id",
+        "_year", "_minutes", "_seconds", "_milliseconds")
 
     track_id_to_ghost_slot = {
         0x00: 4, 0x01: 1, 0x02: 2, 0x03: 10, 0x04: 3, 0x05: 5, 0x06: 6, 0x07: 7,
@@ -172,12 +190,24 @@ class Rkg(BitManipulator):
         0x18: 18, 0x19: 17, 0x1a: 21, 0x1b: 20, 0x1c: 23, 0x1d: 22, 0x1e: 19, 0x1f: 16
     }
 
-    def __init__(self, filename):
+    track_id_to_human_track_id = {
+        0x00: 4, 0x01: 1, 0x02: 2, 0x03: 11,
+        0x04: 3, 0x05: 5, 0x06: 6, 0x07: 7,
+        0x08: 0, 0x09: 8, 0x0a: 13, 0x0b: 10,
+        0x0c: 14, 0x0d: 15, 0x0e: 12, 0x0f: 9,
+        0x10: 16, 0x11: 27, 0x12: 23, 0x13: 30,
+        0x14: 17, 0x15: 24, 0x16: 29, 0x17: 22,
+        0x18: 28, 0x19: 18, 0x1a: 19, 0x1b: 20,
+        0x1c: 31, 0x1d: 26, 0x1e: 25, 0x1f: 21,
+    }
+
+    def __init__(self, filename, apply_crc_every_write=False):
         super().__init__(filename)
 
         self._set_compressed_from_data()
         self._track_id = self.read_bits(Rkg.oTRACK_ID, Rkg.oTRACK_ID_bit, Rkg.oTRACK_ID_size)
         self._track_by_ghost_slot = Rkg.track_id_to_ghost_slot[self.track_id]
+        self._track_by_human_id = Rkg.track_id_to_human_track_id[self.track_id]
 
         self._mii = self.data[Rkg.oMII_DATA:Rkg.oMII_DATA_END]
 
@@ -187,6 +217,29 @@ class Rkg(BitManipulator):
         self._controller = self.read_bits(Rkg.oCONTROLLER_ID, Rkg.oCONTROLLER_ID_bit, Rkg.oCONTROLLER_ID_size)
         self._drift_type = self.read_bit(Rkg.oDRIFT_TYPE, Rkg.oDRIFT_TYPE_bit)
         self._has_ctgp_data = True
+        self._year = self.read_bits(Rkg.oYEAR, Rkg.oYEAR_bit, Rkg.oYEAR_size)
+        self._minutes = self.read_bits(Rkg.oMINUTES, Rkg.oMINUTES_bit, Rkg.oMINUTES_size)
+        self._seconds = self.read_bits(Rkg.oSECONDS, Rkg.oSECONDS_bit, Rkg.oSECONDS_size)
+        self._milliseconds = self.read_bits(Rkg.oMILLISECONDS, Rkg.oMILLISECONDS_bit, Rkg.oMILLISECONDS_size)
+
+    @property
+    def year(self):
+        return self._year
+
+    @property
+    def minutes(self):
+        return self._minutes
+
+    @property
+    def seconds(self):
+        return self._seconds
+
+    @property
+    def milliseconds(self):
+        return self._milliseconds
+
+    def time(self):
+        return util.min_sec_ms_to_time(self.minutes, self.seconds, self.milliseconds)
 
     # track id
     @property
@@ -196,6 +249,10 @@ class Rkg(BitManipulator):
     @property
     def track_id_by_ghost_slot(self):
         return self._track_by_ghost_slot
+
+    @property
+    def track_by_human_id(self):
+        return self._track_by_human_id
 
     @property
     def compressed(self):
@@ -243,6 +300,15 @@ class Rkg(BitManipulator):
     def uncompressed_len(self):
         return self._uncompressed_len
 
+    @property
+    def year(self):
+        return self._year
+
+    @year.setter
+    def year(self, year):
+        self._year = year
+        self.write_bits(Rkg.oYEAR, Rkg.oYEAR_bit, Rkg.oYEAR_size, year)
+
     def _set_compressed_from_data(self):
         self._compressed = self.read_bit(Rkg.oCOMPRESSED, Rkg.oCOMPRESSED_bit)
         if self.compressed:
@@ -266,9 +332,15 @@ class Rkg(BitManipulator):
             self.data.extend(dst)
             self.compressed = False
 
-    def prepare_for_import(self):
-        self.ghost_type = Rkg.GHOST_TYPE_PB
+    def prepare_for_import(self, is_pb_ghost, ghost_index=None):
+        if is_pb_ghost:
+            self.ghost_type = Rkg.GHOST_TYPE_PB
+        else:
+            self.ghost_type = ghost_index + 7
+
         self.data.extend(bytes(RKG_SIZE - 4 - len(self.data)))
+
+    def apply_crc(self):
         crc = crclib.crc32(self.data)
         self.data.extend(crc.to_bytes(length=4, byteorder="big"))
 
@@ -278,8 +350,12 @@ class Rksys(BitManipulator):
     oCRC_end = oCRC + oCRC_size
 
     oTL_LICENSE_GHOSTS = 0x28000
+    oTL_DOWNLOADED_GHOSTS = 0x28000 + 0x50000
+
     oTL_LICENSE_PB_FLAGS = 0x4 + 0x8
     oTL_LICENSE_LB_ENTRIES_BASE = 0xdc0 + 0x8
+
+    oTL_LICENSE_DOWNLOADED_GHOST_FLAGS = 0x8 + 0x8
 
     oTL_LICENSE_MII_NAME = 0x14 + 0x8
     oTL_LICENSE_MII_NAME_size = 0x14
@@ -331,10 +407,19 @@ class Rksys(BitManipulator):
         self.data[Rksys.oTL_LICENSE_MII_NAME:Rksys.oTL_LICENSE_MII_NAME_end] = rkg.mii[0x2:0x16]
         self.data[Rksys.oTL_LICENSE_MII_ID:Rksys.oTL_LICENSE_MII_ID_end] = rkg.mii[0x18:0x1c]
         self.data[Rksys.oTL_LICENSE_MII_SYSTEM_ID:Rksys.oTL_LICENSE_MII_SYSTEM_ID_end] = rkg.mii[0x1c:0x20]
+        self.apply_crc()
 
+    def set_downloaded_ghost_0(self, rkg):
+        ghost_addr = Rksys.oTL_DOWNLOADED_GHOSTS
+        self.data[ghost_addr:ghost_addr+RKG_SIZE] = rkg.data
+
+        self.set_bit(Rksys.oTL_LICENSE_DOWNLOADED_GHOST_FLAGS, 0, endianness=LITTLE_ENDIAN, byte_range=4)
+        self.apply_crc()
+
+    def apply_crc(self):
         crc = crclib.crc32(self.data, Rksys.oCRC)
         self.data[Rksys.oCRC:Rksys.oCRC_end] = crc.to_bytes(length=4, byteorder="big")
-
+        
     def write_to_file(self, filename):
         with open(filename, "wb+") as f:
             f.write(self.data)
@@ -400,11 +485,22 @@ def decode_yaz1(src, offset, src_size, uncompressed_size):
 
     return src_pos, dst_pos, dst
 
-def import_ghost_to_save(rksys_file, rkg_file, rksys_out_file, rfl_db_out_file):
+def import_ghost_to_save(rksys_file, rkg_file, rksys_out_file, rfl_db_out_file, rkg_file_comparison=None):
     rkg = Rkg(rkg_file)
     rkg.remove_ctgp_data()
     rkg.decompress_inputs()
-    rkg.prepare_for_import()
+    rkg.prepare_for_import(True)
+    rkg.apply_crc()
+
+    if rkg_file_comparison is not None:
+        rkg_comparison = Rkg(rkg_file_comparison)
+        rkg_comparison.remove_ctgp_data()
+        rkg_comparison.decompress_inputs()
+        # todo, maybe centralize ghost download slot?
+        rkg_comparison.prepare_for_import(False, 0)
+        rkg_comparison.apply_crc()
+    else:
+        rkg_comparison = None
 
     rfl_db = bytearray(0x1f1de)
     rfl_db[:4] = b'RNOD'
@@ -419,13 +515,31 @@ def import_ghost_to_save(rksys_file, rkg_file, rksys_out_file, rfl_db_out_file):
 
     rksys = Rksys(rksys_file)
     rksys.set_pb_ghost_and_mii(rkg)
+    rksys.set_downloaded_ghost_0(rkg_comparison)
 
     rksys.write_to_file(rksys_out_file)
 
-    return rkg
+    return rkg, rkg_comparison
+
+def test_read_bits():
+    rkg_filename = "01m08s7732250 Cole.rkg"
+    rkg = Rkg(rkg_filename)
+    
+    expected = 774
+    actual = rkg.read_bits(0x5, 6, 10)
+    print(f"milliseconds: expected: {expected}, actual: {actual}")
+
+    expected = 0x16
+    actual = rkg.read_bits(0x8, 6, 6)
+    print(f"character: expected: {expected}, actual: {actual}")
+
+    rkg.year = 60
+    expected = 60
+    actual = rkg.read_bits(0x9, 4, 7)
+    print(f"year: expected: {expected}, actual: {actual}")
 
 def main():
-    MODE = 1
+    MODE = 2
 
     if MODE == 0:
         import_ghost_to_save("rksys.dat", "01m08s7732250 Cole.rkg",
@@ -435,6 +549,8 @@ def main():
         import_ghost_to_save("rksys.dat", "bob_rpg_piranha_prowler.rkg",
             "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
             "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat")
+    elif MODE == 2:
+        test_read_bits()
     else:
         print("No mode selected!")
 

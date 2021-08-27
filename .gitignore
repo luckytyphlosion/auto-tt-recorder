@@ -135,3 +135,5 @@ dolphin/User
 compare.sh
 mock_api/
 *.json
+*.mp4
+*.mkv

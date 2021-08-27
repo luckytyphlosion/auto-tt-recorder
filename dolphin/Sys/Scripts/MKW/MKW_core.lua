@@ -344,5 +344,15 @@ local function getFinishDifference()
 end
 core.getFinishDifference = getFinishDifference
 
+local function getRaceCompletion()
+  local raceData2
+  if GetGameID() == "RMCP01" then raceData2 = 0x9BD730
+  elseif GetGameID() == "RMCE01"then raceData2 = 0x9B8F70
+  elseif GetGameID() == "RMCJ01" then raceData2 = 0x9BC790
+  elseif GetGameID() == "RMCK01" then raceData2 = 0x9ABD70
+  end
+  return ReadValueFloat(raceData2, 0xC, 0x0, 0xc)
+end
+core.getRaceCompletion = getRaceCompletion
 
 return core
