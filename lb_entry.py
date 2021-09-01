@@ -42,6 +42,15 @@ class LbEntryBuilder:
         self.category_name = category_name
         self.vehicle_name = identifiers.vehicle_names[vehicle_id]
 
+    def add_track_category_vehicle_id_from_prev_lb_entry(self, prev_lb_entry):
+        self.add_track_category_vehicle_id(
+            prev_lb_entry["trackId"],
+            prev_lb_entry["categoryId"],
+            prev_lb_entry["vehicleId"],
+            prev_lb_entry["trackName"],
+            prev_lb_entry["categoryName"]
+        )
+
     def add_ghost_href_last_checked_date_set_timestamp(self, ghost_href, last_checked, date_set_timestamp):
         self.ghost_href = ghost_href
         self.last_checked = last_checked
@@ -50,7 +59,7 @@ class LbEntryBuilder:
     def add_lb_href(self, lb_href):
         self.lb_href = lb_href
 
-    def add_wr_entry(self, lb_entry):
+    def add_lb_entry(self, lb_entry):
         self.lb_entry = lb_entry
         self.ghost_href = lb_entry["_links"]["item"]["href"]
         date_set = dateutil.parser.isoparse(lb_entry["dateSet"])

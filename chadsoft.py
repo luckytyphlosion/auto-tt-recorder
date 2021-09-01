@@ -6,11 +6,23 @@ import time
 
 API_URL = "https://tt.chadsoft.co.uk"
 
-def get(endpoint, params, is_binary=False, try_cached=True, rate_limit=True):
+def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True):
+    if params is None:
+        params = {}
+
     if try_cached:
-        endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.json"
+        if not is_binary:
+            endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.json"
+        else:
+            endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.rkg"
         endpoint_as_path = pathlib.Path(endpoint_as_pathname)
         if endpoint_as_path.is_file():
+            if endpoint_as_path.stat().st_size == 0:
+                if not is_binary:
+                    return {}, 404
+                else:
+                    return bytes(), 404
+
             if not is_binary:
                 with open(endpoint_as_path, "r") as f:
                     data = json.load(f)
@@ -28,9 +40,14 @@ def get(endpoint, params, is_binary=False, try_cached=True, rate_limit=True):
     r = requests.get(url, params=params)
     end_time = time.time()
     print(f"Request took {end_time - start_time}.")
+
+    if try_cached:
+        endpoint_as_path.parent.mkdir(parents=True, exist_ok=True)
+
     if r.status_code != 200:
+        endpoint_as_path.touch()
         return r.reason, r.status_code
-        raise RuntimeError(f"API returned {r.status_code}: {r.reason}")
+        #raise RuntimeError(f"API returned {r.status_code}: {r.reason}")
 
     if not is_binary:
         data = r.json()

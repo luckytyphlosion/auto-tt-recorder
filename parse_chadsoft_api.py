@@ -75,7 +75,7 @@ def main():
                 output += f"{lb_entry_builder.lb_info}\n"
             else:
                 vehicle_wr_entry = vehicle_entry_data[0]
-                lb_entry_builder.add_wr_entry(vehicle_wr_entry)
+                lb_entry_builder.add_lb_entry(vehicle_wr_entry)
                 lb_entry_builder.add_track_category_vehicle_id(
                     lb_id.track_id, lb_id.category_id, i,
                     track_name=track_name, category_name=category_name
