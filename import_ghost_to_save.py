@@ -2,6 +2,7 @@ import crclib
 from abc import ABC, abstractmethod
 import pathlib
 import util
+import identifiers
 
 RKG_SIZE = 0x2800
 MII_SIZE = 0x4a
@@ -183,31 +184,13 @@ class Rkg(BitManipulator):
         "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type", "_track_by_human_id",
         "_year", "_minutes", "_seconds", "_milliseconds")
 
-    track_id_to_ghost_slot = {
-        0x00: 4, 0x01: 1, 0x02: 2, 0x03: 10, 0x04: 3, 0x05: 5, 0x06: 6, 0x07: 7,
-        0x08: 0, 0x09: 8, 0x0a: 12, 0x0b: 11, 0x0c: 14, 0x0d: 15, 0x0e: 13, 0x0f: 9,
-        0x10: 24, 0x11: 25, 0x12: 26, 0x13: 27, 0x14: 28, 0x15: 29, 0x16: 30, 0x17: 31,
-        0x18: 18, 0x19: 17, 0x1a: 21, 0x1b: 20, 0x1c: 23, 0x1d: 22, 0x1e: 19, 0x1f: 16
-    }
-
-    track_id_to_human_track_id = {
-        0x00: 4, 0x01: 1, 0x02: 2, 0x03: 11,
-        0x04: 3, 0x05: 5, 0x06: 6, 0x07: 7,
-        0x08: 0, 0x09: 8, 0x0a: 13, 0x0b: 10,
-        0x0c: 14, 0x0d: 15, 0x0e: 12, 0x0f: 9,
-        0x10: 16, 0x11: 27, 0x12: 23, 0x13: 30,
-        0x14: 17, 0x15: 24, 0x16: 29, 0x17: 22,
-        0x18: 28, 0x19: 18, 0x1a: 19, 0x1b: 20,
-        0x1c: 31, 0x1d: 26, 0x1e: 25, 0x1f: 21,
-    }
-
     def __init__(self, filename, apply_crc_every_write=False):
         super().__init__(filename)
 
         self._set_compressed_from_data()
         self._track_id = self.read_bits(Rkg.oTRACK_ID, Rkg.oTRACK_ID_bit, Rkg.oTRACK_ID_size)
-        self._track_by_ghost_slot = Rkg.track_id_to_ghost_slot[self.track_id]
-        self._track_by_human_id = Rkg.track_id_to_human_track_id[self.track_id]
+        self._track_by_ghost_slot = identifiers.track_id_to_ghost_slot[self.track_id]
+        self._track_by_human_id = identifiers.track_id_to_human_track_id[self.track_id]
 
         self._mii = self.data[Rkg.oMII_DATA:Rkg.oMII_DATA_END]
 
@@ -410,6 +393,9 @@ class Rksys(BitManipulator):
         self.apply_crc()
 
     def set_downloaded_ghost_0(self, rkg):
+        if rkg is None:
+            return
+
         ghost_addr = Rksys.oTL_DOWNLOADED_GHOSTS
         self.data[ghost_addr:ghost_addr+RKG_SIZE] = rkg.data
 

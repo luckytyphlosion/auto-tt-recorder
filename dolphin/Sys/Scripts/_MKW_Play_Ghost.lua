@@ -45,6 +45,10 @@ local NAVIGATE_TO_2ND_GHOST_2 = 18
 local NAVIGATE_TO_3RD_GHOST_2 = 19
 local ADV_LIVE_REPLAY_RACE_GHOST = 20
 local NAVIGATE_TO_MAIN_GHOST_NO_COMPARE = 21
+local NAVIGATE_TO_2ND_GHOST_NO_COMPARE = 22
+local ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE = 23
+local NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2 = 24
+local ADV_LIVE_REPLAY_SOLO_TIME_TRIAL = 25
 
 local EXECUTING_ACTION = 1
 local IN_DELAY = 2
@@ -83,10 +87,10 @@ function determineCupMenuPos(curSegmentIndex, curActionIndex, curState)
 		curActionIndex = 1
 	elseif cupMenuPos == 1 then
 		curSegmentIndex = CHOOSE_CUP_MENU_POS_DOWN
-		curActionIndex = 1
+		curActionIndex = 2
 	elseif cupMenuPos == 2 then
 		curSegmentIndex = CHOOSE_CUP_MENU_POS_DOWN
-		curActionIndex = 2
+		curActionIndex = 1
 	elseif cupMenuPos == 3 then
 		curSegmentIndex = CHOOSE_CUP_MENU_POS_UP
 		curActionIndex = 1
@@ -100,12 +104,13 @@ end
 
 function determineIsComparison(curSegmentIndex, curActionIndex, curState)
 	comparison = (params["comparison"] == "True")
+	setFrameOfInput(1)
 	if comparison then
 		curSegmentIndex = NAVIGATE_TO_MAIN_GHOST
 		curActionIndex = 1
 	else
 		curSegmentIndex = NAVIGATE_TO_MAIN_GHOST_NO_COMPARE
-		CancelScript()
+		curActionIndex = 1
 	end
 	curState = EXECUTING_ACTION
 	return curSegmentIndex, curActionIndex, curState
@@ -113,7 +118,6 @@ end
 
 function navigateToMainGhost(curSegmentIndex, curActionIndex, curState)
 	mainGhostPos = tonumber(params["mainGhostPos"])
-	setFrameOfInput(1)
 	if mainGhostPos == 0 then
 		curSegmentIndex = ADV_LIVE_REPLAY_WATCH_REPLAY
 		curActionIndex = 1
@@ -179,6 +183,37 @@ function waitRaceCompletion(curSegmentIndex, curActionIndex, curState)
 	else
 		curState = EXIT_LOOP_NO_DELAY
 	end
+	return curSegmentIndex, curActionIndex, curState
+end
+
+function navigateToMainGhostNoCompare(curSegmentIndex, curActionIndex, curState)
+	mainGhostPos = tonumber(params["mainGhostPos"])
+	if mainGhostPos == 0 then
+		curSegmentIndex = ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE
+		curActionIndex = 1
+	elseif mainGhostPos == 1 then
+		curSegmentIndex = NAVIGATE_TO_2ND_GHOST_NO_COMPARE
+		curActionIndex = 1
+	else
+		error(string.format("Invalid mainGhostPos %d!", mainGhostPos))
+	end
+	curState = EXECUTING_ACTION
+	return curSegmentIndex, curActionIndex, curState
+end
+
+function navigateToMainGhostSoloTimeTrial(curSegmentIndex, curActionIndex, curState)
+	mainGhostPos = tonumber(params["mainGhostPos"])
+	setFrameOfInput(1)
+	if mainGhostPos == 0 then
+		curSegmentIndex = ADV_LIVE_REPLAY_SOLO_TIME_TRIAL
+		curActionIndex = 1
+	elseif mainGhostPos == 1 then
+		curSegmentIndex = NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2
+		curActionIndex = 1
+	else
+		error(string.format("Invalid mainGhostPos %d!", mainGhostPos))
+	end
+	curState = EXECUTING_ACTION
 	return curSegmentIndex, curActionIndex, curState
 end
 
@@ -317,6 +352,47 @@ local advLiveReplayRaceGhostSegment = {
 	--{"done", 0}
 }
 
+local navigateToMainGhostNoCompareSegment = {
+	{navigateToMainGhostNoCompare, 0}
+}
+
+local navigateTo2ndGhostNoCompareSegment = {
+	{"right", 15},
+	{"down", 5},
+	{ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE, 0}
+}
+
+local advLiveReplayWatchReplayNoCompareSegment = {
+	{"down", 5},
+	{"A", 30},
+	{"A", 10},
+	{waitFrameOfInput0, 60},
+	{"Start", 25},
+	{"up", 5},
+	{"A", 70},
+	{"up", 5},
+	{"A", 310},
+	{"A", 25},
+	{"A", 80},
+	{navigateToMainGhostSoloTimeTrial, 0}
+}
+
+local navigateTo2ndGhostNoCompare2Segment = {
+	{"right", 15},
+	{ADV_LIVE_REPLAY_SOLO_TIME_TRIAL, 0}
+}
+
+local advLiveReplaySoloTimeTrialSegment = {
+	{"up", 30},
+	{startDumpFrames, 0},
+	{"none", 120},
+	{"A", 30},
+	{"A", 10},
+	{waitRaceCompletion, 60 * 13},
+	{stopDumpFrames, 0},
+	{"done", 0}
+}
+
 local segments = {
 	[ADVANCE_TO_TRACK_SELECT] = advanceToCharacterSelectSegment,
 	[CHOOSE_MUSHROOM_CUP] = chooseMushroomCupSegment,
@@ -338,7 +414,12 @@ local segments = {
 	[NAVIGATE_TO_2ND_GHOST_2] = navigateTo2ndGhost2Segment,
 	[NAVIGATE_TO_3RD_GHOST_2] = navigateTo3rdGhost2Segment,
 	[ADV_LIVE_REPLAY_RACE_GHOST] = advLiveReplayRaceGhostSegment,
-	--[NAVIGATE_TO_MAIN_GHOST_NO_COMPARE] = 
+
+	[NAVIGATE_TO_MAIN_GHOST_NO_COMPARE] = navigateToMainGhostNoCompareSegment,
+	[NAVIGATE_TO_2ND_GHOST_NO_COMPARE] = navigateTo2ndGhostNoCompareSegment,
+	[ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE] = advLiveReplayWatchReplayNoCompareSegment,
+	[NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2] = navigateTo2ndGhostNoCompare2Segment,
+	[ADV_LIVE_REPLAY_SOLO_TIME_TRIAL] = advLiveReplaySoloTimeTrialSegment
 }
 
 function initializeSegmentTable()

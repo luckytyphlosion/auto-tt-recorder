@@ -137,3 +137,7 @@ mock_api/
 *.json
 *.mp4
 *.mkv
+*.mp3
+*.wav
+*.png
+lb_info_out.txt
