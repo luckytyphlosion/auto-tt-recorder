@@ -7,6 +7,7 @@ import collections
 import dateutil
 from lb_entry import LbEntryBuilder
 import time
+import record_ghost
 
 # input: vehicle_wr_entry
 # returns: new last checked timestamp, new vehicle_wr_entry, rkg_data if ghost chosen
@@ -97,31 +98,11 @@ def check_suitable_ghost(vehicle_wr_entry):
 
     return CheckSuitableGhostResult(time.time(), vehicle_wr_entry, rkg_data)
 
-def main():
-    yt_recorder_config_path = pathlib.Path("yt_recorder_config.json")
-    if not yt_recorder_config_path.is_file():
-        yt_recorder_config = {"last_recorded_run_timestamp": 0}
-    else:
-        with open(yt_recorder_config_path, "r") as f:
-            yt_recorder_config = json.load(f)
-
-    with open("sorted_vehicle_wrs.json", "r") as f:
-        vehicle_wrs = json.load(f)
-
-    #print(f"vehicle_wrs[0]['lastCheckedTimestamp']: {vehicle_wrs[0]['lastCheckedTimestamp']}")
-
-    #for vehicle_wr in vehicle_wrs:
-    #    try:
-    #        vehicle_wr["lastCheckedTimestamp"]
-    #    except TypeError as e:
-    #        print(f"vehicle_wr: {vehicle_wr}")
-    #
-    #raise RuntimeError()
-    sorted_vehicle_wrs = SortedList(vehicle_wrs, key=lambda x: x["lastCheckedTimestamp"])
-
-    #wr_and_kart_wr_vehicles = {}
+def find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs):
     num_tries = 0
     num_wrs = len(sorted_vehicle_wrs)
+    vehicle_wr_entry_to_record = None
+    downloaded_ghost_pathname = None
 
     while True:
         wr_index = sorted_vehicle_wrs.bisect_key_right(yt_recorder_config["last_recorded_run_timestamp"])
@@ -140,6 +121,7 @@ def main():
             with open(downloaded_ghost_pathname, "wb+") as f:
                 f.write(result.rkg_data)
             vehicle_wr_entry["recorded"] = True
+            vehicle_wr_entry_to_record = vehicle_wr_entry
 
         sorted_vehicle_wrs.add(vehicle_wr_entry)
 
@@ -150,6 +132,30 @@ def main():
         if num_tries >= num_wrs:
             print("All wrs recorded!")
             break
+
+    return yt_recorder_config, sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname
+
+def main():
+    yt_recorder_config_path = pathlib.Path("yt_recorder_config.json")
+    if not yt_recorder_config_path.is_file():
+        yt_recorder_config = {"last_recorded_run_timestamp": 0}
+    else:
+        with open(yt_recorder_config_path, "r") as f:
+            yt_recorder_config = json.load(f)
+
+    with open("sorted_vehicle_wrs.json", "r") as f:
+        vehicle_wrs = json.load(f)
+
+    sorted_vehicle_wrs = SortedList(vehicle_wrs, key=lambda x: x["lastCheckedTimestamp"])
+
+    yt_recorder_config, sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname = find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs)
+
+    iso_filename = "../../../RMCE01/RMCE01.iso"
+
+    if vehicle_wr_entry_to_record is not None:
+        rkg_file_main = downloaded_ghost_pathname
+        output_video_filename = vehicle_wr_entry_to_record["lbInfo"].replace(" ", "_") + ".mkv"
+        record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=False, no_music=True)
 
     with open(yt_recorder_config_path, "w+") as f:
         json.dump(yt_recorder_config, f)
