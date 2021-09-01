@@ -5,7 +5,7 @@ from sortedcontainers import SortedList
 import dateutil.parser
 import time
 from datetime import datetime, timezone
-import wr_entry
+from lb_entry import LbEntryBuilder
 
 class LeaderboardId:
     __slots__ = ("track_id", "category_id")
@@ -49,30 +49,44 @@ def main():
         #kart_wr_vehicle = kart_wr_entry_data["vehicleId"]
         #
         #excluded_vehicles = {wr_vehicle, kart_wr_vehicle}
-        track_name = get_track_name_from_track_id(lb_id.track_id)
+        track_name = identifiers.get_track_name_from_track_id(lb_id.track_id)
         category_name = identifiers.category_names[lb_id.category_id]
 
         for i in range(identifiers.NUM_VEHICLES):
             #if i in excluded_vehicles:
             #    continue
-            vehicle_name = identifiers.vehicle_names[i]
             vehicle_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=1, vehicle=i, times="wr")
             vehicle_entry_data = vehicle_lb["ghosts"]
-            if len(vehicle_entry_data) == 0:
-                vehicle_wr_entry = {}
-                ghost_href = None
-                last_checked = datetime.now(tz=timezone.utc)
+            lb_entry_builder = LbEntryBuilder()
+            #print(f"lb_entry_builder.track_id: {lb_entry_builder.track_id}")
 
-                lb_info = f"No wr exists for {track_name} - {category_name} ({vehicle_name})!"
-                print(lb_info)
-                output += f"{lb_info}\n"
+            if len(vehicle_entry_data) == 0:
+                lb_entry_builder.add_track_category_vehicle_id(
+                    lb_id.track_id, lb_id.category_id, i,
+                    track_name=track_name, category_name=category_name
+                )
+                lb_entry_builder.add_ghost_href_last_checked_date_set_timestamp(
+                    None, datetime.now(tz=timezone.utc), None
+                )
+                lb_entry_builder.add_lb_href(lb_href)
+
+                lb_entry_builder.gen_no_wr_lb_info()
+                print(lb_entry_builder.lb_info)
+                output += f"{lb_entry_builder.lb_info}\n"
             else:
                 vehicle_wr_entry = vehicle_entry_data[0]
-                ghost_href, date_set_timestamp, last_checked, lb_info = wr_entry.get_additional_info_from_wr_entry(vehicle_wr_entry)
-                print(lb_info)
-                output += f"{lb_info}\n"
+                lb_entry_builder.add_wr_entry(vehicle_wr_entry)
+                lb_entry_builder.add_track_category_vehicle_id(
+                    lb_id.track_id, lb_id.category_id, i,
+                    track_name=track_name, category_name=category_name
+                )
+                lb_entry_builder.add_lb_href(lb_href)
 
-            wr_entry.update_wr_entry_with_additional_info(vehicle_wr_entry, lb_href, ghost_href, date_set_timestamp, last_checked, lb_info)
+                lb_entry_builder.gen_has_wr_lb_info()
+                print(lb_entry_builder.lb_info)
+                output += f"{lb_entry_builder.lb_info}\n"
+
+            vehicle_wr_entry = lb_entry_builder.get_lb_entry_with_additional_info()
             vehicle_wr_minlookup_entries.add(vehicle_wr_entry)
 
     vehicle_wr_minlookup_entries_as_list = list(vehicle_wr_minlookup_entries)
