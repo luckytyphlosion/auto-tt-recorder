@@ -8,6 +8,8 @@ import dateutil
 from lb_entry import LbEntryBuilder
 import time
 import record_ghost
+import description
+import sys
 
 # input: vehicle_wr_entry
 # returns: new last checked timestamp, new vehicle_wr_entry, rkg_data if ghost chosen
@@ -17,12 +19,13 @@ import record_ghost
 #UPDATE_
 
 class CheckSuitableGhostResult:
-    __slots__ = ("last_checked_timestamp", "vehicle_wr_entry", "rkg_data")
+    __slots__ = ("last_checked_timestamp", "vehicle_wr_entry", "rkg_data", "vehicle_wr_lb")
 
-    def __init__(self, last_checked_timestamp, vehicle_wr_entry, rkg_data=None):
+    def __init__(self, last_checked_timestamp, vehicle_wr_entry, rkg_data=None, vehicle_wr_lb=None):
         self.last_checked_timestamp = last_checked_timestamp
         self.vehicle_wr_entry = vehicle_wr_entry
         self.rkg_data = rkg_data
+        self.vehicle_wr_lb = vehicle_wr_lb
 
 def check_suitable_ghost(vehicle_wr_entry):
     lb_href = vehicle_wr_entry["lbHref"]
@@ -60,7 +63,7 @@ def check_suitable_ghost(vehicle_wr_entry):
     if vehicle in excluded_vehicles:
         return CheckSuitableGhostResult(time.time(), vehicle_wr_entry)
 
-    updated_vehicle_wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=1, vehicle=vehicle, times="wr", override_cache=1)
+    updated_vehicle_wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=2, vehicle=vehicle, times="wr", override_cache=1)
     updated_vehicle_wr_entry_data = updated_vehicle_wr_lb["ghosts"]
     if len(updated_vehicle_wr_entry_data) == 0:
         lb_entry_builder = LbEntryBuilder()
@@ -96,13 +99,19 @@ def check_suitable_ghost(vehicle_wr_entry):
         print(f"Rkg file does not exist! info: {vehicle_wr_entry['lbInfo']}")
         return CheckSuitableGhostResult(time.time(), vehicle_wr_entry)
 
-    return CheckSuitableGhostResult(time.time(), vehicle_wr_entry, rkg_data)
+    # todo
+    if vehicle_wr_entry["playerId"] == "EE91F250E359EC6E":
+        print("TODO!")
+        sys.exit(1)
+
+    return CheckSuitableGhostResult(time.time(), vehicle_wr_entry, rkg_data, updated_vehicle_wr_lb)
 
 def find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs):
     num_tries = 0
     num_wrs = len(sorted_vehicle_wrs)
     vehicle_wr_entry_to_record = None
     downloaded_ghost_pathname = None
+    vehicle_wr_lb = None
 
     while True:
         wr_index = sorted_vehicle_wrs.bisect_key_right(yt_recorder_config["last_recorded_run_timestamp"])
@@ -117,7 +126,8 @@ def find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs):
         if result.rkg_data is not None:
             print(f"Found suitable ghost to record! info: {vehicle_wr_entry['lbInfo']}")
             yt_recorder_config["last_recorded_run_timestamp"] = vehicle_wr_entry["dateSetTimestamp"]
-            downloaded_ghost_pathname = pathlib.Path(vehicle_wr_entry["href"]).name 
+            downloaded_ghost_pathname = pathlib.Path(vehicle_wr_entry["href"]).name
+            vehicle_wr_lb = result.vehicle_wr_lb
             with open(downloaded_ghost_pathname, "wb+") as f:
                 f.write(result.rkg_data)
             vehicle_wr_entry["recorded"] = True
@@ -133,7 +143,7 @@ def find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs):
             print("All wrs recorded!")
             break
 
-    return yt_recorder_config, sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname
+    return yt_recorder_config, sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname, vehicle_wr_lb
 
 def main():
     yt_recorder_config_path = pathlib.Path("yt_recorder_config.json")
@@ -148,14 +158,20 @@ def main():
 
     sorted_vehicle_wrs = SortedList(vehicle_wrs, key=lambda x: x["lastCheckedTimestamp"])
 
-    yt_recorder_config, sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname = find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs)
+    yt_recorder_config, sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname, vehicle_wr_lb = find_ghost_to_record(yt_recorder_config, sorted_vehicle_wrs)
 
     iso_filename = "../../../RMCE01/RMCE01.iso"
 
     if vehicle_wr_entry_to_record is not None:
-        rkg_file_main = downloaded_ghost_pathname
-        output_video_filename = vehicle_wr_entry_to_record["lbInfo"].replace(" ", "_") + ".mkv"
-        record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=False, no_music=True)
+        output = ""
+        output += f"{description.gen_title(vehicle_wr_entry_to_record)}\n=============================\n"
+        output += f"{description.gen_description(vehicle_wr_entry_to_record, vehicle_wr_lb, downloaded_ghost_pathname)}\n"
+        print(output)
+        #return
+
+        #rkg_file_main = downloaded_ghost_pathname
+        #output_video_filename = vehicle_wr_entry_to_record["lbInfo"].replace(" ", "_") + ".mkv"
+        #record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=False, no_music=True)
 
     with open(yt_recorder_config_path, "w+") as f:
         json.dump(yt_recorder_config, f)

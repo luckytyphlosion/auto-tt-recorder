@@ -125,6 +125,17 @@ class BitManipulator(ABC):
 
         self.data[byte_offset] &= (1 << (7 - bit_offset)) ^ 0xff
 
+class Split:
+    __slots__ = ("minutes", "seconds", "milliseconds")
+
+    def __init__(self, minutes, seconds, milliseconds):
+        self.minutes = minutes
+        self.seconds = seconds
+        self.milliseconds = milliseconds
+
+    def pretty(self):
+        return f"{self.minutes:02d}:{self.seconds:02d}.{self.milliseconds:03d}"
+
 class Rkg(BitManipulator):
     oMINUTES = 0x4
     oMINUTES_bit = 0
@@ -168,6 +179,18 @@ class Rkg(BitManipulator):
     oDRIFT_TYPE = 0xd
     oDRIFT_TYPE_bit = 6
 
+    oLAP_1_SPLIT_MINUTES = 0x11
+    oLAP_1_SPLIT_MINUTES_bit = 0
+    oLAP_1_SPLIT_MINUTES_size = 7
+
+    oLAP_1_SPLIT_SECONDS = 0x11
+    oLAP_1_SPLIT_SECONDS_bit = 7
+    oLAP_1_SPLIT_SECONDS_size = 7
+
+    oLAP_1_SPLIT_MILLISECONDS = 0x12
+    oLAP_1_SPLIT_MILLISECONDS_bit = 6
+    oLAP_1_SPLIT_MILLISECONDS_size = 10
+
     oINPUTS = 0x88
     oCOMPRESSED_LEN = 0x88
     oCOMPRESSED_INPUTS_HEADER = 0x8c
@@ -182,7 +205,7 @@ class Rkg(BitManipulator):
     __slots__ = ("filename", "data", "rkg_file", "_track_id", "_compressed", "data",
         "_compressed_len", "_uncompressed_len", "_has_ctgp_data", "_mii", "_ghost_type", "_vehicle_id",
         "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type", "_track_by_human_id",
-        "_year", "_minutes", "_seconds", "_milliseconds")
+        "_year", "_minutes", "_seconds", "_milliseconds", "_splits")
 
     def __init__(self, filename, apply_crc_every_write=False):
         super().__init__(filename)
@@ -204,6 +227,16 @@ class Rkg(BitManipulator):
         self._minutes = self.read_bits(Rkg.oMINUTES, Rkg.oMINUTES_bit, Rkg.oMINUTES_size)
         self._seconds = self.read_bits(Rkg.oSECONDS, Rkg.oSECONDS_bit, Rkg.oSECONDS_size)
         self._milliseconds = self.read_bits(Rkg.oMILLISECONDS, Rkg.oMILLISECONDS_bit, Rkg.oMILLISECONDS_size)
+
+        splits = []
+
+        for i in range(3):
+            split_minutes = self.read_bits(Rkg.oLAP_1_SPLIT_MINUTES + i * 3, Rkg.oLAP_1_SPLIT_MINUTES_bit, Rkg.oLAP_1_SPLIT_MINUTES_size)
+            split_seconds = self.read_bits(Rkg.oLAP_1_SPLIT_SECONDS + i * 3, Rkg.oLAP_1_SPLIT_SECONDS_bit, Rkg.oLAP_1_SPLIT_SECONDS_size)
+            split_milliseconds = self.read_bits(Rkg.oLAP_1_SPLIT_MILLISECONDS + i * 3, Rkg.oLAP_1_SPLIT_MILLISECONDS_bit, Rkg.oLAP_1_SPLIT_MILLISECONDS_size)
+            splits.append(Split(split_minutes, split_seconds, split_milliseconds))
+
+        self._splits = splits
 
     @property
     def year(self):
@@ -291,6 +324,10 @@ class Rkg(BitManipulator):
     def year(self, year):
         self._year = year
         self.write_bits(Rkg.oYEAR, Rkg.oYEAR_bit, Rkg.oYEAR_size, year)
+
+    @property
+    def splits(self):
+        return self._splits
 
     def _set_compressed_from_data(self):
         self._compressed = self.read_bit(Rkg.oCOMPRESSED, Rkg.oCOMPRESSED_bit)
