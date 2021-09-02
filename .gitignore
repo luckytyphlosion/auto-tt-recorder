@@ -141,3 +141,7 @@ mock_api/
 *.wav
 *.png
 lb_info_out.txt
+client_secrets.json
+*.dump
+*.pickle
+credentials.yml

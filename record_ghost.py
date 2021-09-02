@@ -42,8 +42,11 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         time.sleep(1)
 
     os.chdir("..")
+    output_video_path = pathlib.Path(output_video_filename)
+    output_video_path.parent.mkdir(parents=True, exist_ok=True)
+
     subprocess.run(
-        ("ffmpeg", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
+        ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
     )
 
     print("Done!")
