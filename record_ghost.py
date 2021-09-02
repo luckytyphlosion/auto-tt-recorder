@@ -5,8 +5,13 @@ import subprocess
 import pathlib
 import time
 import os
+import configparser
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True):
+ENCODE_COPY = 0
+ENCODE_x264_LIBOPUS = 1
+ENCODE_x265_LIBOPUS = 2
+
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY):
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -23,6 +28,8 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
     framedump_path.unlink(missing_ok=True)
+
+    turn_off_dump_frames_audio()
 
     os.chdir("dolphin/")
     args = ["./DolphinR.exe", "-b", "-e", iso_filename]
@@ -45,11 +52,35 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     output_video_path = pathlib.Path(output_video_filename)
     output_video_path.parent.mkdir(parents=True, exist_ok=True)
 
-    subprocess.run(
-        ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
-    )
+    if encode_settings == ENCODE_COPY:
+        subprocess.run(
+            ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
+        )
+    elif encode_settings == ENCODE_x264_LIBOPUS:
+        subprocess.run(
+            ("ffmpeg", "-n", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx264", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename)
+        )
+    elif encode_settings == ENCODE_x265_LIBOPUS:
+        subprocess.run(
+            ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx265", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename)
+        )
+    else:
+        raise RuntimeError(f"Invalid encode setting {encode_settings}!")
 
     print("Done!")
+
+def turn_off_dump_frames_audio():
+    dolphin_config = "dolphin/User/Config/Dolphin.ini"
+
+    with open(dolphin_config, "r") as f:
+        config = configparser.ConfigParser(allow_no_value=True)
+        config.read_file(f, dolphin_config)
+
+    config["Movie"]["DumpFrames"] = False
+    config["DSP"]["DumpAudio"] = False
+
+    with open(dolphin_config, "w+") as f:
+        config.write(f)
 
 def main():
     franz = "01m41s1006378 Franz.rkg"

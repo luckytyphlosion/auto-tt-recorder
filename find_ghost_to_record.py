@@ -21,6 +21,8 @@ import youtube
 #UPDATE_USING_LAST_CHECKED = 1
 #UPDATE_
 
+OUTPUT_VIDEO_DIRECTORY = "yt_recorded_runs"
+
 class CheckSuitableGhostResult:
     __slots__ = ("last_checked_timestamp", "vehicle_wr_entry", "rkg_data", "vehicle_wr_lb")
 
@@ -175,7 +177,8 @@ def read_in_recorder_config():
         yt_recorder_config = {
             "state": RECORDING_GHOSTS,
             "base_schedule_index": 0,
-            "start_datetime": gen_start_datetime().isoformat()
+            "start_datetime": gen_start_datetime().isoformat(),
+            "add_in_music": True
         }
     else:
         with open(yt_recorder_config_path, "r") as f:
@@ -185,7 +188,7 @@ def read_in_recorder_config():
 
 def update_recorder_config_state_and_serialize(yt_recorder_config, state):
     yt_recorder_config["state"] = state
-    with open(yt_recorder_config_path, "w+") as f:
+    with open("yt_recorder_config.json", "w+") as f:
         json.dump(yt_recorder_config, f)
 
     return yt_recorder_config
@@ -220,7 +223,8 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
 
             downloaded_ghost_path = pathlib.PurePosixPath(downloaded_ghost_pathname)
             upload_title = f"api{downloaded_ghost_path.stem}"
-            output_video_filename = f"{upload_title}.mkv"
+            #pathlib.Path(OUTPUT_VIDEO_DIRECTORY).mkdir(parents=True, exist_ok=True)
+            output_video_filename = f"{OUTPUT_VIDEO_DIRECTORY}/{upload_title}.mkv"
 
             schedule_datetime_str = gen_schedule_datetime_str(start_datetime, schedule_index)
             yt_update_infos[upload_title] = {
@@ -230,7 +234,11 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
             }
 
             rkg_file_main = downloaded_ghost_pathname
-            record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=False, no_music=False)
+
+            #if yt_recorder_config["add_in_music"]:
+            #    no_music = True
+            #    encode_settings = record_ghost.ENCODE_x264_LIBOPUS
+            record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=False, no_music=False, encode_settings=record_ghost.ENCODE_x264_LIBOPUS)
         else:
             break
 
@@ -253,24 +261,25 @@ def waiting_for_upload(yt_recorder_config):
     return update_recorder_config_state_and_serialize(yt_recorder_config, UPDATING_UPLOADS)
 
 def record_and_update_uploads(num_ghosts):
-    read_in_recorder_config()
+    yt_recorder_config = read_in_recorder_config()
 
     if yt_recorder_config["state"] == RECORDING_GHOSTS:
         yt_recorder_config = record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config)
     if yt_recorder_config["state"] == WAITING_FOR_UPLOAD:
         yt_recorder_config = waiting_for_upload(yt_recorder_config)
     if yt_recorder_config["state"] == UPDATING_UPLOADS:
+        print("Entering update_title_description_and_schedule!")
         yt_recorder_config = youtube.update_title_description_and_schedule(yt_recorder_config)
 
 def record_vehicle_wr_ghosts_outer():
     while True:
-        record_vehicle_wr_ghosts(2)
+        record_and_update_uploads(2)
 
-def record_and_update_uploads():
-    record_vehicle_wr_ghosts(2)
+def test_record_and_update_uploads():
+    record_and_update_uploads(1)
 
 def main():
-    MODE = 1
+    MODE = 2
     if MODE == 0:
         record_vehicle_wr_ghosts_outer()
     elif MODE == 1:

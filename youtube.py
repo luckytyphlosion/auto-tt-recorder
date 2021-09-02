@@ -4,8 +4,7 @@ import google_auth_oauthlib.flow
 
 import json
 import urllib.parse
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone, timedelta
 import dateutil.parser
 import yaml
 import pickle
@@ -93,6 +92,7 @@ def update_title_description_and_schedule(yt_recorder_config):
     with build("youtube", "v3", credentials=yt_credentials) as api:
         while True:
             page_token = None
+            print("INFO: Getting uploaded video IDs!")
             while True:
                 response = get_channel_playlist_items(api, uploaded_videos_playlist_id, page_token)
                 video_infos.update(
@@ -102,7 +102,9 @@ def update_title_description_and_schedule(yt_recorder_config):
                 if next_page_token is None:
                     break
                 page_token = next_page_token
-    
+
+            print("INFO: Getting uploaded video titles!")
+
             for i, video_infos_part in enumerate(chunked(video_infos.values(), 50)):
                 video_ids_str = ",".join(video_info.video_id for video_info in video_infos_part)
                 #output += f"video_ids_str: {video_ids_str}\n"
@@ -113,11 +115,14 @@ def update_title_description_and_schedule(yt_recorder_config):
     
                 for video in videos["items"]:
                     video_infos[video["id"]].title = video["snippet"]["title"]
-    
+
+            print("INFO: Setting video title/description/etc.!")
+
             output = ""
             for video_id, video_info in video_infos.items():
                 yt_update_info = yt_update_infos.get(video_info.title)
                 if yt_update_info is not None:
+                    print(f"Found video to update! video title: {yt_update_info['yt_title']}")
                     response = api.videos().update(
                         part="snippet,id,status",
                         body={
@@ -131,7 +136,7 @@ def update_title_description_and_schedule(yt_recorder_config):
                                 "selfDeclaredMadeForKids": False,
                                 "privacyStatus": "private",
                                 "publishAt": yt_update_info["schedule_datetime_str"]
-                            }
+                            },
                             "id": video_id
                         }
                     ).execute()
