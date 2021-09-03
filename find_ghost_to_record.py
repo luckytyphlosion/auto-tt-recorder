@@ -241,7 +241,7 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
 
             if yt_recorder_config["add_in_music"]:
                 no_music = True
-                encode_settings = record_ghost.ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING
+                encode_settings = record_ghost.ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING
                 music_filename = yt_recorder_config["music_filename"]
             else:
                 no_music = False
