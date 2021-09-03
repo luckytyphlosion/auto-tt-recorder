@@ -168,7 +168,7 @@ def gen_schedule_datetime_str(start_datetime, schedule_index):
     if False:
         return pytz.utc.localize(start_datetime + timedelta(hours=4) * schedule_index).isoformat()
     else:
-        return pytz.utc.localize(start_datetime + timedelta(minutes=30) * schedule_index).isoformat()
+        return pytz.utc.localize(start_datetime + timedelta(hours=1) * schedule_index).isoformat()
         
 RECORDING_GHOSTS = 0
 WAITING_FOR_UPLOAD = 1
@@ -269,7 +269,7 @@ def waiting_for_upload(yt_recorder_config):
             break
 
     for f in pathlib.Path("yt_recorded_runs").glob("*"):
-        if f.is_file()
+        if f.is_file():
             f.unlink()
 
     return update_recorder_config_state_and_serialize(yt_recorder_config, UPDATING_UPLOADS)
@@ -290,7 +290,7 @@ def record_vehicle_wr_ghosts_outer():
         record_and_update_uploads(2)
 
 def test_record_and_update_uploads():
-    record_and_update_uploads(1)
+    record_and_update_uploads(14)
 
 def main():
     MODE = 2

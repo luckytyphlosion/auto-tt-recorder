@@ -53,48 +53,48 @@ def gen_add_music_trim_loading_filter():
 [v_almost_final]scale=1280:trunc(ow/a/2)*2:flags=bicubic[v]"
 
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None):
-    #rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
-    #    "rksys.dat", rkg_file_main,
-    #    "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
-    #    "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
-    #    rkg_file_comparison
-    #)
-    #
-    #params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
-    #gen_gecko_codes.create_gecko_code_file("RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
-    #create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
-    #
-    #kill_path = pathlib.Path("dolphin/kill.txt")
-    #kill_path.unlink(missing_ok=True)
-    #
-    #output_params_path = pathlib.Path("dolphin/output_params.txt")
-    #output_params_path.unlink(missing_ok=True)
-    #
-    #framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
-    #framedump_path.unlink(missing_ok=True)
-    #
-    #turn_off_dump_frames_audio()
-    #
-    #os.chdir("dolphin/")
-    #args = ["./DolphinR.exe", "-b", "-e", iso_filename]
-    #if hide_window:
-    #    args.extend(("-hm", "-dr"))
-    #
-    #popen = subprocess.Popen(args)
-    ##popen = subprocess.Popen(("./DolphinR.exe", "-b", "-e", iso_filename))
-    #kill_path = pathlib.Path("kill.txt")
-    #while True:
-    #    if kill_path.is_file():
-    #        popen.terminate()
-    #        # wsl memes
-    #        subprocess.run(("taskkill.exe", "/f", "/im", "DolphinR.exe"))
-    #        break
-    #
-    #    time.sleep(1)
-    #
-    #os.chdir("..")
-    #output_video_path = pathlib.Path(output_video_filename)
-    #output_video_path.parent.mkdir(parents=True, exist_ok=True)
+    rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
+        "rksys.dat", rkg_file_main,
+        "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
+        "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
+        rkg_file_comparison
+    )
+
+    params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
+    gen_gecko_codes.create_gecko_code_file("RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
+    create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
+
+    kill_path = pathlib.Path("dolphin/kill.txt")
+    kill_path.unlink(missing_ok=True)
+
+    output_params_path = pathlib.Path("dolphin/output_params.txt")
+    output_params_path.unlink(missing_ok=True)
+
+    framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
+    framedump_path.unlink(missing_ok=True)
+
+    turn_off_dump_frames_audio()
+
+    os.chdir("dolphin/")
+    args = ["./DolphinR.exe", "-b", "-e", iso_filename]
+    if hide_window:
+        args.extend(("-hm", "-dr"))
+
+    popen = subprocess.Popen(args)
+    #popen = subprocess.Popen(("./DolphinR.exe", "-b", "-e", iso_filename))
+    kill_path = pathlib.Path("kill.txt")
+    while True:
+        if kill_path.is_file():
+            popen.terminate()
+            # wsl memes
+            subprocess.run(("taskkill.exe", "/f", "/im", "DolphinR.exe"))
+            break
+
+        time.sleep(1)
+
+    os.chdir("..")
+    output_video_path = pathlib.Path(output_video_filename)
+    output_video_path.parent.mkdir(parents=True, exist_ok=True)
 
     if encode_settings == ENCODE_COPY:
         subprocess.run(
