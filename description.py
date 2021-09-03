@@ -21,7 +21,20 @@ Lap 1 | {lap_1_split}
 Lap 2 | {lap_2_split}
 Lap 3 | {lap_3_split}
 
-Former World Record: {former_wr}"""
+♪ Otis McDonald «» Complicate Ya ♪  
+Link: https://www.youtube.com/watch?v=swGy5jk6FvA
+(BGM & Video by Auto TT Recorder)
+
+Former World Record: {former_wr}
+
+Helpful Links
+• Support CTGP by donating here: https://streamlabs.com/mrbean35000vr
+• CTGP Records discord server: https://discord.com/invite/dPrhVUS
+• Every MKW Top 10 - http://mkleaderboards.com/mkw
+• MKW World Record History: https://www.mkwrs.com/mkwii/
+
+This run was automatically recorded by Auto TT Recorder.
+"""
 
 FORMER_WR_TEMPLATE = """\
 {former_wr_time}
@@ -34,7 +47,7 @@ HEAVY_LEFT_ANGLE_BRACKET = "❮"
 HEAVY_RIGHT_ANGLE_BRACKET = "❯"
 
 MAX_TITLE_LEN = 100
-MAX_DESCRIPTION_LEN = 1000
+MAX_DESCRIPTION_LEN = 5000
 
 def replace_angle_brackets(input_str):
     return input_str.replace("<", HEAVY_LEFT_ANGLE_BRACKET).replace(">", HEAVY_RIGHT_ANGLE_BRACKET)

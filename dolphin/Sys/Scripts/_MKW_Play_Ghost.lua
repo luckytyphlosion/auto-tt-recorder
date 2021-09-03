@@ -68,6 +68,8 @@ local cursorSetManuallyForNextFrame = false
 
 local params = {}
 
+local outputParams = {}
+
 local cupDebugText = ""
 local triggeredFlowerCupText = ""
 
@@ -164,6 +166,7 @@ end
 
 function startDumpFrames(curSegmentIndex, curActionIndex, curState)
 	SetFrameAndAudioDump(true)
+	outputParams["frameRecordingStarts"] = GetFrameCount()
 	curActionIndex = curActionIndex + 1
 	curState = EXIT_LOOP_NO_DELAY
 	return curSegmentIndex, curActionIndex, curState
@@ -214,6 +217,13 @@ function navigateToMainGhostSoloTimeTrial(curSegmentIndex, curActionIndex, curSt
 		error(string.format("Invalid mainGhostPos %d!", mainGhostPos))
 	end
 	curState = EXECUTING_ACTION
+	return curSegmentIndex, curActionIndex, curState
+end
+
+function setFrameReplayStarts(curSegmentIndex, curActionIndex, curState)
+	outputParams["frameReplayStarts"] = GetFrameCount()
+	curState = EXECUTING_ACTION
+	curActionIndex = curActionIndex + 1
 	return curSegmentIndex, curActionIndex, curState
 end
 
@@ -342,10 +352,12 @@ local navigateTo3rdGhost2Segment = {
 local advLiveReplayRaceGhostSegment = {
 	{"none", 30},
 	{startDumpFrames, 0},
-	{"none", 120},
+	{"none", 60},
 	{"A", 30},
 	{"A", 10},
-	{waitRaceCompletion, 60 * 13},
+	{waitFrameOfInput0, 0},
+	{setFrameReplayStarts, 0},
+	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
 	{"done", 0}
 	--{waitFrameOfInput0, 0},
@@ -385,10 +397,12 @@ local navigateTo2ndGhostNoCompare2Segment = {
 local advLiveReplaySoloTimeTrialSegment = {
 	{"up", 30},
 	{startDumpFrames, 0},
-	{"none", 120},
+	{"none", 60},
 	{"A", 30},
 	{"A", 10},
-	{waitRaceCompletion, 60 * 13},
+	{waitFrameOfInput0, 0},
+	{setFrameReplayStarts, 0},
+	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
 	{"done", 0}
 }
@@ -447,6 +461,17 @@ end
 function initializePlayGhost()
 	initializeSegmentTable()
 	readInParams()
+end
+
+function writeOutputParams()
+	output = ""
+	for k, v in pairs(outputParams) do
+		output = output .. k .. ": " .. v .. "\n"
+	end
+
+	file = io.open("output_params.txt", "w")
+	file:write(output)
+	file:close()
 end
 
 pressButtonCommands = {
@@ -533,6 +558,7 @@ function onScriptUpdate()
 			elseif curAction.command == "right" then
 				SetMainStickX(255)
 			elseif curAction.command == "done" then
+				writeOutputParams()
 				file = io.open("kill.txt", "w")
 				file:close()
 				CancelScript()

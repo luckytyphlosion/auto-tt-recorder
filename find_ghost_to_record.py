@@ -165,8 +165,11 @@ def test_gen_start_datetime():
     print(f"start_datetime: {start_datetime.isoformat()}")
 
 def gen_schedule_datetime_str(start_datetime, schedule_index):
-    return pytz.utc.localize(start_datetime + timedelta(hours=4) * schedule_index).isoformat()
-
+    if False:
+        return pytz.utc.localize(start_datetime + timedelta(hours=4) * schedule_index).isoformat()
+    else:
+        return pytz.utc.localize(start_datetime + timedelta(minutes=30) * schedule_index).isoformat()
+        
 RECORDING_GHOSTS = 0
 WAITING_FOR_UPLOAD = 1
 UPDATING_UPLOADS = 2
@@ -178,7 +181,8 @@ def read_in_recorder_config():
             "state": RECORDING_GHOSTS,
             "base_schedule_index": 0,
             "start_datetime": gen_start_datetime().isoformat(),
-            "add_in_music": True
+            "add_in_music": False,
+            "music_filename": None
         }
     else:
         with open(yt_recorder_config_path, "r") as f:
@@ -235,10 +239,16 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
 
             rkg_file_main = downloaded_ghost_pathname
 
-            #if yt_recorder_config["add_in_music"]:
-            #    no_music = True
-            #    encode_settings = record_ghost.ENCODE_x264_LIBOPUS
-            record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=False, no_music=False, encode_settings=record_ghost.ENCODE_x264_LIBOPUS)
+            if yt_recorder_config["add_in_music"]:
+                no_music = True
+                encode_settings = record_ghost.ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING
+                music_filename = yt_recorder_config["music_filename"]
+            else:
+                no_music = False
+                encode_settings = record_ghost.ENCODE_COPY
+                music_filename = None
+
+            record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
         else:
             break
 

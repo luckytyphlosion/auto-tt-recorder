@@ -45,7 +45,8 @@ def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True
         endpoint_as_path.parent.mkdir(parents=True, exist_ok=True)
 
     if r.status_code != 200:
-        endpoint_as_path.touch()
+        if try_cached:
+            endpoint_as_path.touch()
         return r.reason, r.status_code
         #raise RuntimeError(f"API returned {r.status_code}: {r.reason}")
 
@@ -64,7 +65,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True
                 f.write(r.content)
 
     if rate_limit:
-        time.sleep(5)
+        time.sleep(1)
 
     return data, r.status_code
 
