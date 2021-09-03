@@ -268,6 +268,10 @@ def waiting_for_upload(yt_recorder_config):
         if s == "uploaded":
             break
 
+    for f in pathlib.Path("yt_recorded_runs").glob("*"):
+        if f.is_file()
+            f.unlink()
+
     return update_recorder_config_state_and_serialize(yt_recorder_config, UPDATING_UPLOADS)
 
 def record_and_update_uploads(num_ghosts):
