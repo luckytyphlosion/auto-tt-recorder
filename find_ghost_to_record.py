@@ -170,19 +170,21 @@ def gen_schedule_datetime_str(start_datetime, schedule_index):
     else:
         return pytz.utc.localize(start_datetime + timedelta(hours=1) * schedule_index).isoformat()
         
-RECORDING_GHOSTS = 0
-WAITING_FOR_UPLOAD = 1
-UPDATING_UPLOADS = 2
+SETTING_NUM_REMAINING_GHOSTS = 0
+RECORDING_GHOSTS = 1
+WAITING_FOR_UPLOAD = 2
+UPDATING_UPLOADS = 3
 
 def read_in_recorder_config():
     yt_recorder_config_path = pathlib.Path("yt_recorder_config.json")
     if not yt_recorder_config_path.is_file():
         yt_recorder_config = {
-            "state": RECORDING_GHOSTS,
+            "state": SETTING_NUM_REMAINING_GHOSTS,
             "base_schedule_index": 0,
             "start_datetime": gen_start_datetime().isoformat(),
             "add_in_music": False,
-            "music_filename": None
+            "music_filename": None,
+            "num_remaining_ghosts": 0
         }
     else:
         with open(yt_recorder_config_path, "r") as f:
@@ -211,11 +213,11 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
 
     sorted_vehicle_wrs = SortedList(vehicle_wrs, key=lambda x: x["lastCheckedTimestamp"])
 
-    yt_update_infos = {}
+    yt_update_infos = read_yt_update_infos()
     start_datetime = datetime.fromisoformat(yt_recorder_config["start_datetime"])
     base_schedule_index = yt_recorder_config["base_schedule_index"]
 
-    for i in range(num_ghosts):
+    for i in range(yt_recorder_config["num_remaining_ghosts"]):
         sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname, vehicle_wr_lb = find_ghost_to_record(sorted_vehicle_wrs)
 
         iso_filename = "../../../RMCE01/RMCE01.iso"
@@ -249,16 +251,21 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
                 music_filename = None
 
             record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
+
+            yt_recorder_config["base_schedule_index"] += 1
+            yt_recorder_config["num_remaining_ghosts"] -= 1
+
+            sorted_vehicle_wrs_as_list = list(sorted_vehicle_wrs)
+
+            with open("sorted_vehicle_wrs.json", "w+") as f:
+                json.dump(sorted_vehicle_wrs_as_list, f, indent=2, ensure_ascii=False)
+
+            serialize_yt_update_infos(yt_update_infos)
+            
+            yt_recorder_config = update_recorder_config_state_and_serialize(yt_recorder_config, RECORDING_GHOSTS)
         else:
+            yt_recorder_config["num_remaining_ghosts"] = 0
             break
-
-    yt_recorder_config["base_schedule_index"] += num_ghosts
-    serialize_yt_update_infos(yt_update_infos)
-
-    sorted_vehicle_wrs_as_list = list(sorted_vehicle_wrs)
-
-    with open("sorted_vehicle_wrs.json", "w+") as f:
-        json.dump(sorted_vehicle_wrs_as_list, f, indent=2, ensure_ascii=False)
 
     return update_recorder_config_state_and_serialize(yt_recorder_config, WAITING_FOR_UPLOAD)
 
@@ -268,15 +275,19 @@ def waiting_for_upload(yt_recorder_config):
         if s == "uploaded":
             break
 
-    for f in pathlib.Path("yt_recorded_runs").glob("*"):
-        if f.is_file():
-            f.unlink()
+    #for f in pathlib.Path("yt_recorded_runs").glob("*"):
+    #    if f.is_file():
+    #        f.unlink()
 
     return update_recorder_config_state_and_serialize(yt_recorder_config, UPDATING_UPLOADS)
 
 def record_and_update_uploads(num_ghosts):
     yt_recorder_config = read_in_recorder_config()
 
+    if yt_recorder_config["state"] == SETTING_NUM_REMAINING_GHOSTS:
+        yt_recorder_config["num_remaining_ghosts"] = num_ghosts
+        serialize_yt_update_infos({})
+        yt_recorder_config = update_recorder_config_state_and_serialize(yt_recorder_config, RECORDING_GHOSTS)
     if yt_recorder_config["state"] == RECORDING_GHOSTS:
         yt_recorder_config = record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config)
     if yt_recorder_config["state"] == WAITING_FOR_UPLOAD:
@@ -290,7 +301,7 @@ def record_vehicle_wr_ghosts_outer():
         record_and_update_uploads(2)
 
 def test_record_and_update_uploads():
-    record_and_update_uploads(14)
+    record_and_update_uploads(12)
 
 def main():
     MODE = 2

@@ -83,7 +83,7 @@ def gen_description(vehicle_wr_entry, vehicle_wr_lb, rkg_filename):
 
     run_link = create_chadsoft_link(vehicle_wr_entry["ghostHref"])
     lb_link = create_chadsoft_link(vehicle_wr_entry["lbHref"])
-    
+    lb_link += f"#filter-vehicle-{vehicle_wr_entry['vehicleName'].replace(' ', '-').lower()}"
     location = identifiers.location_names.get(vehicle_wr_entry.get("country", -1), "Unknown")
     controller = identifiers.get_controller_name(vehicle_wr_entry["controller"], vehicle_wr_entry["usbGcnAdapterAttached"])
 

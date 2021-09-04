@@ -149,7 +149,7 @@ def update_title_description_and_schedule(yt_recorder_config):
 
             sleep_by_walltime(10*60)
 
-    find_ghost_to_record.update_recorder_config_state_and_serialize(yt_recorder_config, find_ghost_to_record.RECORDING_GHOSTS)
+    find_ghost_to_record.update_recorder_config_state_and_serialize(yt_recorder_config, find_ghost_to_record.SETTING_NUM_REMAINING_GHOSTS)
 
 def get_uploaded_videos_playlist_id():
     read_credentials_from_file = True
