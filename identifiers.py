@@ -38,6 +38,30 @@ vehicle_names = {
     0x23: "Phantom"
 }
 
+vehicle_names_eu = {
+    0x03: "Baby Booster",
+    0x04: "Nostalgia 1",
+    0x06: "Concerto",
+    0x0A: "Turbo Blooper",
+    0x0C: "Rally Romper",
+    0x0D: "Royal Racer",
+    0x0E: "Aero Glider",
+    0x10: "B Dasher Mk 2",
+    0x11: "Dragonetti",
+    0x17: "Bowser Bike",
+    0x18: "Nanobike",
+    0x19: "Bon Bon",
+    0x1C: "Rapide",
+    0x1D: "Twinkle Star",
+    0x1F: "Nitrocycle",
+    0x20: "Torpedo",
+    0x21: "Bubble Bike",
+}
+
+track_names_eu = {
+    6: "DK's Snowboard Cross"
+}
+
 NUM_VEHICLES = len(vehicle_names)
 
 track_id_to_ghost_slot = {

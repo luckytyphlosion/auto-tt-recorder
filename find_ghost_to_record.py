@@ -236,7 +236,9 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
             yt_update_infos[upload_title] = {
                 "yt_title": yt_title,
                 "yt_description": yt_description,
-                "schedule_datetime_str": schedule_datetime_str
+                "schedule_datetime_str": schedule_datetime_str,
+                "track_id": vehicle_wr_entry_to_record["trackId"],
+                "vehicle_id": vehicle_wr_entry_to_record["vehicleId"]
             }
 
             rkg_file_main = downloaded_ghost_pathname

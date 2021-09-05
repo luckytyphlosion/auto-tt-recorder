@@ -12,8 +12,39 @@ import itertools
 import pathlib
 import find_ghost_to_record
 import time
+import identifiers
 
-CTGP_TAGS = ["Mario Kart Wii", "mkw", "mkwii", "mario kart", "mario kart wii world records", "mkw records", "mkw world records", "mkw bkt", "mkw wr", "ctgp records", "wr", "bkt", "best known time", "world record", "マリオカートWii", "Nintendo Wii", "CTGP", "CTGP-R", "CTGP Revolution", "time trials", "Wii", "Mario"]
+CTGP_TAGS = ["Mario Kart Wii","mkw","mkwii","mario kart","mario kart wii world records","mkw records","mkw world records","mkw bkt","mkw wr","ctgp records","wr","bkt","best known time","world record","CTGP","Wii"]
+
+EU_TYPE_NONE = 0
+EU_TYPE_TRACK = 1
+EU_TYPE_VEHICLE = 2
+EU_TYPE_BOTH = 3
+
+TAGS_CHARACTER_LIMIT = 500
+
+class AdditionalTagTemplate:
+    __slots__ = ("tag", "eu_type")
+
+    def __init__(self, tag, eu_type=EU_TYPE_NONE):
+        self.tag = tag
+        self.eu_type = eu_type
+
+additional_tag_templates = (
+    AdditionalTagTemplate("{track_eu}", EU_TYPE_TRACK),
+    AdditionalTagTemplate("{vehicle_eu}", EU_TYPE_VEHICLE),
+    AdditionalTagTemplate("{track} {vehicle} wr"),
+    AdditionalTagTemplate("{track} {vehicle} bkt"),
+    AdditionalTagTemplate("mario kart wii {track} {vehicle} wr"),
+    AdditionalTagTemplate("mario kart wii {track} {vehicle} bkt"),
+    AdditionalTagTemplate("{track} with {vehicle}"),
+    AdditionalTagTemplate("mkw {track} {vehicle} wr"),
+    AdditionalTagTemplate("mkw {track} {vehicle} bkt"),
+    AdditionalTagTemplate("mkwii {track} {vehicle} wr"),
+    AdditionalTagTemplate("mkwii {track} {vehicle} bkt"),
+    AdditionalTagTemplate("{track_eu} {vehicle_eu} wr", EU_TYPE_BOTH),
+    AdditionalTagTemplate("{track_eu} {vehicle_eu} bkt", EU_TYPE_BOTH)
+)
 
 scopes = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube"]
 
@@ -47,6 +78,88 @@ def chunked(it, size):
         if not p:
             break
         yield p
+
+def calc_tag_len(tag):
+    if " " in tag:
+        return len(tag) + 2
+    else:
+        return len(tag)
+
+def calc_adding_tag_len(tag):
+    return calc_tag_len(tag) + 1
+
+def calc_tags_len(tags):
+    total_tags_len = 0
+    for tag in tags:
+        total_tags_len += calc_tag_len(tag)
+
+    total_tags_len += max(len(tags) - 1, 0)
+
+    return total_tags_len
+
+def add_additional_tags(initial_tags, additional_tag_templates, yt_update_info):
+    video_tags = list(initial_tags)
+
+    total_tags_len = calc_tags_len(video_tags)
+    human_track_id = identifiers.track_id_to_human_track_id[yt_update_info["track_id"]]
+    vehicle_id = yt_update_info["vehicle_id"]
+
+    track_name = identifiers.track_names[human_track_id]
+    track_name_eu = identifiers.track_names_eu.get(human_track_id)
+    if track_name_eu is None:
+        track_name_eu_exists = False
+        track_name_eu = track_name
+    else:
+        track_name_eu_exists = True
+
+    vehicle_name = identifiers.vehicle_names[vehicle_id]
+    vehicle_name_eu = identifiers.vehicle_names_eu.get(vehicle_id)
+    if vehicle_name_eu is None:
+        vehicle_name_eu_exists = False
+        vehicle_name_eu = track_name
+    else:
+        vehicle_name_eu_exists = True
+
+    format_mapping = {
+        "track_eu": track_name_eu,
+        "track": track_name,
+        "vehicle_eu": vehicle_name_eu,
+        "vehicle": vehicle_name
+    }
+        
+    # try to stuff as many additional tags as possible
+    for additional_tag_template in additional_tag_templates:
+        eu_type = additional_tag_template.eu_type
+        tag_sensible = True
+
+        #if eu_type == EU_TYPE_NONE:
+        #    track_name_eu_exists = True
+        if eu_type == EU_TYPE_TRACK:
+            if not track_name_eu_exists:
+                tag_sensible = False
+        elif eu_type == EU_TYPE_VEHICLE:
+            if not vehicle_name_eu_exists:
+                tag_sensible = False
+        elif eu_type == EU_TYPE_BOTH:
+            if not track_name_eu_exists and not vehicle_name_eu_exists:
+                tag_sensible = False
+
+        if not tag_sensible:
+            continue
+
+        additional_tag = additional_tag_template.tag.format_map(format_mapping)
+        additional_tag_len = calc_adding_tag_len(additional_tag)
+        if total_tags_len + additional_tag_len > TAGS_CHARACTER_LIMIT:
+            break
+        else:
+            total_tags_len += additional_tag_len
+            video_tags.append(additional_tag)
+
+    return video_tags
+
+def tags_to_str(tags):
+    output = ",".join(f'"{tag}"' if " " in tag else tag for tag in tags)
+    return output
 
 class VideoInfo:
     __slots__ = ("video_id", "title")
@@ -123,6 +236,8 @@ def update_title_description_and_schedule(yt_recorder_config):
                 yt_update_info = yt_update_infos.get(video_info.title)
                 if yt_update_info is not None:
                     print(f"Found video to update! video title: {yt_update_info['yt_title']}")
+                    initial_tags = CTGP_TAGS
+                    video_tags = add_additional_tags(initial_tags, additional_tag_templates, yt_update_info)
                     response = api.videos().update(
                         part="snippet,id,status",
                         body={
@@ -130,7 +245,7 @@ def update_title_description_and_schedule(yt_recorder_config):
                                 "title": yt_update_info["yt_title"],
                                 "categoryId": "20",
                                 "description": yt_update_info["yt_description"],
-                                "tags": CTGP_TAGS,
+                                "tags": video_tags,
                             },
                             "status": {
                                 "selfDeclaredMadeForKids": False,
@@ -189,10 +304,22 @@ def get_uploaded_videos_playlist_id():
     with open(credentials_path, "w+") as f:
         yaml.dump(credentials, f)
 
+def test_add_additional_tags():
+    yt_update_info = {
+        "track_id": 6,
+        "vehicle_id": 0x20
+    }
+    initial_tags = CTGP_TAGS
+    video_tags = add_additional_tags(CTGP_TAGS, additional_tag_templates, yt_update_info)
+    video_tags_as_str = tags_to_str(video_tags)
+    print(f"video_tags: {video_tags}\n\nvideo_tags as str: {video_tags_as_str}\n\ntags len: {len(video_tags_as_str)}")
+
 def main():
-    MODE = 0
+    MODE = 1
     if MODE == 0:
         get_uploaded_videos_playlist_id()
+    elif MODE == 1:
+        test_add_additional_tags()
     else:
         print("No mode selected!")
 

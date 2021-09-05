@@ -13,6 +13,7 @@ Link to run: {run_link}
 Link to leaderboard: {lb_link}
 Location: {location}
 Controller: {controller}
+Vehicle: {vehicle_name}
 Drift Type: {drift_type}
 Category: {category_name}
 
@@ -89,6 +90,11 @@ def gen_description(vehicle_wr_entry, vehicle_wr_lb, rkg_filename):
 
     rkg = Rkg(rkg_filename)
 
+    vehicle_name = vehicle_wr_entry['vehicleName']
+    vehicle_name_eu = identifiers.vehicle_names_eu.get(vehicle_wr_entry["vehicleId"])
+    if vehicle_name_eu is not None:
+        vehicle_name += f" ({vehicle_name_eu})"
+
     drift_type = "Automatic" if rkg.drift_type else "Manual"
     category_name = vehicle_wr_entry["categoryName"]
 
@@ -123,6 +129,7 @@ def gen_description(vehicle_wr_entry, vehicle_wr_lb, rkg_filename):
         lb_link=lb_link,
         location=location,
         controller=controller,
+        vehicle_name=vehicle_name,
         drift_type=drift_type,
         category_name=category_name,
         run_time=run_time,
