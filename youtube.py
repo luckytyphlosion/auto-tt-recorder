@@ -162,10 +162,13 @@ def tags_to_str(tags):
     return output
 
 class VideoInfo:
-    __slots__ = ("video_id", "title")
+    __slots__ = ("video_id", "title", "upload_status", "processing_details")
 
     def __init__(self, video_id):
         self.video_id = video_id
+        self.title = None
+        self.upload_status = None
+        self.processing_details = None
 
 def sleep_by_walltime(seconds, sleep_time=5):
     wait_until_datetime = datetime.now(tz=timezone.utc) + timedelta(seconds=seconds)
@@ -223,11 +226,14 @@ def update_title_description_and_schedule(yt_recorder_config):
                 #output += f"video_ids_str: {video_ids_str}\n"
                 videos = api.videos().list(
                     id=video_ids_str,
-                    part="snippet"
+                    part="snippet,status"
                 ).execute()
-    
+
                 for video in videos["items"]:
-                    video_infos[video["id"]].title = video["snippet"]["title"]
+                    video_info = video_infos[video["id"]]
+                    video_info.title = video["snippet"]["title"]
+                    video_info.upload_status = video["status"]["uploadStatus"]
+                    video_info.processing_details = video["status"]["processingDetails"]
 
             print("INFO: Setting video title/description/etc.!")
 
@@ -235,6 +241,15 @@ def update_title_description_and_schedule(yt_recorder_config):
             for video_id, video_info in video_infos.items():
                 yt_update_info = yt_update_infos.get(video_info.title)
                 if yt_update_info is not None:
+                    print(f"video_info.upload_status: {video_info.upload_status}, video_info.processing_details: {video_info.processing_details}")
+
+                    #if video_info.upload_status not in ("uploaded", "processed"):
+                    #    
+                    #elif video_info.upload_status in ("deleted", "failed", "rejected"):
+                    #    raise RuntimeError(f"Upload was unsuccessful! upload_status: {video_info.upload_status}, title: {yt_update_info['yt_title']}")
+                    #else:
+                    #    continue
+
                     print(f"Found video to update! video title: {yt_update_info['yt_title']}")
                     initial_tags = CTGP_TAGS
                     video_tags = add_additional_tags(initial_tags, additional_tag_templates, yt_update_info)
