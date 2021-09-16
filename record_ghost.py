@@ -6,6 +6,21 @@ import pathlib
 import time
 import os
 import configparser
+import argparse
+from enum import Enum
+import sys
+
+# def export_enums(enum):
+#     globals().update(enum.__members__)
+#     return enum
+# 
+# @export_enums
+# class EncodePreset(Enum):
+#     ENCODE_COPY = 0
+#     ENCODE_x264_LIBOPUS = 1
+#     ENCODE_x265_LIBOPUS = 2
+#     ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 3
+#     ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 4
 
 ENCODE_COPY = 0
 ENCODE_x264_LIBOPUS = 1
@@ -59,6 +74,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
         rkg_file_comparison
     )
+
+    if music_filename is not None:
+        no_music = False
 
     params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
     gen_gecko_codes.create_gecko_code_file("RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
@@ -137,7 +155,7 @@ def turn_off_dump_frames_audio():
     with open(dolphin_config, "w+") as f:
         config.write(f)
 
-def main():
+def hardcoded_test():
     franz = "01m41s1006378 Franz.rkg"
     cole = "01m08s7732250 Cole.rkg"
 
@@ -166,6 +184,49 @@ def main():
     music_filename = "otis_mcdonald_intro_hq_complicate_ya_x2.wav"
 
     record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record.")
+    ap.add_argument("-o", "--output-video-filename", dest="output_video_filename", help="Filename of the output recorded ghost.")
+    ap.add_argument("-r", "--iso-filename", dest="iso_filename", help="Filename of the Mario Kart Wii ISO.")
+    ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost.")
+    ap.add_argument("-kw", "--keep-window", dest="keep_window", action="store_true", default=False, help="By default, the Dolphin executable used to record the ghost is hidden to prevent accidental interaction with the window. Enabling this option will keep the window open, e.g. for debugging.")
+    ap.add_argument("-e", "--encode-preset", dest="encode_preset", type=int, default=0, help="Integer value of the encoding preset to use. Default is 0 (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
+    ap.add_argument("-m", "--music-filename", dest="music_filename", default=None, help="Filename of the music which will replace the regular BGM. Omitting this option will keep the regular BGM. Specifying an empty string or None/none will disable music altogether.")
+    ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
+
+    args = ap.parse_args()
+
+    error_occurred = False
+
+    rkg_file_main = args.input_ghost_filename
+    # output filename must end in .mkv!
+    output_video_filename = args.output_video_filename
+    iso_filename = args.iso_filename
+    rkg_file_comparison = args.comparison_ghost_filename
+    hide_window = not args.keep_window
+    encode_settings = args.encode_preset
+    if encode_settings in (ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING, ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING):
+        if args.music_filename is None:
+            print("Error: Music filename not specified with encode setting which requires music.", file=sys.stderr)
+            error_occurred = True
+        else:
+            if args.music_filename in ("", "None", "none"):
+                music_filename = None
+            else:
+                music_filename = args.music_filename
+    else:
+        if args.music_filename is not None:
+            print("Warning: Music filename specified with incompatible encode setting.", file=sys.stderr)
+        music_filename = None
+
+    no_music = (music_filename is not None) or args.no_music
+
+    if error_occurred:
+        sys.exit(1)
+    else:
+        record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
