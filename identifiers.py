@@ -117,6 +117,41 @@ track_names = [
     "N64 Bowser's Castle"
 ]
 
+track_filenames = [
+    "beginner_course.szs",
+    "farm_course.szs",
+    "kinoko_course.szs",
+    "factory_course.szs",
+    "castle_course.szs",
+    "shopping_course.szs",
+    "boardcross_course.szs",
+    "truck_course.szs",
+    "senior_course.szs",
+    "water_course.szs",
+    "treehouse_course.szs",
+    "volcano_course.szs",
+    "desert_course.szs",
+    "ridgehighway_course.szs",
+    "koopa_course.szs",
+    "rainbow_course.szs",
+    "old_peach_gc.szs",
+    "old_falls_ds.szs",
+    "old_obake_sfc.szs",
+    "old_mario_64.szs",
+    "old_sherbet_64.szs",
+    "old_heyho_gba.szs",
+    "old_town_ds.szs",
+    "old_waluigi_gc.szs",
+    "old_desert_ds.szs",
+    "old_koopa_gba.szs",
+    "old_donkey_64.szs",
+    "old_mario_gc.szs",
+    "old_mario_sfc.szs",
+    "old_garden_ds.szs",
+    "old_donkey_gc.szs",
+    "old_koopa_64.szs"
+]
+
 category_names = {
     -1: "(Default)",
     0: "Normal",

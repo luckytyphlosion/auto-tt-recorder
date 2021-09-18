@@ -148,3 +148,4 @@ client_secrets.json
 *.pickle
 credentials.yml
 *.webm
+*.szs

@@ -71,6 +71,8 @@ def create_lua_params(rkg, rkg_comparison, output_file):
         elif ghost.type == GHOST_SELECT_COMPARE_GHOST:
             output += f"compareGhostPos: {i}\n"
 
+    output += f"lapCount: {rkg.lap_count}\n"
+
     with open(output_file, "w+") as f:
         f.write(output)
 

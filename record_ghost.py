@@ -9,6 +9,7 @@ import configparser
 import argparse
 from enum import Enum
 import sys
+import mkw_filesys
 
 # def export_enums(enum):
 #     globals().update(enum.__members__)
@@ -67,7 +68,7 @@ def gen_add_music_trim_loading_filter():
 [v0][a0][v1][a1]concat=n=2:v=1:a=1[v_almost_final][a];\
 [v_almost_final]scale=1280:trunc(ow/a/2)*2:flags=bicubic[v]"
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None, szs_filename=None):
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -81,6 +82,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
     gen_gecko_codes.create_gecko_code_file("RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
+    mkw_filesys.replace_track(szs_filename, rkg)
 
     kill_path = pathlib.Path("dolphin/kill.txt")
     kill_path.unlink(missing_ok=True)
@@ -195,7 +197,7 @@ def main():
     ap.add_argument("-e", "--encode-preset", dest="encode_preset", type=int, default=0, help="Integer value of the encoding preset to use. Default is 0 (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
     ap.add_argument("-m", "--music-filename", dest="music_filename", default=None, help="Filename of the music which will replace the regular BGM. Omitting this option will keep the regular BGM. Specifying an empty string or None/none will disable music altogether.")
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
-
+    ap.add_argument("-s", "--szs-filename", dest="szs_filename", default=None, help="Filename of the szs file corresponding to the ghost file. Omit this for a regular track (or if the track was already replaced in the ISO)")
     args = ap.parse_args()
 
     error_occurred = False
@@ -223,10 +225,12 @@ def main():
 
     no_music = (music_filename is not None) or args.no_music
 
+    szs_filename = args.szs_filename
+
     if error_occurred:
         sys.exit(1)
     else:
-        record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
+        record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename, szs_filename=szs_filename)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
