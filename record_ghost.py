@@ -50,7 +50,7 @@ def gen_add_music_trim_loading_filter():
 [video_faded_out2]trim=start={trim_start},setpts=PTS-STARTPTS[v1];\
 [audio_combined_faded_out2]atrim=start={trim_start},asetpts=PTS-STARTPTS[a1];\
 [v0][a0][v1][a1]concat=n=2:v=1:a=1[v_almost_final][a];\
-[v_almost_final]scale=1280:trunc(ow/a/2)*2:flags=bicubic[v]"
+[v_almost_final]scale=2560:trunc(ow/a/2)*2:flags=bicubic[v]"
 
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None):
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(

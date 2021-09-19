@@ -1,6 +1,7 @@
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, HttpRequest
 import google_auth_oauthlib.flow
+import google.auth.exceptions
 
 import json
 import urllib.parse
@@ -185,7 +186,15 @@ def update_title_description_and_schedule(yt_recorder_config):
 
     read_credentials_from_file = True
 
-    if not read_credentials_from_file:
+    credentials_filepath = pathlib.Path("yt_credentials.pickle")
+    get_credentials_from_api = False
+
+    if credentials_filepath.is_file():
+        with open("yt_credentials.pickle", "rb") as f:
+            yt_credentials = pickle.load(f)
+        get_credentials_from_api = yt_credentials.expired
+
+    if get_credentials_from_api:
         flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
         "client_secrets.json", scopes)
 
@@ -199,9 +208,6 @@ def update_title_description_and_schedule(yt_recorder_config):
         yt_credentials = flow.run_console()
         with open("yt_credentials.pickle", "wb+") as f:
             pickle.dump(yt_credentials, f, protocol=pickle.HIGHEST_PROTOCOL)
-    else:
-        with open("yt_credentials.pickle", "rb") as f:
-            yt_credentials = pickle.load(f)
 
     video_infos = {}
 
@@ -226,14 +232,16 @@ def update_title_description_and_schedule(yt_recorder_config):
                 #output += f"video_ids_str: {video_ids_str}\n"
                 videos = api.videos().list(
                     id=video_ids_str,
-                    part="snippet,status"
+                    part="snippet,status,processingDetails"
                 ).execute()
 
                 for video in videos["items"]:
                     video_info = video_infos[video["id"]]
                     video_info.title = video["snippet"]["title"]
                     video_info.upload_status = video["status"]["uploadStatus"]
-                    video_info.processing_details = video["status"]["processingDetails"]
+                    video_info.processing_details = video.get("processingDetails")
+                    if "Dry Dry Ruins" in video_info.title:
+                        print(f"vipd: {video_info.processing_details}")
 
             print("INFO: Setting video title/description/etc.!")
 

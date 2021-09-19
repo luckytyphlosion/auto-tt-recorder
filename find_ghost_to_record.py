@@ -165,7 +165,7 @@ def test_gen_start_datetime():
     print(f"start_datetime: {start_datetime.isoformat()}")
 
 def gen_schedule_datetime_str(start_datetime, schedule_index):
-    if False:
+    if True:
         return pytz.utc.localize(start_datetime + timedelta(hours=4) * schedule_index).isoformat()
     else:
         return pytz.utc.localize(start_datetime + timedelta(hours=1) * schedule_index).isoformat()
@@ -300,13 +300,13 @@ def record_and_update_uploads(num_ghosts):
 
 def record_vehicle_wr_ghosts_outer():
     while True:
-        record_and_update_uploads(2)
+        record_and_update_uploads(6)
 
 def test_record_and_update_uploads():
-    record_and_update_uploads(12)
+    record_and_update_uploads(4)
 
 def main():
-    MODE = 2
+    MODE = 0
     if MODE == 0:
         record_vehicle_wr_ghosts_outer()
     elif MODE == 1:
