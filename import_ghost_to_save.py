@@ -179,6 +179,8 @@ class Rkg(BitManipulator):
     oDRIFT_TYPE = 0xd
     oDRIFT_TYPE_bit = 6
 
+    oLAP_COUNT = 0x10
+
     oLAP_1_SPLIT_MINUTES = 0x11
     oLAP_1_SPLIT_MINUTES_bit = 0
     oLAP_1_SPLIT_MINUTES_size = 7
@@ -205,7 +207,7 @@ class Rkg(BitManipulator):
     __slots__ = ("filename", "data", "rkg_file", "_track_id", "_compressed", "data",
         "_compressed_len", "_uncompressed_len", "_has_ctgp_data", "_mii", "_ghost_type", "_vehicle_id",
         "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type", "_track_by_human_id",
-        "_year", "_minutes", "_seconds", "_milliseconds", "_splits")
+        "_year", "_minutes", "_seconds", "_milliseconds", "_splits", "_lap_count")
 
     def __init__(self, filename, apply_crc_every_write=False):
         super().__init__(filename)
@@ -227,6 +229,8 @@ class Rkg(BitManipulator):
         self._minutes = self.read_bits(Rkg.oMINUTES, Rkg.oMINUTES_bit, Rkg.oMINUTES_size)
         self._seconds = self.read_bits(Rkg.oSECONDS, Rkg.oSECONDS_bit, Rkg.oSECONDS_size)
         self._milliseconds = self.read_bits(Rkg.oMILLISECONDS, Rkg.oMILLISECONDS_bit, Rkg.oMILLISECONDS_size)
+
+        self._lap_count = self.read_num(Rkg.oLAP_COUNT, 1)
 
         splits = []
 
@@ -328,6 +332,10 @@ class Rkg(BitManipulator):
     @property
     def splits(self):
         return self._splits
+
+    @property
+    def lap_count(self):
+        return self._lap_count
 
     def _set_compressed_from_data(self):
         self._compressed = self.read_bit(Rkg.oCOMPRESSED, Rkg.oCOMPRESSED_bit)

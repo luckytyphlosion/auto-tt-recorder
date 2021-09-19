@@ -6,7 +6,7 @@ import time
 
 API_URL = "https://tt.chadsoft.co.uk"
 
-def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True):
+def get(endpoint, params=None, is_binary=False, try_cached=False, rate_limit=True):
     if params is None:
         params = {}
 
@@ -69,7 +69,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True
 
     return data, r.status_code
 
-def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=True, rate_limit=True):
+def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=False, rate_limit=True):
     params = {}
     if start is not None:
         params["start"] = start

@@ -180,7 +180,7 @@ function stopDumpFrames(curSegmentIndex, curActionIndex, curState)
 end
 
 function waitRaceCompletion(curSegmentIndex, curActionIndex, curState)
-	if core.getRaceCompletion() > 4 then
+	if core.getRaceCompletion() > tonumber(params["lapCount"]) + 1 then
 		curActionIndex = curActionIndex + 1
 		curState = IN_DELAY
 	else
