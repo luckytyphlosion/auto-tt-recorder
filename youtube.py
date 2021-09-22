@@ -2,7 +2,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, HttpRequest
 import google_auth_oauthlib.flow
 import google.auth.exceptions
-
+import google.auth.transport.requests
 import json
 import urllib.parse
 from datetime import datetime, timezone, timedelta
@@ -14,6 +14,7 @@ import pathlib
 import find_ghost_to_record
 import time
 import identifiers
+import inspect
 
 CTGP_TAGS = ["Mario Kart Wii","mkw","mkwii","mario kart","mario kart wii world records","mkw records","mkw world records","mkw bkt","mkw wr","ctgp records","wr","bkt","best known time","world record","CTGP","Wii"]
 
@@ -192,6 +193,13 @@ def update_title_description_and_schedule(yt_recorder_config):
     if credentials_filepath.is_file():
         with open("yt_credentials.pickle", "rb") as f:
             yt_credentials = pickle.load(f)
+        #print(f"inspect.findsource(yt_credentials.refresh): {''.join(inspect.findsource(yt_credentials.refresh)[0])}")
+        #print(f"inspect.getsourcefile(yt_credentials.refresh): {inspect.getsourcefile(yt_credentials.refresh)}")
+        #print(f"inspect.getsourcefile(yt_credentials.refresh): {inspect.getsourcefile(yt_credentials.refresh)}")
+        #print(f"type(yt_credentials).__name__: {type(yt_credentials).__name__}")
+        request = google.auth.transport.requests.Request()
+        yt_credentials.refresh(request)
+        #print(f"yt_credentials.expired: {yt_credentials.expired}")
         get_credentials_from_api = yt_credentials.expired
 
     if get_credentials_from_api:

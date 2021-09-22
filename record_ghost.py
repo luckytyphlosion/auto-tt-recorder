@@ -77,7 +77,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     )
 
     if music_filename is not None:
-        no_music = False
+        no_music = True
 
     params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
     gen_gecko_codes.create_gecko_code_file("RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
