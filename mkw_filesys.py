@@ -5,7 +5,7 @@ import os
 
 def make_empty_nand_course_dir():
     dolphin_nand_course_dir_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Race/Course")
-    dolphin_nand_course_dir_filepath.parent.mkdir(parents=True, exist_ok=True)
+    dolphin_nand_course_dir_filepath.mkdir(parents=True, exist_ok=True)
     with os.scandir(dolphin_nand_course_dir_filepath) as entries:
         for dir_entry in entries:
             if dir_entry.is_file():
