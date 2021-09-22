@@ -149,3 +149,7 @@ client_secrets.json
 credentials.yml
 *.webm
 *.szs
+*.wbz
+
+bin/
+storage/
