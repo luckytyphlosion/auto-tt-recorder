@@ -10,6 +10,8 @@ import argparse
 from enum import Enum
 import sys
 import mkw_filesys
+import shutil
+from contextlib import contextmanager
 
 # def export_enums(enum):
 #     globals().update(enum.__members__)
@@ -98,7 +100,8 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
     framedump_path.unlink(missing_ok=True)
 
-    turn_off_dump_frames_audio()
+    create_dolphin_configs_if_not_exist()
+    modify_dolphin_configs()
 
     os.chdir("dolphin/")
     args = ["./DolphinR.exe", "-b", "-e", iso_filename]
@@ -167,18 +170,58 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     print("Done!")
 
-def turn_off_dump_frames_audio():
-    dolphin_config = "dolphin/User/Config/Dolphin.ini"
+def copy_config_if_not_exist(base_config_filename, dest_config_filename):
+    dest_config_filepath = pathlib.Path(dest_config_filename)
+    if not dest_config_filepath.exists():
+        dest_config_folderpath = dest_config_filepath.parent
+        dest_config_folderpath.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(base_config_filename, dest_config_filepath)
 
-    with open(dolphin_config, "r") as f:
-        config = configparser.ConfigParser(allow_no_value=True)
-        config.read_file(f, dolphin_config)
+def create_dolphin_configs_if_not_exist():
+    copy_config_if_not_exist("data/Dolphin.ini", "dolphin/User/Config/Dolphin.ini")
+    copy_config_if_not_exist("data/GFX.ini", "dolphin/User/Config/GFX.ini")
 
-    config["Movie"]["DumpFrames"] = False
-    config["DSP"]["DumpAudio"] = False
+@contextmanager
+def open_config_for_modification(config_filename):
+    try:
+        with open(config_filename, "r") as f:
+            config = configparser.ConfigParser(allow_no_value=True)
+            config.read_file(f, config_filename)
 
-    with open(dolphin_config, "w+") as f:
-        config.write(f)
+        yield config
+    finally:
+        with open(config_filename, "w+") as f:
+            config.write(f)
+
+def modify_dolphin_configs():
+    dolphin_config_filename = "dolphin/User/Config/Dolphin.ini"
+    dolphin_gfx_config_filename = "dolphin/User/Config/GFX.ini"
+
+    with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config:
+        turn_off_dump_frames_audio(dolphin_config)
+        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config)
+
+def turn_off_dump_frames_audio(dolphin_config):
+    dolphin_config["Movie"]["DumpFrames"] = "False"
+    dolphin_config["DSP"]["DumpAudio"] = "False"
+
+#auto (window size) = 0
+#auto (multiple of 640x528) = 1
+#native = 2
+#1.5x native = 3
+#2x native = 4
+#2.5x native = 5
+#3x native = 6
+#4x native = 7
+#5x native = 8
+#6x native = 9
+#7x native = 10
+#8x native = 11
+
+# just use fixed values for now
+def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config):
+    dolphin_config["DSP"]["Volume"] = "0"
+    dolphin_gfx_config["Settings"]["EFBScale"] = "2"
 
 def hardcoded_test():
     franz = "01m41s1006378 Franz.rkg"

@@ -366,7 +366,11 @@ class Rkg(BitManipulator):
         else:
             self.ghost_type = ghost_index + 7
 
-        self.data.extend(bytes(RKG_SIZE - 4 - len(self.data)))
+        pad_size = RKG_SIZE - 4 - len(self.data)
+        if pad_size >= 0:
+            self.data.extend(bytes(pad_size))
+        else:
+            del self.data[0x27fc:]
 
     def apply_crc(self):
         crc = crclib.crc32(self.data)
@@ -452,6 +456,7 @@ class Rksys(BitManipulator):
         self.data[Rksys.oCRC:Rksys.oCRC_end] = crc.to_bytes(length=4, byteorder="big")
         
     def write_to_file(self, filename):
+        pathlib.Path(filename).parent.mkdir(parents=True, exist_ok=True)
         with open(filename, "wb+") as f:
             f.write(self.data)
 

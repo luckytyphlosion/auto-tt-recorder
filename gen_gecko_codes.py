@@ -1,3 +1,4 @@
+import pathlib
 
 class GeckoParams:
     __slots__ = ("substitutions", "optional_enabled_codes")
@@ -47,6 +48,7 @@ def create_gecko_code_file(template_file, out_file, params):
     output = "".join(template_lines)
     output += "\n".join(optional_enabled_codes)
 
+    pathlib.Path(out_file).parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w+") as f:
         f.write(output)
 
