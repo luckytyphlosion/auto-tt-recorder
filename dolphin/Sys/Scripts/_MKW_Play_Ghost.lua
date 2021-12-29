@@ -559,9 +559,10 @@ function onScriptUpdate()
 				SetMainStickX(255)
 			elseif curAction.command == "done" then
 				writeOutputParams()
-				file = io.open("kill.txt", "w")
-				file:close()
+				--file = io.open("kill.txt", "w")
+				--file:close()
 				CancelScript()
+				ExitDolphin()
 				return
 			end
 			curState = IN_DELAY

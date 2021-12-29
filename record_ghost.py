@@ -108,17 +108,18 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     if hide_window:
         args.extend(("-hm", "-dr"))
 
-    popen = subprocess.Popen(args)
+    subprocess.run(args, check=True)
+    #popen = subprocess.Popen(args)
     #popen = subprocess.Popen(("./DolphinR.exe", "-b", "-e", iso_filename))
-    kill_path = pathlib.Path("kill.txt")
-    while True:
-        if kill_path.is_file():
-            popen.terminate()
-            # wsl memes
-            subprocess.run(("taskkill.exe", "/f", "/im", "DolphinR.exe"))
-            break
-
-        time.sleep(1)
+    #kill_path = pathlib.Path("kill.txt")
+    #while True:
+    #    if kill_path.is_file():
+    #        popen.terminate()
+    #        # wsl memes
+    #        subprocess.run(("taskkill.exe", "/f", "/im", "DolphinR.exe"))
+    #        break
+    #
+    #    time.sleep(1)
 
     os.chdir("..")
     output_video_path = pathlib.Path(output_video_filename)
