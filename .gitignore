@@ -132,6 +132,7 @@ dolphin/**/*.txt
 dolphin/Sys/*
 !dolphin/Sys/Scripts/
 dolphin/User
+dolphin/User2
 *.dat
 *.rkg
 compare.sh

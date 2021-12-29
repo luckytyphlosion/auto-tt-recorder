@@ -75,7 +75,7 @@ def gen_add_music_trim_loading_filter():
 
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None):
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
-        "rksys.dat", rkg_file_main,
+        "data/rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
         "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
         rkg_file_comparison
@@ -85,7 +85,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         no_music = True
 
     params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
-    gen_gecko_codes.create_gecko_code_file("RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
+    gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
     mkw_filesys.replace_track(szs_filename, rkg)
 
