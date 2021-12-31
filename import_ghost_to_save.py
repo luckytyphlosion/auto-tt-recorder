@@ -18,12 +18,28 @@ class BitManipulator(ABC):
         with open(filename, "rb") as f:
             self.data = bytearray(f.read())
 
+    def read(self, offset):
+        return self._read_unpacked(offset.byte_offset, offset.bit_offset, offset.size)
+
+    def _read_unpacked(self, byte_offset, bit_offset, size):
+        if bit_offset is not None:
+            # read_bit is different than read_bits with size=1
+            # because read_bit returns bool while read_bits returns int
+            if size is not None:
+                return self.read_bits(byte_offset, bit_offset, size)
+            else:
+                return self.read_bit(byte_offset, bit_offset)
+        else:
+            return self.read_num(byte_offset, size if size is not None else 1)
+
+    def read_plus_byte_offset(self, offset, byte_offset):
+        return self._read_unpacked(offset.byte_offset + byte_offset, offset.bit_offset, offset.size)
+
     def read_bit(self, byte_offset, bit_offset):
         # bit_range_check(bit_offset)
-
         return ((self.data[byte_offset] >> (7 - bit_offset)) & 1) == 1
 
-    def read_num(self, byte_offset, size):
+    def read_num(self, byte_offset, size=1):
         if size == 1:
             return self.data[byte_offset]
         elif size == 2:
@@ -60,6 +76,42 @@ class BitManipulator(ABC):
 
         return result
 
+    def read_range(self, offset):
+        return self.data[offset.byte_offset:offset.byte_offset + offset.size]
+
+    def write(self, offset, value):
+        if offset.bit_offset is not None:
+            self.write_bits(offset.byte_offset, offset.bit_offset, offset.size if offset.size is not None else 1, value)
+        else:
+            self.write_num(offset.byte_offset, offset.size, value)
+
+    def write_bit(self, byte_offset, bit_offset, value):
+        if value:
+            self.set_bit(byte_offset, bit_offset)
+        else:
+            self.reset_bit(byte_offset, bit_offset)
+
+    def write_num(self, byte_offset, size, value):
+        if size == 1:
+            self.data[byte_offset] = value
+        elif size == 2:
+            assert value < 65536
+            self.data[byte_offset] = value >> 8
+            self.data[byte_offset+1] = value & 0xff
+        elif size == 3:
+            assert value < 16777216
+            self.data[byte_offset] = value >> 16
+            self.data[byte_offset+1] = (value >> 8) & 0xff
+            self.data[byte_offset+2] = value & 0xff
+        elif size == 4:
+            assert value <= 4294967295
+            self.data[byte_offset] = value >> 24
+            self.data[byte_offset+1] = (value >> 16) & 0xff
+            self.data[byte_offset+2] = (value >> 8) & 0xff
+            self.data[byte_offset+3] = value & 0xff
+        else:
+            raise RuntimeError(f"Unsupported size {size}!")
+
     def write_bits(self, byte_offset, bit_offset, size, value):
         while size > 0:
             size -= 1
@@ -92,11 +144,10 @@ class BitManipulator(ABC):
         #    lo_part = self.data[byte_offset+byte_offset_diff] >> (8 - bit_offset_end)
         #    result = hi_part | lo_part
 
-    def write_bit(self, byte_offset, bit_offset, value):
-        if value:
-            self.set_bit(byte_offset, bit_offset)
-        else:
-            self.reset_bit(byte_offset, bit_offset)
+    def write_range(self, offset, value):
+        self.data[offset.byte_offset:offset.byte_offset + offset.size] = value
+
+    #def write_array_offset_range(self, array_offset, array_entry_size, 
 
     @staticmethod
     def bit_range_check(bit_offset):
@@ -136,71 +187,57 @@ class Split:
     def pretty(self):
         return f"{self.minutes:02d}:{self.seconds:02d}.{self.milliseconds:03d}"
 
+# offset types:
+# byte offset
+# bit offset
+# if bit_offset is defined, then this is a BitOffset
+# otherwise, it is a byte_offset
+class Offset:
+    __slots__ = ("byte_offset", "bit_offset", "size")
+
+    def __init__(self, byte_offset, bit_offset=None, size=None):
+        self.byte_offset = byte_offset
+        self.bit_offset = bit_offset
+        self.size = size
+
+    def get_array_offset(self, index):
+        #if bit_offset is not None:
+        #    raise RuntimeError("Method not valid for bit offset!")
+
+        return Offset(self.byte_offset + index * self.size, self.bit_offset, self.size)
+
+    def get_struct_offset(self, sub_offset):
+        return Offset(self.byte_offset + sub_offset.byte_offset, sub_offset.bit_offset, sub_offset.size)
+
 class Rkg(BitManipulator):
-    oMINUTES = 0x4
-    oMINUTES_bit = 0
-    oMINUTES_size = 7
+    oMINUTES = Offset(0x4, bit_offset=0, size=7)
+    oSECONDS = Offset(0x4, bit_offset=7, size=7)
+    oMILLISECONDS = Offset(0x5, bit_offset=6, size=10)
+    oFINISH_TIME = Offset(0x4, None, 3)
+    oTRACK_ID = Offset(0x7, bit_offset=0, size=6)
+    oVEHICLE_ID = Offset(0x8, 0, 6)
+    oCHARACTER_ID = Offset(0x8, 6, 6)
+    oYEAR = Offset(0x9, 4, 7)
+    oCONTROLLER_ID = Offset(0xb, 4, 4)
+    oCOMPRESSED = Offset(0xc, 4)
+    oGHOST_TYPE = Offset(0xc, 7, 7)
+    oDRIFT_TYPE = Offset(0xd, 6)
 
-    oSECONDS = 0x4
-    oSECONDS_bit = 7
-    oSECONDS_size = 7
+    oLAP_COUNT = Offset(0x10)
 
-    oMILLISECONDS = 0x5
-    oMILLISECONDS_bit = 6
-    oMILLISECONDS_size = 10
+    oLAP_1_SPLIT_MINUTES = Offset(0x11, 0, 7)
+    oLAP_1_SPLIT_SECONDS = Offset(0x11, 7, 7)
+    oLAP_1_SPLIT_MILLISECONDS = Offset(0x12, 6, 10)
 
-    oTRACK_ID = 0x7
-    oTRACK_ID_bit = 0
-    oTRACK_ID_size = 6
+    oMII_DATA = Offset(0x3c, None, 0x4a)
 
-    oVEHICLE_ID = 0x8
-    oVEHICLE_ID_bit = 0
-    oVEHICLE_ID_size = 6
+    oCOMPRESSED_LEN = Offset(0x88, None, 4)
+    oUNCOMPRESSED_LEN = Offset(0x90, None, 4)
 
-    oCHARACTER_ID = 0x8
-    oCHARACTER_ID_bit = 6
-    oCHARACTER_ID_size = 6
-
-    oYEAR = 0x9
-    oYEAR_bit = 4
-    oYEAR_size = 7
-
-    oCONTROLLER_ID = 0xb
-    oCONTROLLER_ID_bit = 4
-    oCONTROLLER_ID_size = 4
-
-    oCOMPRESSED = 0xc
-    oCOMPRESSED_bit = 4
-
-    oGHOST_TYPE = 0xc
-    oGHOST_TYPE_bit = 7
-    oGHOST_TYPE_size = 7
-
-    oDRIFT_TYPE = 0xd
-    oDRIFT_TYPE_bit = 6
-
-    oLAP_COUNT = 0x10
-
-    oLAP_1_SPLIT_MINUTES = 0x11
-    oLAP_1_SPLIT_MINUTES_bit = 0
-    oLAP_1_SPLIT_MINUTES_size = 7
-
-    oLAP_1_SPLIT_SECONDS = 0x11
-    oLAP_1_SPLIT_SECONDS_bit = 7
-    oLAP_1_SPLIT_SECONDS_size = 7
-
-    oLAP_1_SPLIT_MILLISECONDS = 0x12
-    oLAP_1_SPLIT_MILLISECONDS_bit = 6
-    oLAP_1_SPLIT_MILLISECONDS_size = 10
-
-    oINPUTS = 0x88
-    oCOMPRESSED_LEN = 0x88
-    oCOMPRESSED_INPUTS_HEADER = 0x8c
-    oUNCOMPRESSED_LEN = 0x90
-    oCOMPRESSED_INPUTS_DATA = 0x9c
-    oMII_DATA = 0x3c
-    oMII_SIZE = 0x4a
-    oMII_DATA_END = oMII_DATA + oMII_SIZE
+    oINPUTS_byte_offset = 0x88
+    oCOMPRESSED_INPUTS_HEADER_byte_offset = 0x8c
+    oCOMPRESSED_INPUTS_DATA_byte_offset = 0x9c
+    #oMII_DATA_END = oMII_DATA + oMII_SIZE
 
     GHOST_TYPE_PB = 1
 
@@ -213,31 +250,31 @@ class Rkg(BitManipulator):
         super().__init__(filename)
 
         self._set_compressed_from_data()
-        self._track_id = self.read_bits(Rkg.oTRACK_ID, Rkg.oTRACK_ID_bit, Rkg.oTRACK_ID_size)
+        self._track_id = self.read(Rkg.oTRACK_ID)
         self._track_by_ghost_slot = identifiers.track_id_to_ghost_slot[self.track_id]
         self._track_by_human_id = identifiers.track_id_to_human_track_id[self.track_id]
 
-        self._mii = self.data[Rkg.oMII_DATA:Rkg.oMII_DATA_END]
+        self._mii = self.read_range(Rkg.oMII_DATA)
 
-        self._ghost_type = self.read_bits(Rkg.oGHOST_TYPE, Rkg.oGHOST_TYPE_bit, Rkg.oGHOST_TYPE_size)
-        self._vehicle_id = self.read_bits(Rkg.oVEHICLE_ID, Rkg.oVEHICLE_ID_bit, Rkg.oVEHICLE_ID_size)
-        self._character_id = self.read_bits(Rkg.oCHARACTER_ID, Rkg.oCHARACTER_ID_bit, Rkg.oCHARACTER_ID_size)
-        self._controller = self.read_bits(Rkg.oCONTROLLER_ID, Rkg.oCONTROLLER_ID_bit, Rkg.oCONTROLLER_ID_size)
-        self._drift_type = self.read_bit(Rkg.oDRIFT_TYPE, Rkg.oDRIFT_TYPE_bit)
+        self._ghost_type = self.read(Rkg.oGHOST_TYPE)
+        self._vehicle_id = self.read(Rkg.oVEHICLE_ID)
+        self._character_id = self.read(Rkg.oCHARACTER_ID)
+        self._controller = self.read(Rkg.oCONTROLLER_ID)
+        self._drift_type = self.read(Rkg.oDRIFT_TYPE)
         self._has_ctgp_data = True
-        self._year = self.read_bits(Rkg.oYEAR, Rkg.oYEAR_bit, Rkg.oYEAR_size)
-        self._minutes = self.read_bits(Rkg.oMINUTES, Rkg.oMINUTES_bit, Rkg.oMINUTES_size)
-        self._seconds = self.read_bits(Rkg.oSECONDS, Rkg.oSECONDS_bit, Rkg.oSECONDS_size)
-        self._milliseconds = self.read_bits(Rkg.oMILLISECONDS, Rkg.oMILLISECONDS_bit, Rkg.oMILLISECONDS_size)
+        self._year = self.read(Rkg.oYEAR)
+        self._minutes = self.read(Rkg.oMINUTES)
+        self._seconds = self.read(Rkg.oSECONDS)
+        self._milliseconds = self.read(Rkg.oMILLISECONDS)
 
-        self._lap_count = self.read_num(Rkg.oLAP_COUNT, 1)
+        self._lap_count = self.read(Rkg.oLAP_COUNT)
 
         splits = []
 
         for i in range(3):
-            split_minutes = self.read_bits(Rkg.oLAP_1_SPLIT_MINUTES + i * 3, Rkg.oLAP_1_SPLIT_MINUTES_bit, Rkg.oLAP_1_SPLIT_MINUTES_size)
-            split_seconds = self.read_bits(Rkg.oLAP_1_SPLIT_SECONDS + i * 3, Rkg.oLAP_1_SPLIT_SECONDS_bit, Rkg.oLAP_1_SPLIT_SECONDS_size)
-            split_milliseconds = self.read_bits(Rkg.oLAP_1_SPLIT_MILLISECONDS + i * 3, Rkg.oLAP_1_SPLIT_MILLISECONDS_bit, Rkg.oLAP_1_SPLIT_MILLISECONDS_size)
+            split_minutes = self.read_plus_byte_offset(Rkg.oLAP_1_SPLIT_MINUTES, i * 3)
+            split_seconds = self.read_plus_byte_offset(Rkg.oLAP_1_SPLIT_SECONDS, i * 3)
+            split_milliseconds = self.read_plus_byte_offset(Rkg.oLAP_1_SPLIT_MILLISECONDS, i * 3)
             splits.append(Split(split_minutes, split_seconds, split_milliseconds))
 
         self._splits = splits
@@ -281,7 +318,7 @@ class Rkg(BitManipulator):
     @compressed.setter
     def compressed(self, compressed):
         self._compressed = compressed
-        self.write_bit(Rkg.oCOMPRESSED, Rkg.oCOMPRESSED_bit, compressed)
+        self.write(Rkg.oCOMPRESSED, compressed)
 
     @property
     def ghost_type(self):
@@ -290,7 +327,7 @@ class Rkg(BitManipulator):
     @ghost_type.setter
     def ghost_type(self, ghost_type):
         self._ghost_type = ghost_type
-        self.write_bits(Rkg.oGHOST_TYPE, Rkg.oGHOST_TYPE_bit, Rkg.oGHOST_TYPE_size, ghost_type)
+        self.write(Rkg.oGHOST_TYPE, ghost_type)
 
     @property
     def vehicle_id(self):
@@ -327,7 +364,7 @@ class Rkg(BitManipulator):
     @year.setter
     def year(self, year):
         self._year = year
-        self.write_bits(Rkg.oYEAR, Rkg.oYEAR_bit, Rkg.oYEAR_size, year)
+        self.write(Rkg.oYEAR, year)
 
     @property
     def splits(self):
@@ -338,16 +375,16 @@ class Rkg(BitManipulator):
         return self._lap_count
 
     def _set_compressed_from_data(self):
-        self._compressed = self.read_bit(Rkg.oCOMPRESSED, Rkg.oCOMPRESSED_bit)
+        self._compressed = self.read(Rkg.oCOMPRESSED)
         if self.compressed:
-            self._compressed_len = self.read_num(Rkg.oCOMPRESSED_LEN, 4)
-            self._uncompressed_len = self.read_num(Rkg.oUNCOMPRESSED_LEN, 4)
+            self._compressed_len = self.read(Rkg.oCOMPRESSED_LEN)
+            self._uncompressed_len = self.read(Rkg.oUNCOMPRESSED_LEN)
 
     def remove_ctgp_data(self):
         # maybe all ctgp ghosts are compressed?
         if self.compressed and self._has_ctgp_data:
             #print(f"self.data len: {len(self.data)}")
-            del self.data[self.compressed_len + Rkg.oCOMPRESSED_INPUTS_HEADER + 4:]
+            del self.data[self.compressed_len + Rkg.oCOMPRESSED_INPUTS_HEADER_byte_offset + 4:]
             #print(f"self.data len: {len(self.data)}")
             self._has_ctgp_data = False
 
@@ -355,8 +392,8 @@ class Rkg(BitManipulator):
         if self.compressed:
             self.remove_ctgp_data()
             # + 4 to skip over Yaz1 header
-            src_pos, dst_pos, dst = decode_yaz1(self.data, Rkg.oCOMPRESSED_INPUTS_DATA, self.compressed_len, self.uncompressed_len)
-            del self.data[Rkg.oINPUTS:]
+            src_pos, dst_pos, dst = decode_yaz1(self.data, Rkg.oCOMPRESSED_INPUTS_DATA_byte_offset, self.compressed_len, self.uncompressed_len)
+            del self.data[Rkg.oINPUTS_byte_offset:]
             self.data.extend(dst)
             self.compressed = False
 
@@ -370,91 +407,77 @@ class Rkg(BitManipulator):
         if pad_size >= 0:
             self.data.extend(bytes(pad_size))
         else:
-            del self.data[0x27fc:]
+            del self.data[RKG_SIZE - 4:]
 
     def apply_crc(self):
         crc = crclib.crc32(self.data)
         self.data.extend(crc.to_bytes(length=4, byteorder="big"))
 
+#class Mii:
+#    oNAME = Offset(0x2, None, 20)
+#    oID = Offset(0x18, None, 4)
+#    oSYSTEM_ID = Offset(0x1c, None, 4)
+
 class Rksys(BitManipulator):
-    oCRC = 0x27ffc
-    oCRC_size = 4
-    oCRC_end = oCRC + oCRC_size
+    oCRC = Offset(0x27ffc, None, 4)
+    oTL_LICENSE_GHOSTS = Offset(0x28000, None, RKG_SIZE)
+    oTL_DOWNLOADED_GHOSTS = Offset(0x28000 + 0x50000, None, RKG_SIZE)
+    oTL_LICENSE_LB_ENTRIES_BASE = Offset(0xdc0 + 0x8, None, 0x60)
+    oTL_LICENSE_MII_NAME = Offset(0x14 + 0x8, None, 0x14)
+    oTL_LICENSE_MII_ID = Offset(0x28 + 0x8, None, 4)
+    oTL_LICENSE_MII_SYSTEM_ID = Offset(0x2c + 0x8, None, 4)
+    oLB_ENTRY_TIME = Offset(0x4c, None, 3)
+    oLB_VEHICLE_ID = Offset(0x4f, 0, 6)
+    oLB_ENABLED = Offset(0x50, 0)
+    oLB_CHARACTER_ID = Offset(0x50, 1, 7)
+    oLB_CONTROLLER_ID = Offset(0x51, 0, 3)
 
-    oTL_LICENSE_GHOSTS = 0x28000
-    oTL_DOWNLOADED_GHOSTS = 0x28000 + 0x50000
-
-    oTL_LICENSE_PB_FLAGS = 0x4 + 0x8
-    oTL_LICENSE_LB_ENTRIES_BASE = 0xdc0 + 0x8
-
-    oTL_LICENSE_DOWNLOADED_GHOST_FLAGS = 0x8 + 0x8
-
-    oTL_LICENSE_MII_NAME = 0x14 + 0x8
-    oTL_LICENSE_MII_NAME_size = 0x14
-    oTL_LICENSE_MII_NAME_end = oTL_LICENSE_MII_NAME + oTL_LICENSE_MII_NAME_size
-
-    oTL_LICENSE_MII_ID = 0x28 + 0x8
-    oTL_LICENSE_MII_ID_size = 4
-    oTL_LICENSE_MII_ID_end = oTL_LICENSE_MII_ID + oTL_LICENSE_MII_ID_size
-
-    oTL_LICENSE_MII_SYSTEM_ID = 0x2c + 0x8
-    oTL_LICENSE_MII_SYSTEM_ID_size = 4
-    oTL_LICENSE_MII_SYSTEM_ID_end = oTL_LICENSE_MII_SYSTEM_ID + oTL_LICENSE_MII_SYSTEM_ID_size
-
-    oLB_ENTRY_TIME = 0x4c
-    oLB_ENTRY_TIME_END = 0x4f
-
-    oLB_VEHICLE_ID = 0x4f
-    oLB_VEHICLE_ID_bit = 0
-    oLB_VEHICLE_ID_size = 6
-
-    oLB_ENABLED = 0x50
-    oLB_ENABLED_bit = 0
-
-    oLB_CHARACTER_ID = 0x50
-    oLB_CHARACTER_ID_bit = 1
-    oLB_CHARACTER_ID_size = 7
-
-    oLB_CONTROLLER_ID = 0x51
-    oLB_CONTROLLER_ID_bit = 0
-    oLB_CONTROLLER_ID_size = 3
+    oTL_LICENSE_PB_FLAGS_byte_offset = 0x4 + 0x8
+    oTL_LICENSE_DOWNLOADED_GHOST_FLAGS_byte_offset = 0x8 + 0x8
 
     def __init__(self, filename):
         super().__init__(filename)
 
     def set_pb_ghost_and_mii(self, rkg):
-        ghost_addr = Rksys.oTL_LICENSE_GHOSTS + rkg.track_id_by_ghost_slot * RKG_SIZE
-        self.data[ghost_addr:ghost_addr+RKG_SIZE] = rkg.data
-        self.set_bit(Rksys.oTL_LICENSE_PB_FLAGS, rkg.track_id_by_ghost_slot, endianness=LITTLE_ENDIAN, byte_range=4)
+        self.write_range(Rksys.oTL_LICENSE_GHOSTS.get_array_offset(rkg.track_id_by_ghost_slot), rkg.data)
+        #ghost_addr = Rksys.oTL_LICENSE_GHOSTS + rkg.track_id_by_ghost_slot * RKG_SIZE
+        #self.data[ghost_addr:ghost_addr+RKG_SIZE] = rkg.data
+        self.set_bit(Rksys.oTL_LICENSE_PB_FLAGS_byte_offset, rkg.track_id_by_ghost_slot, endianness=LITTLE_ENDIAN, byte_range=4)
 
-        lb_entries_addr = Rksys.oTL_LICENSE_LB_ENTRIES_BASE + 0x60 * rkg.track_id_by_ghost_slot
+        #lb_entries_addr = Rksys.oTL_LICENSE_LB_ENTRIES_BASE + 0x60 * rkg.track_id_by_ghost_slot
+
+        self.write_range(
+            Rksys.oTL_LICENSE_LB_ENTRIES_BASE
+                .get_array_offset(rkg.track_id_by_ghost_slot)
+                .get_struct_offset(Rksys.oLB_ENTRY_TIME),
+            rkg.read_range(Rkg.oFINISH_TIME)
+        )
+
+        self.write(Rksys.oLB_VEHICLE_ID, rkg.vehicle_id)
+        self.write(Rksys.oLB_ENABLED, 1)
+        self.write(Rksys.oLB_CHARACTER_ID, rkg.character_id)
+        self.write(Rksys.oLB_CONTROLLER_ID, rkg.controller)
 
         # TODO fix me!
-        self.data[lb_entries_addr + Rksys.oLB_ENTRY_TIME:lb_entries_addr + Rksys.oLB_ENTRY_TIME_END] = rkg.data[0x4:0x7]
-        self.write_bits(Rksys.oLB_VEHICLE_ID, Rksys.oLB_VEHICLE_ID_bit, Rksys.oLB_VEHICLE_ID_size, rkg.vehicle_id)
-        self.set_bit(Rksys.oLB_ENABLED, Rksys.oLB_ENABLED_bit)
-        self.write_bits(Rksys.oLB_CHARACTER_ID, Rksys.oLB_CHARACTER_ID_bit, Rksys.oLB_CHARACTER_ID_size, rkg.character_id)
-        self.write_bits(Rksys.oLB_CONTROLLER_ID, Rksys.oLB_CONTROLLER_ID_bit, Rksys.oLB_CONTROLLER_ID_size, rkg.controller)
+        self.write_range(Rksys.oTL_LICENSE_MII_NAME, rkg.mii[0x2:0x16])
+        self.write_range(Rksys.oTL_LICENSE_MII_ID, rkg.mii[0x18:0x1c])
+        self.write_range(Rksys.oTL_LICENSE_MII_SYSTEM_ID, rkg.mii[0x1c:0x20])
 
-        self.data[Rksys.oTL_LICENSE_MII_NAME:Rksys.oTL_LICENSE_MII_NAME_end] = rkg.mii[0x2:0x16]
-        self.data[Rksys.oTL_LICENSE_MII_ID:Rksys.oTL_LICENSE_MII_ID_end] = rkg.mii[0x18:0x1c]
-        self.data[Rksys.oTL_LICENSE_MII_SYSTEM_ID:Rksys.oTL_LICENSE_MII_SYSTEM_ID_end] = rkg.mii[0x1c:0x20]
         self.apply_crc()
 
     def set_downloaded_ghost_0(self, rkg):
         if rkg is None:
             return
 
-        ghost_addr = Rksys.oTL_DOWNLOADED_GHOSTS
-        self.data[ghost_addr:ghost_addr+RKG_SIZE] = rkg.data
+        self.write_range(Rksys.oTL_DOWNLOADED_GHOSTS, rkg.data)
 
-        self.set_bit(Rksys.oTL_LICENSE_DOWNLOADED_GHOST_FLAGS, 0, endianness=LITTLE_ENDIAN, byte_range=4)
+        self.set_bit(Rksys.oTL_LICENSE_DOWNLOADED_GHOST_FLAGS_byte_offset, 0, endianness=LITTLE_ENDIAN, byte_range=4)
         self.apply_crc()
 
     def apply_crc(self):
-        crc = crclib.crc32(self.data, Rksys.oCRC)
-        self.data[Rksys.oCRC:Rksys.oCRC_end] = crc.to_bytes(length=4, byteorder="big")
-        
+        crc = crclib.crc32(self.data, Rksys.oCRC.byte_offset)
+        self.write_range(Rksys.oCRC, crc.to_bytes(length=4, byteorder="big"))
+
     def write_to_file(self, filename):
         pathlib.Path(filename).parent.mkdir(parents=True, exist_ok=True)
         with open(filename, "wb+") as f:
