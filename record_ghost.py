@@ -12,6 +12,7 @@ import sys
 import mkw_filesys
 import shutil
 from contextlib import contextmanager
+import re
 
 # def export_enums(enum):
 #     globals().update(enum.__members__)
@@ -32,18 +33,20 @@ ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 3
 ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 4
 ENCODE_2PASS_VBR_WEBM = 5
 
-def get_dump_audio_len():
-    audio_len_as_str = subprocess.check_output(
-        "ffmpeg -i dolphin/user/dump/audio/dspdump.wav -acodec copy -f rawaudio -y /dev/null 2>&1 | tr ^M '\n' | awk '/^  Duration:/ {print $2}' | tail -n 1", shell=True
-    ).decode(encoding="ascii").replace(",\n", "")
-    audio_len_hours_as_str, audio_len_minutes_as_str, audio_len_seconds_as_str = audio_len_as_str.split(":")
-    audio_len_hours = int(audio_len_hours_as_str)
-    audio_len_minutes = int(audio_len_minutes_as_str)
-    audio_len_seconds = float(audio_len_seconds_as_str)
+audio_len_regex = re.compile(r"^size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
+def get_dump_audio_len(ffmpeg_filename):
+    # "ffmpeg -i dolphin/User/Dump/Audio/dspdump.wav -acodec copy -f rawaudio -y /dev/null 2>&1 | tr ^M '\n' | awk '/^  Duration:/ {print $2}' | tail -n 1"
+    dspdump_ffmpeg_output = subprocess.check_output([ffmpeg_filename, "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-acodec", "copy", "-f", "null", "-"], stderr=subprocess.STDOUT).decode(encoding="ascii")
+    audio_len_match_obj = audio_len_regex.search(dspdump_ffmpeg_output)
+    if not audio_len_match_obj:
+        raise RuntimeError("FFmpeg command did not return dspdump.wav audio duration!")
+    audio_len_hours = int(audio_len_match_obj.group(1))
+    audio_len_minutes = int(audio_len_match_obj.group(2))
+    audio_len_seconds = float(audio_len_match_obj.group(3))
     audio_len = audio_len_hours * 3600 + audio_len_minutes * 60 + audio_len_seconds
     return audio_len
 
-def gen_add_music_trim_loading_filter():
+def gen_add_music_trim_loading_filter(ffmpeg_filename):
     output_params = {}
 
     with open("dolphin/output_params.txt", "r") as f:
@@ -58,7 +61,7 @@ def gen_add_music_trim_loading_filter():
     frame_recording_starts = int(output_params["frameRecordingStarts"])
 
     adelay_value = ((frame_replay_starts - frame_recording_starts) * 1000)/60
-    audio_len = get_dump_audio_len()
+    audio_len = get_dump_audio_len(ffmpeg_filename)
     fade_duration = 2.5
     fade_start_time = audio_len - fade_duration
     trim_start = (frame_replay_starts - frame_recording_starts)/60
@@ -75,7 +78,7 @@ def gen_add_music_trim_loading_filter():
 [v0][a0][v1][a1]concat=n=2:v=1:a=1[v_almost_final][a];\
 [v_almost_final]scale=2560:trunc(ow/a/2)*2:flags=bicubic[v]"
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None, ffmpeg_filename="ffmpeg"):
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -127,15 +130,15 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     if encode_settings == ENCODE_COPY:
         subprocess.run(
-            ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename), check=True
+            (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename), check=True
         )
     elif encode_settings == ENCODE_x264_LIBOPUS:
         subprocess.run(
-            ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx264", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
+            (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx264", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
         )
     elif encode_settings == ENCODE_x265_LIBOPUS:
         subprocess.run(
-            ("ffmpeg", "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx265", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
+            (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx265", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
         )
     elif encode_settings in (ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING, ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING):
         if encode_settings == ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING:
@@ -143,9 +146,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         else:
             vcodec = "libx265"
 
-        filter_params = gen_add_music_trim_loading_filter()
+        filter_params = gen_add_music_trim_loading_filter(ffmpeg_filename)
         subprocess.run(
-            ("ffmpeg", "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-pix_fmt", "yuv420p10le", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
+            (ffmpeg_filename, "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-pix_fmt", "yuv420p10le", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
             #("ffmpeg", "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
         )
     elif encode_settings == ENCODE_2PASS_VBR_WEBM:
@@ -160,10 +163,10 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         run_len = get_dump_audio_len()
         avg_video_bitrate_as_str = str(int(0.99 * (encode_size_bits/run_len - encode_audio_bitrate)))
         subprocess.run(
-            ("ffmpeg", "-i", "dolphin/user/dump/frames/framedump0.avi", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "1", "-f", "null", "/dev/null"), check=True
+            (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "1", "-f", "null", "/dev/null"), check=True
         )
         subprocess.run(
-            ("ffmpeg", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "2", "-c:a", "libopus", "-b:a", str(encode_audio_bitrate), output_video_filename), check=True
+            (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "2", "-c:a", "libopus", "-b:a", str(encode_audio_bitrate), output_video_filename), check=True
         )
 
     else:
@@ -267,6 +270,7 @@ def main():
     ap.add_argument("-s", "--szs-filename", dest="szs_filename", default=None, help="Filename of the szs file corresponding to the ghost file. Omit this for a regular track (or if the track was already replaced in the ISO)")
     ap.add_argument("-es", "--encode-size", dest="encode_size", type=int, default=52428800, help="Max video size allowed. Currently only used for 2-pass VBR webm encoding. Default is 52428800 bytes (50MiB)")
     ap.add_argument("-eab", "--encode-audio-bitrate", dest="encode_audio_bitrate", type=int, default=64000, help="Audio bitrate for encodes. Currently only used for 2-pass VBR webm encoding. Default is 64000")
+    ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
     args = ap.parse_args()
 
     error_occurred = False
@@ -297,11 +301,12 @@ def main():
     szs_filename = args.szs_filename
     encode_size = args.encode_size
     encode_audio_bitrate = args.encode_audio_bitrate
+    ffmpeg_filename = args.ffmpeg_filename
 
     if error_occurred:
         sys.exit(1)
     else:
-        record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename, szs_filename=szs_filename, encode_size=encode_size, encode_audio_bitrate=encode_audio_bitrate)
+        record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename, szs_filename=szs_filename, encode_size=encode_size, encode_audio_bitrate=encode_audio_bitrate, ffmpeg_filename=ffmpeg_filename)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
