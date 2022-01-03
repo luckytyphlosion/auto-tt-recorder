@@ -354,11 +354,12 @@ class NoEncodeEncodeSettings(EncodeSettings):
         return ENCODE_TYPE_NONE
 
 class CrfEncodeSettings(EncodeSettings):
-    __slots__ = ("crf", "video_codec", "audio_codec", "audio_bitrate")
+    __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate")
 
-    def __init__(self, output_format, crf, video_codec, audio_codec, audio_bitrate):
+    def __init__(self, output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate):
         super().__init__(output_format)
         self.crf = crf
+        self.h26x_preset = h26x_preset
         self.video_codec = video_codec
         self.audio_codec = audio_codec
         self.audio_bitrate = audio_bitrate
@@ -468,6 +469,7 @@ def main():
     # youtube-fast-encode, youtube-optimize-size, discord-8mb, discord-50mb, discord-100mb
     ap.add_argument("-et", "--encode-type", dest="encode_type", default=None, help="Type of encoding to perform. Valid options are crf for a constant quality encode, and size for a constrained size based output. Pick crf if you're unsure (this is the default)")
     ap.add_argument("-crf", "--crf-value", dest="crf", type=float, default=18, help="Crf value to pass to ffmpeg. Valid range is 0-51. Default is 18. Lower values provide higher quality at the cost of file size.")
+    ap.add_argument("-hp", "--h26x-preset", dest="h26x_preset", default="medium", help="H.26x preset option which will be passed to ffmpeg. Ignored for non-crf based encodes. Default is medium.")
     ap.add_argument("-c:v", "--video-codec", dest="video_codec", default=None, help="Video codec to encode the output video. Valid only for crf-based encodings. For crf-based encodes, valid options are libx264 and libx265, and the default is libx264. For constrained size-based encodes, valid options are libx264 and libvpx-vp9, and the default is libvpx-vp9. The difference between the two is that libx265 results in a smaller file size at the same quality at the cost of encoding time (unscientific tests suggest a speed decrease of 10x). libx265 will also not play in browsers or Discord. Other codecs (e.g. libvpx-vp9) may be supported in the future.")
     ap.add_argument("-c:a", "--audio-codec", dest="audio_codec", default=None, help="Audio codec to encode the audio of the output video. Valid options are aac and libopus. Opus results in higher quality and a lower file size than aac so it should be chosen for almost all use cases, the only reason that aac should be selected is if the desired output file is mp4 and maximizing compatibility across devices is desired. That being said, Opus in mp4 has been tested to work in VLC, PotPlayer, Discord client, Chrome, Firefox, and Discord mobile, and does not work with Windows Media Player. The default is aac for crf encoded mp4 files, libopus for size-based encoded mp4 files, and libopus for mkv and webm files.")
     #ap.add_argument("-f", "--output-format", dest="output_format", default=None, help="File format of the output video. Valid options are mp4, mkv, and webm. The default is mkv for crf-based encodes, and webm for size-based encodes. mkv supports many more codecs than mp4, and can be uploaded to YouTube, but cannot be played in by browsers or Discord. mp4 is supported almost universally but only accepts the libx264 and libx265 codecs from the codecs which auto-tt-recorder supports. webm is also widely supported but only accepts the libvpx-vp9 codec from the codecs supported by auto-tt-recorder. webm is not supported for crf-based encodes.")
@@ -524,20 +526,22 @@ def main():
     
                 crf = args.crf
                 video_codec = arg_default_or_validate_from_choices(args.video_codec, "libx264", "libx265", "Unsupported crf-based codec \"{}\"!")
-    
+
+                h26x_preset = arg_default_or_validate_from_choices(args.h26x_preset, "medium", "ultrafast", "superfast", "veryfast", "faster", "fast", "slow", "slower", "veryslow", "placebo", "Unsupported H.26x preset \"{}\"!")
+
                 if output_format == "mkv":
                     audio_codec = arg_default_select(args.audio_codec, "libopus")
                 elif output_format == "mp4":
                     audio_codec = arg_default_select(args.audio_codec, "aac")
                 else:
                     assert False
-    
+
                 if args.audio_bitrate is not None:
                     audio_bitrate = args.audio_bitrate
                 else:
                     audio_bitrate = crf_encode_default_audio_bitrate_table[audio_codec]
 
-                encode_settings = CrfEncodeSettings(output_format, crf, video_codec, audio_codec, audio_bitrate)
+                encode_settings = CrfEncodeSettings(output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate)
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
                 video_codec = args.video_codec
                 if output_format == "webm":
