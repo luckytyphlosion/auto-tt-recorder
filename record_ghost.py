@@ -7,12 +7,12 @@ import time
 import os
 import configparser
 import argparse
-from enum import Enum
 import sys
 import mkw_filesys
 import shutil
 from contextlib import contextmanager
 import re
+import enumarg
 
 # def export_enums(enum):
 #     globals().update(enum.__members__)
@@ -32,6 +32,13 @@ ENCODE_x265_LIBOPUS = 2
 ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 3
 ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 4
 ENCODE_2PASS_VBR_WEBM = 5
+
+
+TIMELINE_NO_ENCODE = 0
+TIMELINE_FROM_TT_GHOST_SELECTION = 1
+TIMELINE_FROM_WORLD_CHAMPION_SCREEN = 2
+TIMELINE_FROM_TOP_10_LEADERBOARD = 3
+
 
 audio_len_regex = re.compile(r"^size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
 def get_dump_audio_len(ffmpeg_filename):
@@ -78,6 +85,14 @@ def gen_add_music_trim_loading_filter(ffmpeg_filename):
 [v0][a0][v1][a1]concat=n=2:v=1:a=1[v_almost_final][a];\
 [v_almost_final]scale=2560:trunc(ow/a/2)*2:flags=bicubic[v]"
 
+def record_ghost2(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, which_timeline=TIMELINE_NO_ENCODE, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None, ffmpeg_filename="ffmpeg"):
+    if which_timeline == TIMELINE_NO_ENCODE:
+        pass
+    elif which_timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
+        pass
+    else:
+        pass
+
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None, ffmpeg_filename="ffmpeg"):
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
@@ -94,6 +109,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
     mkw_filesys.replace_track(szs_filename, rkg)
 
+    # no longer necessary
     kill_path = pathlib.Path("dolphin/kill.txt")
     kill_path.unlink(missing_ok=True)
 
@@ -209,19 +225,6 @@ def turn_off_dump_frames_audio(dolphin_config):
     dolphin_config["Movie"]["DumpFrames"] = "False"
     dolphin_config["DSP"]["DumpAudio"] = "False"
 
-#auto (window size) = 0
-#auto (multiple of 640x528) = 1
-#native = 2
-#1.5x native = 3
-#2x native = 4
-#2.5x native = 5
-#3x native = 6
-#4x native = 7
-#5x native = 8
-#6x native = 9
-#7x native = 10
-#8x native = 11
-
 # just use fixed values for now
 def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config):
     dolphin_config["DSP"]["Volume"] = "0"
@@ -256,6 +259,77 @@ def hardcoded_test():
     music_filename = "otis_mcdonald_intro_hq_complicate_ya_x2.wav"
 
     record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
+
+#auto (window size) = 0
+#auto (multiple of 640x528) = 1
+#native = 2
+#1.5x native = 3
+#2x native = 4
+#2.5x native = 5
+#3x native = 6
+#4x native = 7
+#5x native = 8
+#6x native = 9
+#7x native = 10
+#8x native = 11
+
+resolution_string_to_dolphin_enum = {
+    "480p": 2,
+    "720p": 4,
+    "1080p": 6,
+    "1440p": 7,
+    "2k": 7,
+    "2160p": 9,
+    "4k": 9
+}
+    
+valid_dolphin_resolution_scaling_factors = {
+    1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8
+}
+
+timeline_enum_arg_table = enumarg.EnumArgTable({
+    "noencode": TIMELINE_NO_ENCODE,
+    "ghostselect": TIMELINE_FROM_TT_GHOST_SELECTION,
+    "worldchamp": TIMELINE_FROM_WORLD_CHAMPION_SCREEN,
+    "top10": TIMELINE_FROM_TOP_10_LEADERBOARD
+})
+
+ENCODE_TYPE_CRF = 0
+ENCODE_TYPE_SIZE_BASED = 1
+
+def main4():
+    ap = argparse.ArgumentParser(allow_abbrev=False)
+    # global args
+    ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record.", required=True)
+    ap.add_argument("-o", "--output-video-filename", dest="output_video_filename", help="Filename of the output recorded ghost. See the note on output formats.", required=True)
+    ap.add_argument("-r", "--iso-filename", dest="iso_filename", help="Filename of the Mario Kart Wii ISO.", required=True)
+    ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost.")
+    ap.add_argument("-s", "--szs-filename", dest="szs_filename", default=None, help="Filename of the szs file corresponding to the ghost file. Omit this for a regular track (or if the track was already replaced in the ISO)")
+    ap.add_argument("-kw", "--keep-window", dest="keep_window", action="store_true", default=False, help="By default, the Dolphin executable used to record the ghost is hidden to prevent accidental interaction with the window. Enabling this option will keep the window open, e.g. for debugging.")
+    ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Integer value of the recording timeline to use. Default is 0 (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
+    ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
+    ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Default is 480p (966x528)")
+    ap.add_argument("-ffv1", "--ffv1", dest="ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
+    ap.add_argument("-sm", "--speedometer", dest="speedometer", default=None, help="Enables speedometer and takes in an argument for the SOM display type. Omit to not show a speedometer. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit)")
+    ap.add_argument("-smt", "--speedometer-type", dest="speedometer_type", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), and xyz, the norm of the current position minus the previous position.")
+    ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
+
+    # timeline no encode
+    ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
+
+    # from tt ghost selection
+    ap.add_argument("-m", "--music-filename", dest="music_filename", default=None, help="Filename of the music which will replace the regular BGM. Omitting this option will keep the regular BGM. Specifying an empty string or None/none will disable music altogether.")
+    ap.add_argument("-ep", "--encode-preset", dest="encode_preset", default=None, help="Basic encode presets to use [TODO]")
+    ap.add_argument("-et", "--encode-type", dest="encode_type", default=None, help="Type of encoding to perform. Valid options are crf for a constant quality encode, and size for a constrained size based output. Pick crf if you're unsure (this is the default)")
+    ap.add_argument("-crf", "--crf-value", dest="crf", type=float, default=18, help="Crf value to pass to ffmpeg. Valid range is 0-51. Default is 18. Lower values provide higher quality at the cost of file size.")
+    ap.add_argument("-c:v", "--video-codec", dest="video_codec", default="libx264", help="Video codec to encode the output video. Valid only for crf-based encodings. Valid options are libx264 and libx265. Default is libx264. The difference between the two is that libx265 results in a smaller file size at the same quality at the cost of encoding time (unscientific tests suggest a speed decrease of 10x). libx265 will also not play in browsers or Discord. Other codecs (e.g. libvpx-vp9) may be supported in the future.")
+    ap.add_argument("-c:a", "--audio-codec", dest="audio_codec", default=None, help="Audio codec to encode the audio of the output video. Valid options are aac and libopus. Opus results in higher quality and a lower file size than aac so it should be chosen for almost all use cases, the only reason that aac should be selected is if the desired output file is mp4 and maximizing compatibility across devices is desired. That being said, Opus in mp4 has been tested to work in VLC, PotPlayer, Discord client, Chrome, Firefox, and Discord mobile, and does not work with Windows Media Player. The default is aac for crf encoded mp4 files, libopus for size-based encoded mp4 files, and libopus for mkv and webm files.")
+    #ap.add_argument("-f", "--output-format", dest="output_format", default=None, help="File format of the output video. Valid options are mp4, mkv, and webm. The default is mkv for crf-based encodes, and webm for size-based encodes. mkv supports many more codecs than mp4, and can be uploaded to YouTube, but cannot be played in by browsers or Discord. mp4 is supported almost universally but only accepts the libx264 and libx265 codecs from the codecs which auto-tt-recorder supports. webm is also widely supported but only accepts the libvpx-vp9 codec from the codecs supported by auto-tt-recorder. webm is not supported for crf-based encodes.")
+    ap.add_argument("-es", "--encode-size", dest="encode_size", type=int, default=52428800, help="Max video size allowed. Currently only used for constrained size-based encodes (2-pass VBR) encoding. Default is 52428800 bytes (50MiB)")
+    ap.add_argument("-b:a", "--audio-bitrate", dest="audio_bitrate", default=None, help="Audio bitrate for encodes. Higher bitrate means better audio quality (up to a certain point). Specified value can be an integer or an integer followed by k (multiplies by 1000). For crf-based encodes, the default is 128k for libopus, and 384k for aac. For constrained size-based encodes, the default is 64k for libopus, and 128k for aac.")
+
+    args = ap.parse_args()
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -318,4 +392,4 @@ def main3():
     print(gen_add_music_trim_loading_filter())
 
 if __name__ == "__main__":
-    main()
+    main4()
