@@ -50,6 +50,22 @@ class MusicOption:
         self.option = option
         self.music_filename = music_filename
 
+SOM_FANCY_KM_H = 0
+SOM_REGULAR_KM_H = 1
+SOM_STANDARD = 2
+SOM_NONE = 3
+
+class SpeedometerOption:
+    __slots__ = ("style", "metric", "decimal_places")
+
+    def __init__(self, style, metric=None, decimal_places=None):
+        self.style = style
+        self.metric = metric
+        self.decimal_places = decimal_places
+
+music_option_bgm = MusicOption(MUSIC_BGM)
+speedometer_option_none = SpeedometerOption(SOM_NONE)
+
 audio_len_regex = re.compile(r"^size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
 def get_dump_audio_len(ffmpeg_filename):
     # "ffmpeg -i dolphin/User/Dump/Audio/dspdump.wav -acodec copy -f rawaudio -y /dev/null 2>&1 | tr ^M '\n' | awk '/^  Duration:/ {print $2}' | tail -n 1"
@@ -103,7 +119,18 @@ def record_ghost2(rkg_file_main, output_video_filename, iso_filename, rkg_file_c
     else:
         pass
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, encode_settings=ENCODE_COPY, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None, ffmpeg_filename="ffmpeg"):
+record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, speedometer=speedometer, music_option=music_option, timeline_settings=timeline_settings)
+
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", speedometer=None, music_option=None, timeline_settings=None):
+
+    if speedometer is None:
+        speedometer = speedometer_option_none
+    if music_option is None:
+        music_option = music_option_bgm
+    if timeline_settings is None:
+        # todo figure out how the "API" function will work with respect to validation
+        timeline_settings = NoEncodeTimelineSettings("mkv")
+
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -111,10 +138,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         rkg_file_comparison
     )
 
-    if music_filename is not None:
-        no_music = True
+    disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
-    params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, no_music)
+    params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, disable_game_bgm)
     gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
     mkw_filesys.replace_track(szs_filename, rkg)
@@ -325,13 +351,34 @@ encode_type_enum_arg_table = enumarg.EnumArgTable({
     "size": ENCODE_TYPE_SIZE_BASED
 })
 
-class SpeedometerOption:
-    __slots__ = ("style", "metric", "decimal_places")
+class TimelineSettings(ABC):
+    def __init__(self):
+        pass
 
-    def __init__(self, style, metric=None, decimal_places=None):
-        self.style = style
-        self.metric = metric
-        self.decimal_places = decimal_places
+    @property
+    @abstractmethod
+    def type(self):
+        pass
+
+class NoEncodeTimelineSettings(TimelineSettings):
+    __slots__ = ("output_format",)
+
+    def __init__(self, output_format):
+        self.output_format = output_format
+
+    @property
+    def type(self):
+        return TIMELINE_NO_ENCODE
+
+class FromTTGhostSelectionTimelineSettings(TimelineSettings):
+    __slots__ = ("encode_settings",)
+
+    def __init__(self, encode_settings):
+        self.encode_settings = encode_settings
+
+    @property
+    def type(self):
+        return TIMELINE_FROM_TT_GHOST_SELECTION
 
 class EncodeSettings(ABC):
     __slots__ = ("output_format",)
@@ -341,17 +388,8 @@ class EncodeSettings(ABC):
 
     @property
     @abstractmethod
-    def encode_type(self):
+    def type(self):
         pass
-
-class NoEncodeEncodeSettings(EncodeSettings):
-
-    def __init__(self, output_format):
-        super().__init__(output_format)
-
-    @property
-    def encode_type(self):
-        return ENCODE_TYPE_NONE
 
 class CrfEncodeSettings(EncodeSettings):
     __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate")
@@ -365,9 +403,9 @@ class CrfEncodeSettings(EncodeSettings):
         self.audio_bitrate = audio_bitrate
 
     @property
-    def encode_type(self):
+    def type(self):
         return ENCODE_TYPE_CRF
-        
+
 class SizeBasedEncodeSettings(EncodeSettings):
     __slots__ = ("video_codec", "audio_codec", "audio_bitrate", "encode_size")
 
@@ -379,13 +417,8 @@ class SizeBasedEncodeSettings(EncodeSettings):
         self.encode_size = encode_size
 
     @property
-    def encode_type(self):
+    def type(self):
         return ENCODE_TYPE_SIZE_BASED
-
-SOM_FANCY_KM_H = 0
-SOM_REGULAR_KM_H = 1
-SOM_STANDARD = 2
-SOM_NONE = 3
 
 som_enum_arg_table = enumarg.EnumArgTable({
     "fancy": SOM_FANCY_KM_H,
@@ -498,7 +531,7 @@ def main():
         if output_format != "mkv":
             raise RuntimeError("Output file must be an .mkv file!")
 
-        encode_settings = NoEncodeEncodeSettings(output_format)
+        timeline_settings = NoEncodeTimelineSettings(output_format)
 
         if args.no_music:
             music_option = MusicOption(MUSIC_NONE)
@@ -573,6 +606,11 @@ def main():
             else:
                 assert False
 
+        if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
+            timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings)
+        else:
+            raise RuntimeError(f"todo timeline {timeline}")
+
     dolphin_resolution = args.dolphin_resolution
     speedometer_style = som_enum_arg_table.parse_enum_arg(args.speedometer)
     if speedometer_style != SOM_NONE:
@@ -590,7 +628,7 @@ def main():
     else:
         speedometer = SpeedometerOption(SOM_NONE)
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, timeline=timeline, music_option=music_option, encode_settings=encode_settings)
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, speedometer=speedometer, music_option=music_option, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
