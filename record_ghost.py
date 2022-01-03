@@ -15,6 +15,8 @@ import re
 import enumarg
 from abc import ABC, abstractmethod
 
+from stateclasses.speedometer import *
+
 # def export_enums(enum):
 #     globals().update(enum.__members__)
 #     return enum
@@ -49,19 +51,6 @@ class MusicOption:
     def __init__(self, option, music_filename=None):
         self.option = option
         self.music_filename = music_filename
-
-SOM_FANCY_KM_H = 0
-SOM_REGULAR_KM_H = 1
-SOM_STANDARD = 2
-SOM_NONE = 3
-
-class SpeedometerOption:
-    __slots__ = ("style", "metric", "decimal_places")
-
-    def __init__(self, style, metric=None, decimal_places=None):
-        self.style = style
-        self.metric = metric
-        self.decimal_places = decimal_places
 
 music_option_bgm = MusicOption(MUSIC_BGM)
 speedometer_option_none = SpeedometerOption(SOM_NONE)
@@ -140,14 +129,11 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
-    params = gen_gecko_codes.create_gecko_code_params_from_rkg(rkg, disable_game_bgm)
+    params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings)
     gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
     mkw_filesys.replace_track(szs_filename, rkg)
-
-    # no longer necessary
-    kill_path = pathlib.Path("dolphin/kill.txt")
-    kill_path.unlink(missing_ok=True)
+    mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer)
 
     output_params_path = pathlib.Path("dolphin/output_params.txt")
     output_params_path.unlink(missing_ok=True)
@@ -427,12 +413,9 @@ som_enum_arg_table = enumarg.EnumArgTable({
     "none": SOM_NONE
 })
 
-SOM_TYPE_ENGINE = 0
-SOM_TYPE_XYZ = 1
-
 som_metric_enum_arg_table = enumarg.EnumArgTable({
-    "engine": SOM_TYPE_ENGINE,
-    "xyz": SOM_TYPE_XYZ
+    "engine": SOM_METRIC_ENGINE,
+    "xyz": SOM_METRIC_XYZ
 })
 
 crf_encode_default_audio_bitrate_table = {
