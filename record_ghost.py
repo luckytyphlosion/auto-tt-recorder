@@ -14,6 +14,7 @@ from contextlib import contextmanager
 import re
 import enumarg
 from abc import ABC, abstractmethod
+import dolphin_process
 
 from stateclasses.speedometer import *
 
@@ -100,17 +101,17 @@ def gen_add_music_trim_loading_filter(ffmpeg_filename):
 [v0][a0][v1][a1]concat=n=2:v=1:a=1[v_almost_final][a];\
 [v_almost_final]scale=2560:trunc(ow/a/2)*2:flags=bicubic[v]"
 
-def record_ghost2(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, hide_window=True, no_music=True, which_timeline=TIMELINE_NO_ENCODE, music_filename=None, szs_filename=None, encode_size=None, encode_audio_bitrate=None, ffmpeg_filename="ffmpeg"):
-    if which_timeline == TIMELINE_NO_ENCODE:
-        pass
-    elif which_timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
-        pass
-    else:
-        pass
+resolution_string_to_dolphin_enum = {
+    "480p": "2",
+    "720p": "4",
+    "1080p": "6",
+    "1440p": "7",
+    "2k": "7",
+    "2160p": "9",
+    "4k": "9"
+}
 
-record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, speedometer=speedometer, music_option=music_option, timeline_settings=timeline_settings)
-
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", speedometer=None, music_option=None, timeline_settings=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=use_ffv1, speedometer=None, music_option=None, timeline_settings=None):
 
     if speedometer is None:
         speedometer = speedometer_option_none
@@ -119,6 +120,10 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     if timeline_settings is None:
         # todo figure out how the "API" function will work with respect to validation
         timeline_settings = NoEncodeTimelineSettings("mkv")
+
+    dolphin_resolution_as_enum = resolution_string_to_dolphin_enum.get(dolphin_resolution)
+    if dolphin_resolution_as_enum is None:
+        raise RuntimeError(f"Unknown Dolphin resolution \"{dolphin_resolution}\"!")
 
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
@@ -142,7 +147,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     framedump_path.unlink(missing_ok=True)
 
     create_dolphin_configs_if_not_exist()
-    modify_dolphin_configs()
+    modify_dolphin_configs(resolution_as_dolphin_enum, use_ffv1)
 
     os.chdir("dolphin/")
     args = ["./DolphinR.exe", "-b", "-e", iso_filename]
@@ -235,7 +240,7 @@ def open_config_for_modification(config_filename):
         with open(config_filename, "w+") as f:
             config.write(f)
 
-def modify_dolphin_configs():
+def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1):
     dolphin_config_filename = "dolphin/User/Config/Dolphin.ini"
     dolphin_gfx_config_filename = "dolphin/User/Config/GFX.ini"
 
@@ -248,40 +253,11 @@ def turn_off_dump_frames_audio(dolphin_config):
     dolphin_config["DSP"]["DumpAudio"] = "False"
 
 # just use fixed values for now
-def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config):
+def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1):
     dolphin_config["DSP"]["Volume"] = "0"
-    dolphin_gfx_config["Settings"]["EFBScale"] = "2"
-
-def hardcoded_test():
-    franz = "01m41s1006378 Franz.rkg"
-    cole = "01m08s7732250 Cole.rkg"
-
-    bye_shun = "01m40s2989711 Bye shun.rkg"
-    bigmactroy = "01m45s4056658 bigmactroy.rkg"
-
-    niyake = "00m15s9610732 Niyake.rkg"
-    niyake2 = "00m16s1320374 Niyake2.rkg"
-
-    rds_bob = "rds_super_blooper_bob.rkg"
-
-    wgm_standard_kart_l = "wgm_standard_kart_l_1807FF33880AF428FF791A7DE57F96B40882.rkg"
-    wgm_booster_seat = "wgm_booster_seat_BC757B2DD472668BB338883C7F47DA43E650.rkg"
-
-    bryce = "00m20s3190366 MG   DKSC.rkg"
-
-    rds_tiny_titan = "B1DA8CD9AC62E80B4C84B38474CD58052DAE.rkg"
-
-    rkg_file_main = rds_tiny_titan
-    output_video_filename = "rds_tiny_titan.mkv"
-    iso_filename = "../../../RMCE01/RMCE01.iso"
-    rkg_file_comparison = None
-    hide_window = False
-    no_music = True
-    encode_settings = ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING
-    music_filename = "otis_mcdonald_intro_hq_complicate_ya_x2.wav"
-
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, hide_window=hide_window, no_music=no_music, encode_settings=encode_settings, music_filename=music_filename)
-
+    dolphin_gfx_config["Settings"]["EFBScale"] = dolphin_resolution_as_enum
+    dolphin_gfx_config["Settings"]["UseFFV1"] = str(use_ffv1)
+    
 #auto (window size) = 0
 #auto (multiple of 640x528) = 1
 #native = 2
@@ -295,16 +271,6 @@ def hardcoded_test():
 #7x native = 10
 #8x native = 11
 
-resolution_string_to_dolphin_enum = {
-    "480p": 2,
-    "720p": 4,
-    "1080p": 6,
-    "1440p": 7,
-    "2k": 7,
-    "2160p": 9,
-    "4k": 9
-}
-    
 valid_dolphin_resolution_scaling_factors = {
     1:   2,
     1.5: 3,
@@ -471,7 +437,7 @@ def main():
     ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Default is noencode (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
     ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
-    ap.add_argument("-ffv1", "--ffv1", dest="ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
+    ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
     ap.add_argument("-smt", "--speedometer-metric", dest="speedometer_metric", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), and xyz, the norm of the current position minus the previous position. Default is engine.")
     ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", type=int, default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
@@ -595,6 +561,7 @@ def main():
             raise RuntimeError(f"todo timeline {timeline}")
 
     dolphin_resolution = args.dolphin_resolution
+    use_ffv1 = args.use_ffv1
     speedometer_style = som_enum_arg_table.parse_enum_arg(args.speedometer)
     if speedometer_style != SOM_NONE:
         speedometer_metric = som_metric_enum_arg_table.parse_enum_arg(speedometer_metric)
@@ -611,7 +578,7 @@ def main():
     else:
         speedometer = SpeedometerOption(SOM_NONE)
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, speedometer=speedometer, music_option=music_option, timeline_settings=timeline_settings)
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, music_option=music_option, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
