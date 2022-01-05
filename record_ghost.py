@@ -113,6 +113,8 @@ resolution_string_to_dolphin_enum = {
 
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=use_ffv1, speedometer=None, music_option=None, timeline_settings=None):
 
+    iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
+
     if speedometer is None:
         speedometer = speedometer_option_none
     if music_option is None:
@@ -149,25 +151,8 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     create_dolphin_configs_if_not_exist()
     modify_dolphin_configs(resolution_as_dolphin_enum, use_ffv1)
 
-    os.chdir("dolphin/")
-    args = ["./DolphinR.exe", "-b", "-e", iso_filename]
-    if hide_window:
-        args.extend(("-hm", "-dr"))
+    dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
-    subprocess.run(args, check=True)
-    #popen = subprocess.Popen(args)
-    #popen = subprocess.Popen(("./DolphinR.exe", "-b", "-e", iso_filename))
-    #kill_path = pathlib.Path("kill.txt")
-    #while True:
-    #    if kill_path.is_file():
-    #        popen.terminate()
-    #        # wsl memes
-    #        subprocess.run(("taskkill.exe", "/f", "/im", "DolphinR.exe"))
-    #        break
-    #
-    #    time.sleep(1)
-
-    os.chdir("..")
     output_video_path = pathlib.Path(output_video_filename)
     output_video_path.parent.mkdir(parents=True, exist_ok=True)
 
