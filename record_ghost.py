@@ -160,7 +160,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         # total video bitrate - audio bitrate = 4085865.1392054865 - 64000 = 4020329.1392054865
         # with overhead factor = 4020329.1392054865 * 0.99 = 3980125.8478134316
         encode_size_bits = encode_size * 8
-        run_len = get_dump_audio_len()
+        run_len = get_dump_audio_len(ffmpeg_filename)
         avg_video_bitrate_as_str = str(int(0.99 * (encode_size_bits/run_len - encode_audio_bitrate)))
         subprocess.run(
             (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "1", "-f", "null", "/dev/null"), check=True
