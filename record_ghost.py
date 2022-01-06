@@ -13,10 +13,12 @@ import shutil
 from contextlib import contextmanager
 import re
 import enumarg
-from abc import ABC, abstractmethod
 import dolphin_process
 
 from stateclasses.speedometer import *
+from stateclasses.timeline_classes import *
+from stateclasses.encode_classes import *
+from stateclasses.music_option_classes import *
 
 # def export_enums(enum):
 #     globals().update(enum.__members__)
@@ -37,69 +39,8 @@ ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 3
 ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 4
 ENCODE_2PASS_VBR_WEBM = 5
 
-TIMELINE_NO_ENCODE = 0
-TIMELINE_FROM_TT_GHOST_SELECTION = 1
-TIMELINE_FROM_WORLD_CHAMPION_SCREEN = 2
-TIMELINE_FROM_TOP_10_LEADERBOARD = 3
-
-MUSIC_NONE = 0
-MUSIC_GAME_BGM = 1
-MUSIC_CUSTOM_MUSIC = 2
-
-class MusicOption:
-    __slots__ = ("option", "music_filename")
-
-    def __init__(self, option, music_filename=None):
-        self.option = option
-        self.music_filename = music_filename
-
-music_option_bgm = MusicOption(MUSIC_BGM)
+music_option_bgm = MusicOption(MUSIC_GAME_BGM)
 speedometer_option_none = SpeedometerOption(SOM_NONE)
-
-audio_len_regex = re.compile(r"^size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
-def get_dump_audio_len(ffmpeg_filename):
-    # "ffmpeg -i dolphin/User/Dump/Audio/dspdump.wav -acodec copy -f rawaudio -y /dev/null 2>&1 | tr ^M '\n' | awk '/^  Duration:/ {print $2}' | tail -n 1"
-    dspdump_ffmpeg_output = subprocess.check_output([ffmpeg_filename, "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-acodec", "copy", "-f", "null", "-"], stderr=subprocess.STDOUT).decode(encoding="ascii")
-    audio_len_match_obj = audio_len_regex.search(dspdump_ffmpeg_output)
-    if not audio_len_match_obj:
-        raise RuntimeError("FFmpeg command did not return dspdump.wav audio duration!")
-    audio_len_hours = int(audio_len_match_obj.group(1))
-    audio_len_minutes = int(audio_len_match_obj.group(2))
-    audio_len_seconds = float(audio_len_match_obj.group(3))
-    audio_len = audio_len_hours * 3600 + audio_len_minutes * 60 + audio_len_seconds
-    return audio_len
-
-def gen_add_music_trim_loading_filter(ffmpeg_filename):
-    output_params = {}
-
-    with open("dolphin/output_params.txt", "r") as f:
-        for line in f:
-            if line.strip() == "":
-                continue
-
-            param_name, param_value = line.split(": ", maxsplit=1)
-            output_params[param_name] = param_value.strip()
-
-    frame_replay_starts = int(output_params["frameReplayStarts"])
-    frame_recording_starts = int(output_params["frameRecordingStarts"])
-
-    adelay_value = ((frame_replay_starts - frame_recording_starts) * 1000)/60
-    audio_len = get_dump_audio_len(ffmpeg_filename)
-    fade_duration = 2.5
-    fade_start_time = audio_len - fade_duration
-    trim_start = (frame_replay_starts - frame_recording_starts)/60
-
-    return f"[2:a]adelay={adelay_value}|{adelay_value}[music_delayed];\
-[1:a]volume=0.6[game_audio_voldown];\
-[game_audio_voldown][music_delayed]amix=inputs=2:duration=first[audio_combined];\
-[0:v]fade=type=out:duration={fade_duration}:start_time={fade_start_time},split[video_faded_out1][video_faded_out2];\
-[audio_combined]afade=type=out:duration={fade_duration}:start_time={fade_start_time},asplit[audio_combined_faded_out1][audio_combined_faded_out2];\
-[video_faded_out1]trim=end=3.1,setpts=PTS-STARTPTS[v0];\
-[audio_combined_faded_out1]atrim=end=3.1,asetpts=PTS-STARTPTS[a0];\
-[video_faded_out2]trim=start={trim_start},setpts=PTS-STARTPTS[v1];\
-[audio_combined_faded_out2]atrim=start={trim_start},asetpts=PTS-STARTPTS[a1];\
-[v0][a0][v1][a1]concat=n=2:v=1:a=1[v_almost_final][a];\
-[v_almost_final]scale=2560:trunc(ow/a/2)*2:flags=bicubic[v]"
 
 resolution_string_to_dolphin_enum = {
     "480p": "2",
@@ -111,7 +52,7 @@ resolution_string_to_dolphin_enum = {
     "4k": "9"
 }
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=use_ffv1, speedometer=None, music_option=None, timeline_settings=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, timeline_settings=None):
 
     iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
 
@@ -142,63 +83,65 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     mkw_filesys.replace_track(szs_filename, rkg)
     mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer)
 
-    output_params_path = pathlib.Path("dolphin/output_params.txt")
-    output_params_path.unlink(missing_ok=True)
+    if not encode_only:
+        output_params_path = pathlib.Path("dolphin/output_params.txt")
+        output_params_path.unlink(missing_ok=True)
+    
+        framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
+        framedump_path.unlink(missing_ok=True)
+    
+        create_dolphin_configs_if_not_exist()
+        modify_dolphin_configs(resolution_as_dolphin_enum, use_ffv1)
+    
+        dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
-    framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
-    framedump_path.unlink(missing_ok=True)
+    encode.encode_video(output_video_filename, ffmpeg_filename, dolphin_resolution, music_option, timeline_settings)
 
-    create_dolphin_configs_if_not_exist()
-    modify_dolphin_configs(resolution_as_dolphin_enum, use_ffv1)
-
-    dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
-
-    output_video_path = pathlib.Path(output_video_filename)
-    output_video_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if encode_settings == ENCODE_COPY:
-        subprocess.run(
-            (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename), check=True
-        )
-    elif encode_settings == ENCODE_x264_LIBOPUS:
-        subprocess.run(
-            (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx264", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
-        )
-    elif encode_settings == ENCODE_x265_LIBOPUS:
-        subprocess.run(
-            (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx265", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
-        )
-    elif encode_settings in (ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING, ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING):
-        if encode_settings == ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING:
-            vcodec = "libx264"
-        else:
-            vcodec = "libx265"
-
-        filter_params = gen_add_music_trim_loading_filter(ffmpeg_filename)
-        subprocess.run(
-            (ffmpeg_filename, "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-pix_fmt", "yuv420p10le", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
-            #("ffmpeg", "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
-        )
-    elif encode_settings == ENCODE_2PASS_VBR_WEBM:
-        # total bytes = 52428800
-        # total bits = 52428800 * 8 = 419430400
-        # total seconds = 102.654
-        # total video bitrate = 419430400/102.654 = 4085865.1392054865
-        # desired audio bitrate = 64000
-        # total video bitrate - audio bitrate = 4085865.1392054865 - 64000 = 4020329.1392054865
-        # with overhead factor = 4020329.1392054865 * 0.99 = 3980125.8478134316
-        encode_size_bits = encode_size * 8
-        run_len = get_dump_audio_len()
-        avg_video_bitrate_as_str = str(int(0.99 * (encode_size_bits/run_len - encode_audio_bitrate)))
-        subprocess.run(
-            (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "1", "-f", "null", "/dev/null"), check=True
-        )
-        subprocess.run(
-            (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "2", "-c:a", "libopus", "-b:a", str(encode_audio_bitrate), output_video_filename), check=True
-        )
-
-    else:
-        raise RuntimeError(f"Invalid encode setting {encode_settings}!")
+    #if timeline_settings.type == TIMELINE_NO_ENCODE:
+    #    subprocess.run(
+    #        (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename), check=True
+    #    )
+    #else:
+    #    
+    #elif encode_settings == ENCODE_x264_LIBOPUS:
+    #    subprocess.run(
+    #        (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx264", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
+    #    )
+    #elif encode_settings == ENCODE_x265_LIBOPUS:
+    #    subprocess.run(
+    #        (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx265", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
+    #    )
+    #elif encode_settings in (ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING, ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING):
+    #    if encode_settings == ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING:
+    #        vcodec = "libx264"
+    #    else:
+    #        vcodec = "libx265"
+    #
+    #    filter_params = gen_add_music_trim_loading_filter(ffmpeg_filename)
+    #    subprocess.run(
+    #        (ffmpeg_filename, "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-pix_fmt", "yuv420p10le", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
+    #        #("ffmpeg", "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
+    #    )
+    #elif encode_settings == ENCODE_2PASS_VBR_WEBM:
+    #    # total bytes = 52428800
+    #    # total bits = 52428800 * 8 = 419430400
+    #    # total seconds = 102.654
+    #    # total video bitrate = 419430400/102.654 = 4085865.1392054865
+    #    # desired audio bitrate = 64000
+    #    # total video bitrate - audio bitrate = 4085865.1392054865 - 64000 = 4020329.1392054865
+    #    # with overhead factor = 4020329.1392054865 * 0.99 = 3980125.8478134316
+    #    encode_size_bits = encode_size * 8
+    #    run_len = get_dump_audio_len()
+    #    avg_video_bitrate_as_str = str(int(0.99 * (encode_size_bits/run_len - encode_audio_bitrate)))
+    #    subprocess.run(
+    #        (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "1", "-f", "null", "/dev/null"), check=True
+    #    )
+    #    subprocess.run(
+    #        (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "2", "-c:a", "libopus", "-b:a", str(encode_audio_bitrate), output_video_filename), check=True
+    #    )
+    #
+    #else:
+    #    raise RuntimeError(f"Invalid encode setting {encode_settings}!")
 
     print("Done!")
 
@@ -279,83 +222,10 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
 #class NoEncodeTimelineArgs:
 #    __slots__ = ("no_music
 
-ENCODE_TYPE_NONE = -1
-ENCODE_TYPE_CRF = 0
-ENCODE_TYPE_SIZE_BASED = 1
-
 encode_type_enum_arg_table = enumarg.EnumArgTable({
     "crf": ENCODE_TYPE_CRF,
     "size": ENCODE_TYPE_SIZE_BASED
 })
-
-class TimelineSettings(ABC):
-    def __init__(self):
-        pass
-
-    @property
-    @abstractmethod
-    def type(self):
-        pass
-
-class NoEncodeTimelineSettings(TimelineSettings):
-    __slots__ = ("output_format",)
-
-    def __init__(self, output_format):
-        self.output_format = output_format
-
-    @property
-    def type(self):
-        return TIMELINE_NO_ENCODE
-
-class FromTTGhostSelectionTimelineSettings(TimelineSettings):
-    __slots__ = ("encode_settings",)
-
-    def __init__(self, encode_settings):
-        self.encode_settings = encode_settings
-
-    @property
-    def type(self):
-        return TIMELINE_FROM_TT_GHOST_SELECTION
-
-class EncodeSettings(ABC):
-    __slots__ = ("output_format",)
-
-    def __init__(self, output_format):
-        self.output_format = output_format
-
-    @property
-    @abstractmethod
-    def type(self):
-        pass
-
-class CrfEncodeSettings(EncodeSettings):
-    __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate")
-
-    def __init__(self, output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate):
-        super().__init__(output_format)
-        self.crf = crf
-        self.h26x_preset = h26x_preset
-        self.video_codec = video_codec
-        self.audio_codec = audio_codec
-        self.audio_bitrate = audio_bitrate
-
-    @property
-    def type(self):
-        return ENCODE_TYPE_CRF
-
-class SizeBasedEncodeSettings(EncodeSettings):
-    __slots__ = ("video_codec", "audio_codec", "audio_bitrate", "encode_size")
-
-    def __init__(self, output_format, video_codec, audio_codec, audio_bitrate, encode_size):
-        super().__init__(output_format)
-        self.video_codec = video_codec
-        self.audio_codec = audio_codec
-        self.audio_bitrate = audio_bitrate
-        self.encode_size = encode_size
-
-    @property
-    def type(self):
-        return ENCODE_TYPE_SIZE_BASED
 
 som_enum_arg_table = enumarg.EnumArgTable({
     "fancy": SOM_FANCY_KM_H,
@@ -399,17 +269,6 @@ def arg_default_or_validate_from_choices(arg, *choices_and_error_message):
 
     return arg
 
-def parse_audio_bitrate(audio_bitrate):
-    try:
-        if audio_bitrate[-1] == "k":
-            audio_bitrate_as_int = int(audio_bitrate[:-1]) * 1000
-        else:
-            audio_bitrate_as_int = int(audio_bitrate)
-    except (ValueError, IndexError) as e:
-        raise RuntimeError(f"Invalid audio bitrate \"{audio_bitrate}\"!") from e
-
-    return audio_bitrate_as_int
-
 def main():
     ap = argparse.ArgumentParser(allow_abbrev=False)
     # global args
@@ -426,6 +285,7 @@ def main():
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
     ap.add_argument("-smt", "--speedometer-metric", dest="speedometer_metric", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), and xyz, the norm of the current position minus the previous position. Default is engine.")
     ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", type=int, default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
+    ap.add_argument("-eo", "--encode-only", dest="encode_only", action="store_true", default=False, help="Assume that all necessary frame dumps already exist, instead of running Dolphin to dump out frames. Useful for testing in case an error occurs through the encoding stage.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
@@ -442,6 +302,10 @@ def main():
     #ap.add_argument("-f", "--output-format", dest="output_format", default=None, help="File format of the output video. Valid options are mp4, mkv, and webm. The default is mkv for crf-based encodes, and webm for size-based encodes. mkv supports many more codecs than mp4, and can be uploaded to YouTube, but cannot be played in by browsers or Discord. mp4 is supported almost universally but only accepts the libx264 and libx265 codecs from the codecs which auto-tt-recorder supports. webm is also widely supported but only accepts the libvpx-vp9 codec from the codecs supported by auto-tt-recorder. webm is not supported for crf-based encodes.")
     ap.add_argument("-es", "--encode-size", dest="encode_size", type=int, default=52428800, help="Max video size allowed. Currently only used for constrained size-based encodes (2-pass VBR) encoding. Default is 52428800 bytes (50MiB)")
     ap.add_argument("-b:a", "--audio-bitrate", dest="audio_bitrate", default=None, help="Audio bitrate for encodes. Higher bitrate means better audio quality (up to a certain point). Specified value can be an integer or an integer followed by k (multiplies by 1000). For crf-based encodes, the default is 128k for libopus, and 384k for aac. For constrained size-based encodes, the default is 64k for libopus, and 128k for aac.")
+    #width_height_group = ap.add_mutually_exclusive_group()
+    #width_height_group.add_argument("-ow", "--output-width", dest="output_width", default=None, help="Width of the output video. Cannot be specified together with -oh/--output-height. If omitted, 
+    ap.add_argument("-ow", "--output-width", dest="output_width", type=int, default=None, help="Width of the output video. If omitted, don't rescale the video at all.")
+    ap.add_argument("-pix_fmt", "--pixel-format", dest="pix_fmt", default="yuv420p", help="Pixel format of the output video. Default is yuv420p. This input is not validated against!")
 
     args = ap.parse_args()
 
@@ -475,7 +339,7 @@ def main():
         if args.music_filename in ("", "None", "none"):
             music_option = MusicOption(MUSIC_NONE)
         elif args.music_filename == "bgm":
-            music_option = MusicOption(MUSIC_BGM)
+            music_option = MusicOption(MUSIC_GAME_BGM)
         else:
             music_filepath = pathlib.Path(args.music_filename)
             if not music_filepath.exists():
@@ -508,7 +372,10 @@ def main():
                 else:
                     audio_bitrate = crf_encode_default_audio_bitrate_table[audio_codec]
 
-                encode_settings = CrfEncodeSettings(output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate)
+                output_width = args.output_width
+                pix_fmt = args.pix_fmt
+
+                encode_settings = CrfEncodeSettings(output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt)
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
                 video_codec = args.video_codec
                 if output_format == "webm":
@@ -536,7 +403,10 @@ def main():
                 else:
                     audio_bitrate = size_based_encode_default_audio_bitrate_table[audio_codec]
 
-                encode_settings = SizeBasedEncodeSettings(output_format, video_codec, audio_codec, audio_bitrate, encode_size)
+                output_width = args.output_width
+                pix_fmt = args.pix_fmt
+
+                encode_settings = SizeBasedEncodeSettings(output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt)
             else:
                 assert False
 
@@ -563,7 +433,9 @@ def main():
     else:
         speedometer = SpeedometerOption(SOM_NONE)
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, music_option=music_option, timeline_settings=timeline_settings)
+    encode_only = args.encode_only
+
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
