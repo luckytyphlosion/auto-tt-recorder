@@ -97,52 +97,6 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     encode.encode_video(output_video_filename, ffmpeg_filename, dolphin_resolution, music_option, timeline_settings)
 
-    #if timeline_settings.type == TIMELINE_NO_ENCODE:
-    #    subprocess.run(
-    #        (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename), check=True
-    #    )
-    #else:
-    #    
-    #elif encode_settings == ENCODE_x264_LIBOPUS:
-    #    subprocess.run(
-    #        (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx264", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
-    #    )
-    #elif encode_settings == ENCODE_x265_LIBOPUS:
-    #    subprocess.run(
-    #        (ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c:v", "libx265", "-crf", "18", "-c:a", "libopus", "-b:a", "128000", output_video_filename), check=True
-    #    )
-    #elif encode_settings in (ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING, ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING):
-    #    if encode_settings == ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING:
-    #        vcodec = "libx264"
-    #    else:
-    #        vcodec = "libx265"
-    #
-    #    filter_params = gen_add_music_trim_loading_filter(ffmpeg_filename)
-    #    subprocess.run(
-    #        (ffmpeg_filename, "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-pix_fmt", "yuv420p10le", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
-    #        #("ffmpeg", "-y", "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-i", music_filename, "-c:v", vcodec, "-crf", "18", "-c:a", "libopus", "-b:a", "128000", "-filter_complex", filter_params, "-map", "[v]", "-map", "[a]", output_video_filename), check=True
-    #    )
-    #elif encode_settings == ENCODE_2PASS_VBR_WEBM:
-    #    # total bytes = 52428800
-    #    # total bits = 52428800 * 8 = 419430400
-    #    # total seconds = 102.654
-    #    # total video bitrate = 419430400/102.654 = 4085865.1392054865
-    #    # desired audio bitrate = 64000
-    #    # total video bitrate - audio bitrate = 4085865.1392054865 - 64000 = 4020329.1392054865
-    #    # with overhead factor = 4020329.1392054865 * 0.99 = 3980125.8478134316
-    #    encode_size_bits = encode_size * 8
-    #    run_len = get_dump_audio_len()
-    #    avg_video_bitrate_as_str = str(int(0.99 * (encode_size_bits/run_len - encode_audio_bitrate)))
-    #    subprocess.run(
-    #        (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "1", "-f", "null", "/dev/null"), check=True
-    #    )
-    #    subprocess.run(
-    #        (ffmpeg_filename, "-i", "dolphin/user/dump/frames/framedump0.avi", "-i", "dolphin/user/dump/audio/dspdump.wav", "-c:v", "libvpx-vp9", "-b:v", avg_video_bitrate_as_str, "-row-mt", "1", "-threads", "8", "-pass", "2", "-c:a", "libopus", "-b:a", str(encode_audio_bitrate), output_video_filename), check=True
-    #    )
-    #
-    #else:
-    #    raise RuntimeError(f"Invalid encode setting {encode_settings}!")
-
     print("Done!")
 
 def copy_config_if_not_exist(base_config_filename, dest_config_filename):

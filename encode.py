@@ -80,19 +80,21 @@ class Encoder:
         music_option = self.music_option
         timeline_settings = self.timeline_settings
 
-        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
-        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
-        music_in_file = ffmpeg.input(music_option.music_filename)
-
         encode_settings = timeline_settings.encode_settings
         fade_duration = encode_settings.fade_duration
-    
+
         dynamic_filter_args = self.gen_dynamic_filter_args(fade_duration)
 
-        adelay_stream = ffmpeg.filter(music_in_file, "adelay", f"{dynamic_filter_args.adelay_value}|{dynamic_filter_args.adelay_value}")
-        game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
-        audio_combined_stream = ffmpeg.filter([game_volume_stream, adelay_stream], "amix", inputs=2, duration="first")
-    
+        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
+        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
+        if music_option.option == MUSIC_CUSTOM_MUSIC:
+            music_in_file = ffmpeg.input(music_option.music_filename)
+            adelay_stream = ffmpeg.filter(music_in_file, "adelay", f"{dynamic_filter_args.adelay_value}|{dynamic_filter_args.adelay_value}")
+            game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
+            audio_combined_stream = ffmpeg.filter([game_volume_stream, adelay_stream], "amix", inputs=2, duration="first")            
+        else:
+            audio_combined_stream = audio_in_file
+
         video_faded_stream = ffmpeg.filter(video_in_file, "fade", type="out", duration=fade_duration, start_time=dynamic_filter_args.fade_start_time).split()
     
         audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_duration, start_time=dynamic_filter_args.fade_start_time).asplit()
@@ -124,7 +126,7 @@ class Encoder:
             if encode_settings.output_format == "mp4" and encode_settings.audio_codec == "libopus":
                 ffmpeg_output_kwargs["strict"] = "-2"
 
-            output_stream = ffmpeg.output(final_video_stream, final_audio_stream, output_video_filename, ffmpeg_output_kwargs)
+            output_stream = ffmpeg.output(final_video_stream, final_audio_stream, output_video_filename, **ffmpeg_output_kwargs)
             if self.print_cmd:
                 command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
                 print(f"command: {command}")
@@ -238,7 +240,7 @@ def test_generated_command():
     # output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt
     # , CrfEncodeSettings, SizeBasedEncodeSettings
     # SizeBasedEncodeSettings(output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt)
-    MODE = 1
+    MODE = 2
     if MODE == 0:
         crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", 854, "yuv420p")
         timeline_settings = FromTTGhostSelectionTimelineSettings(crf_encode_settings)
@@ -252,6 +254,12 @@ def test_generated_command():
         music_option = MusicOption(MUSIC_CUSTOM_MUSIC, "bubble_bath_the_green_orbs.wav")
         encoder = Encoder("ffmpeg", "480p", music_option, timeline_settings, print_cmd=False)
         encoder.encode("test_size_based_command.mp4")
+    elif MODE == 2:
+        crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", None, "yuv420p")
+        timeline_settings = FromTTGhostSelectionTimelineSettings(crf_encode_settings)
+        music_option = MusicOption(MUSIC_GAME_BGM)
+        encoder = Encoder("ffmpeg", "480p", music_option, timeline_settings, print_cmd=False)
+        encoder.encode("test_game_bgm_crf.mkv")
 
 if __name__ == "__main__":
     test_generated_command()

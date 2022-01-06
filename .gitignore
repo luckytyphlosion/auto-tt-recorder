@@ -156,3 +156,5 @@ credentials.yml
 bin/
 storage/
 *.mbtree
+*.avi
+*.mov
