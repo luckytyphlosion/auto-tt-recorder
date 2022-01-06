@@ -1,4 +1,6 @@
 import platform
+import sys
+
 on_wsl = "microsoft" in platform.uname()[3].lower()
 
 def sanitize_and_check_iso_exists(iso_filename):
@@ -67,32 +69,57 @@ def run_dolphin_non_wsl(iso_filename, hide_window):
 #   - https://github.com/microsoft/WSL/issues/7367
 #   - so just fallback to original behaviour
 
-def run_dolphin_wsl(iso_filename, hide_window)
+def kill_process_through_taskkill(popen, pid):
+    subprocess.run(("taskkill.exe", "/f", "/pid", dolphin_pid))
+    time.sleep(0.1)
+    process_killed = False
+
+    for i in range(5):
+        returncode = popen.poll()
+        if returncode is not None:
+            process_killed = True
+            break
+
+        time.sleep(1)
+
+    if not process_killed:
+        raise RuntimeError("FATAL ERROR: powershell.exe process stuck, WSL console will now corrupt.")
+
+def run_dolphin_wsl(iso_filename, hide_window):
     # this will complete almost immediately
-    args = ["powershell.exe", "-NoProfile", "-Command", "(", "Start-Process", "-PassThru", "-FilePath", "dolphin\\DolphinR.exe", "-ArgumentList"]
+    args = ["powershell.exe", "-NoProfile", "-Command", "$dolphin_pid = (", "Start-Process", "-PassThru", "-FilePath", "dolphin\\DolphinR.exe", "-ArgumentList"]
     if hide_window:
         args.extend(('"-hm"', ",", '"-dr"', ","))
 
-    args.extend(('"-b"', ",", fr"""'-e "{iso_filename}"'""", ").id > dolphin_pid.log"))
+    args.extend(('"-b"', ",", fr"""'-e "{iso_filename}"'""", ").id ; $dolphin_pid > dolphin_pid.log ; Wait-Process -Id $dolphin_pid"))
 
     # need to use utf-8 encoding to prevent WSL from changing fonts
     # https://github.com/microsoft/WSL/issues/3988#issuecomment-706667720
-    subprocess.run(args, encoding="utf-8")
-
-    with open("dolphin_pid.log", "r", encoding="utf-16") as f:
-        dolphin_pid = f.read().strip()
-
     try:
-        int(dolphin_pid)
-    except ValueError as e:
-        raise RuntimeError(f"Non-integer dolphin PID \"{dolphin_pid}\"!") from e
+        popen = subprocess.Popen(args, encoding="utf-8")
+    
+        with open("dolphin_pid.log", "r", encoding="utf-16") as f:
+            dolphin_pid = f.read().strip()
 
-    while True:
-        process_result = subprocess.run(("powershell.exe", "-NoProfile", "-Command", "Wait-Process", "-Id", dolphin_pid, "-Timeout", "30", "2>&1>$null"))
-        if process_result.returncode == 0:
-            break
+        try:
+            int(dolphin_pid)
+        except ValueError as e:
+            raise RuntimeError(f"Non-integer dolphin PID \"{dolphin_pid}\"!") from e
 
-        # some abnormal condition, implement later
-        if False:
-            subprocess.run(("taskkill.exe", "/f", "/pid", dolphin_pid))
-            break
+        while True:
+            returncode = popen.poll()
+            # dolphin exited normally
+            if returncode is not None:
+                break
+    
+            # some abnormal condition, implement later
+            if False:
+                kill_process_through_taskkill(popen, pid)
+                break
+
+            time.sleep(1)
+    except KeyboardInterrupt as e:
+        if popen is not None:
+            kill_process_through_taskkill(popen, pid)
+
+        sys.exit(e)
