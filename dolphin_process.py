@@ -23,18 +23,19 @@ def sanitize_and_check_iso_exists(iso_filename):
 # Also, if on WSL, ISO filename must also be sanitized to prevent shell injection within powershell.exe
 def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
     iso_filename = sanitize_and_check_iso_exists(iso_filename)
+    double_dot_iso_filename = str(".." / pathlib.Path(iso_filename))
 
     os.chdir("dolphin/")
 
     if on_wsl:
-        run_dolphin_wsl(iso_filename, hide_window)
+        run_dolphin_wsl(double_dot_iso_filename, hide_window)
     else:
-        run_dolphin_non_wsl(iso_filename, hide_window)
+        run_dolphin_non_wsl(double_dot_iso_filename, hide_window)
 
     os.chdir("..")
 
-def run_dolphin_non_wsl(iso_filename, hide_window):
-    args = ["./DolphinR.exe", "-b", "-e", iso_filename]
+def run_dolphin_non_wsl(double_dot_iso_filename, hide_window):
+    args = ["./DolphinR.exe", "-b", "-e", double_dot_iso_filename]
     if hide_window:
         args.extend(("-hm", "-dr"))
 
@@ -50,6 +51,8 @@ def run_dolphin_non_wsl(iso_filename, hide_window):
         if False:
             popen.terminate()
             break
+
+        time.sleep(1)
 
 # dumbest hack ever
 # goal: run Dolphin through WSL while maintaining the following goals
@@ -69,43 +72,26 @@ def run_dolphin_non_wsl(iso_filename, hide_window):
 #   - https://github.com/microsoft/WSL/issues/7367
 #   - so just fallback to original behaviour
 
-def kill_process_through_taskkill(popen, pid):
-    subprocess.run(("taskkill.exe", "/f", "/pid", dolphin_pid))
-    time.sleep(0.1)
-    process_killed = False
+# nothing worked, powershell.exe through wsl has issues, so fallback to the renaming solution
+def run_dolphin_wsl(double_dot_iso_filename, hide_window):
+    good_dolphin_filenames = [name for name in glob.iglob("Dolphin*.exe") if name in ("Dolphin.exe", "DolphinR.exe") or dolphin_filename_regex.match(name)]
 
-    for i in range(5):
-        returncode = popen.poll()
-        if returncode is not None:
-            process_killed = True
-            break
+    if len(good_dolphin_filenames) != 1:
+        raise RuntimeError("Multiple different Dolphin executables in dolphin/!")
 
-        time.sleep(1)
+    dolphin_filename = good_dolphin_filenames[0]
+    dolphin_filepath = pathlib.Path(dolphin_filename)
+    new_dolphin_filename = f"Dolphin_{int(time.time())}_{random.randint(0, 65535)}.exe"
+    new_dolphin_filepath = pathlib.Path(new_dolphin_filename)
+    dolphin_filepath.rename(new_dolphin_filepath)
 
-    if not process_killed:
-        raise RuntimeError("FATAL ERROR: powershell.exe process stuck, WSL console will now corrupt.")
-
-def run_dolphin_wsl(iso_filename, hide_window):
-    # this will complete almost immediately
-    args = ["powershell.exe", "-NoProfile", "-Command", "$dolphin_pid = (", "Start-Process", "-PassThru", "-FilePath", "dolphin\\DolphinR.exe", "-ArgumentList"]
+    args = [f"./{new_dolphin_filename}", "-b", "-e", double_dot_iso_filename]
     if hide_window:
-        args.extend(('"-hm"', ",", '"-dr"', ","))
+        args.extend(("-hm", "-dr"))
 
-    args.extend(('"-b"', ",", fr"""'-e "{iso_filename}"'""", ").id ; $dolphin_pid > dolphin_pid.log ; Wait-Process -Id $dolphin_pid"))
-
-    # need to use utf-8 encoding to prevent WSL from changing fonts
-    # https://github.com/microsoft/WSL/issues/3988#issuecomment-706667720
     try:
-        popen = subprocess.Popen(args, encoding="utf-8")
+        popen = subprocess.Popen(args)
     
-        with open("dolphin_pid.log", "r", encoding="utf-16") as f:
-            dolphin_pid = f.read().strip()
-
-        try:
-            int(dolphin_pid)
-        except ValueError as e:
-            raise RuntimeError(f"Non-integer dolphin PID \"{dolphin_pid}\"!") from e
-
         while True:
             returncode = popen.poll()
             # dolphin exited normally
@@ -114,12 +100,13 @@ def run_dolphin_wsl(iso_filename, hide_window):
     
             # some abnormal condition, implement later
             if False:
-                kill_process_through_taskkill(popen, pid)
+                popen.terminate()
+                subprocess.run(("taskkill.exe", "/f", "/im", new_dolphin_filename))
                 break
 
             time.sleep(1)
-    except KeyboardInterrupt as e:
-        if popen is not None:
-            kill_process_through_taskkill(popen, pid)
 
-        sys.exit(e)
+    except KeyboardInterrupt as e:
+        popen.terminate()
+        subprocess.run(("taskkill.exe", "/f", "/im", new_dolphin_filename))
+        raise RuntimeError(e)
