@@ -134,7 +134,12 @@ class Encoder:
             encode_size_bits = encode_settings.encode_size * 8
             run_len = self.get_dump_audio_len() - (dynamic_filter_args.trim_start - FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP)
             print(f"run_len: {run_len}")
-            avg_video_bitrate = int(0.99 * (encode_size_bits/run_len - encode_settings.audio_bitrate))
+            if encode_settings.video_codec == "libx264":
+                dampening_factor = 0.98
+            else:
+                dampening_factor = 0.99
+
+            avg_video_bitrate = int(dampening_factor * (encode_size_bits/run_len - encode_settings.audio_bitrate))
 
             ffmpeg_output_kwargs = {
                 "vcodec": encode_settings.video_codec,
@@ -188,9 +193,12 @@ class Encoder:
                 ffmpeg.run(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
                 ffmpeg.run(output_stream_pass2, cmd=self.ffmpeg_filename, overwrite_output=True)
                 if encode_settings.output_format == "mp4":
-                    mkv_to_mp4_args = [self.ffmpeg_filename, "-i", tentative_output_video_filename, "-c", "copy", output_video_filename]
+                    mkv_to_mp4_args = [self.ffmpeg_filename, "-y", "-i", tentative_output_video_filename, "-c", "copy"]
                     if encode_settings.audio_codec == "libopus":
                         mkv_to_mp4_args.extend(("-strict", "-2"))
+
+                    # -strict -2 must be before output video
+                    mkv_to_mp4_args.append(output_video_filename)
 
                     subprocess.run(mkv_to_mp4_args, check=True)
                     output_video_filepath_as_mkv.unlink(missing_ok=True)
@@ -239,7 +247,7 @@ def test_generated_command():
         encoder.encode("test_crf_command.mkv")
     elif MODE == 1:
         #size_based_encode_settings = SizeBasedEncodeSettings("webm", "libvpx-vp9", "libopus", "64k", 52428800, None, "yuv420p")
-        size_based_encode_settings = SizeBasedEncodeSettings("mp4", "libx264", "aac", "64k", 52428800, None, "yuv420p")
+        size_based_encode_settings = SizeBasedEncodeSettings("mp4", "libx264", "libopus", "64k", 52428800, None, "yuv420p")
         timeline_settings = FromTTGhostSelectionTimelineSettings(size_based_encode_settings)
         music_option = MusicOption(MUSIC_CUSTOM_MUSIC, "bubble_bath_the_green_orbs.wav")
         encoder = Encoder("ffmpeg", "480p", music_option, timeline_settings, print_cmd=False)
