@@ -4,6 +4,8 @@ import pathlib
 import util
 import identifiers
 
+from stateclasses.split_classes import *
+
 RKG_SIZE = 0x2800
 MII_SIZE = 0x4a
 
@@ -176,17 +178,6 @@ class BitManipulator(ABC):
 
         self.data[byte_offset] &= (1 << (7 - bit_offset)) ^ 0xff
 
-class Split:
-    __slots__ = ("minutes", "seconds", "milliseconds")
-
-    def __init__(self, minutes, seconds, milliseconds):
-        self.minutes = minutes
-        self.seconds = seconds
-        self.milliseconds = milliseconds
-
-    def pretty(self):
-        return f"{self.minutes:02d}:{self.seconds:02d}.{self.milliseconds:03d}"
-
 # offset types:
 # byte offset
 # bit offset
@@ -229,6 +220,7 @@ class Rkg(BitManipulator):
     oLAP_1_SPLIT_SECONDS = Offset(0x11, 7, 7)
     oLAP_1_SPLIT_MILLISECONDS = Offset(0x12, 6, 10)
 
+    oCOUNTRY_CODE = Offset(0x34)
     oMII_DATA = Offset(0x3c, None, 0x4a)
 
     oCOMPRESSED_LEN = Offset(0x88, None, 4)
@@ -244,7 +236,8 @@ class Rkg(BitManipulator):
     __slots__ = ("filename", "data", "rkg_file", "_track_id", "_compressed", "data",
         "_compressed_len", "_uncompressed_len", "_has_ctgp_data", "_mii", "_ghost_type", "_vehicle_id",
         "_character_id", "_controller", "_track_by_ghost_slot", "_drift_type", "_track_by_human_id",
-        "_year", "_minutes", "_seconds", "_milliseconds", "_splits", "_lap_count")
+        "_year", "_minutes", "_seconds", "_milliseconds", "_splits", "_lap_count", "_finish_time",
+        "_country_code")
 
     def __init__(self, filename, apply_crc_every_write=False):
         super().__init__(filename)
@@ -263,9 +256,11 @@ class Rkg(BitManipulator):
         self._drift_type = self.read(Rkg.oDRIFT_TYPE)
         self._has_ctgp_data = True
         self._year = self.read(Rkg.oYEAR)
+
         self._minutes = self.read(Rkg.oMINUTES)
         self._seconds = self.read(Rkg.oSECONDS)
         self._milliseconds = self.read(Rkg.oMILLISECONDS)
+        self._finish_time = Split(self._minutes, self._seconds, self._milliseconds)
 
         self._lap_count = self.read(Rkg.oLAP_COUNT)
 
@@ -278,6 +273,7 @@ class Rkg(BitManipulator):
             splits.append(Split(split_minutes, split_seconds, split_milliseconds))
 
         self._splits = splits
+        self._country_code = self.read(Rkg.oCOUNTRY_CODE)
 
     @property
     def year(self):
@@ -373,6 +369,14 @@ class Rkg(BitManipulator):
     @property
     def lap_count(self):
         return self._lap_count
+
+    @property
+    def finish_time(self):
+        return self._finish_time
+
+    @property
+    def country_code(self):
+        return self._country_code
 
     def _set_compressed_from_data(self):
         self._compressed = self.read(Rkg.oCOMPRESSED)
