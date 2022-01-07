@@ -245,7 +245,7 @@ def main():
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
 
-    # from tt ghost selection
+    # anything that requires encoding
     ap.add_argument("-m", "--music-filename", dest="music_filename", default="bgm", help="Filename of the music which will replace the regular BGM. Specifying bgm will keep the regular BGM. Specifying an empty string or None/none will disable music altogether. The default is bgm.")
     ap.add_argument("-ep", "--encode-preset", dest="encode_preset", default=None, help="Basic encode presets to use [TODO]")
     # youtube-fast-encode, youtube-optimize-size, discord-8mb, discord-50mb, discord-100mb
@@ -261,6 +261,12 @@ def main():
     #width_height_group.add_argument("-ow", "--output-width", dest="output_width", default=None, help="Width of the output video. Cannot be specified together with -oh/--output-height. If omitted, 
     ap.add_argument("-ow", "--output-width", dest="output_width", type=int, default=None, help="Width of the output video. If omitted, don't rescale the video at all.")
     ap.add_argument("-pix_fmt", "--pixel-format", dest="pix_fmt", default="yuv420p", help="Pixel format of the output video. Default is yuv420p. This input is not validated against!")
+
+    # specific to custom top 10
+    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times.")
+    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Currently only ww is implemented. Regional/country-based globes will eventually be supported.")
+    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is to choose based on the top 10 location (todo elaborate).")
+    ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1.")
 
     args = ap.parse_args()
 
@@ -367,6 +373,9 @@ def main():
 
         if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
             timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings)
+        #elif timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
+        #    
+        #    
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 
