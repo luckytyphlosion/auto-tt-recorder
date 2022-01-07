@@ -123,9 +123,11 @@ class Encoder:
                 "pix_fmt": encode_settings.pix_fmt,
                 "preset": encode_settings.h26x_preset
             }
-            if encode_settings.output_format == "mp4" and encode_settings.audio_codec == "libopus":
-                ffmpeg_output_kwargs["strict"] = "-2"
-
+            if encode_settings.output_format == "mp4":
+                if encode_settings.audio_codec == "libopus":
+                    ffmpeg_output_kwargs["strict"] = "-2"
+                ffmpeg_output_kwargs["movflags"] = "+faststart"
+                
             output_stream = ffmpeg.output(final_video_stream, final_audio_stream, output_video_filename, **ffmpeg_output_kwargs)
             if self.print_cmd:
                 command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
@@ -158,6 +160,9 @@ class Encoder:
                 ffmpeg_output_kwargs["preset"] = "slow"
             else:
                 assert False
+
+            if encode_settings.output_format == "mp4":
+                ffmpeg_output_kwargs["movflags"] = "+faststart"
 
             ffmpeg_output_kwargs_pass1 = ffmpeg_output_kwargs.copy()
             ffmpeg_output_kwargs_pass1.update({
@@ -210,7 +215,7 @@ class Encoder:
     def encode(self, output_video_filename):
         output_video_path = pathlib.Path(output_video_filename)
         output_video_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
         if self.timeline_settings.type == TIMELINE_NO_ENCODE:
             self.encode_stream_copy(output_video_filename)
         elif self.timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:

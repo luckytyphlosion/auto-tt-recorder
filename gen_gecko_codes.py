@@ -8,8 +8,8 @@ class GeckoParams:
         self.substitutions = []
         self.optional_enabled_codes = set()
 
-    def add_subst(self, name, value):
-        self.substitutions.append(GeckoSubst(name, value))
+    def add_subst(self, name, value, num_digits=2):
+        self.substitutions.append(GeckoSubst(name, value, num_digits))
 
     def enable_optional_code(self, code_name):
         self.optional_enabled_codes.add(code_name)
@@ -17,9 +17,9 @@ class GeckoParams:
 class GeckoSubst:
     __slots__ = ("name", "value")
 
-    def __init__(self, name, value):
+    def __init__(self, name, value, num_digits=2):
         self.name = f"{{{name}}}"
-        self.value = f"{value:02x}"
+        self.value = f"{{:0{num_digits}x}}".format(value)
 
     def sub(self, line):
         return line.replace(self.name, self.value)
@@ -74,20 +74,20 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
     if speedometer.style == SOM_FANCY_KM_H:
         if speedometer.metric == SOM_METRIC_ENGINE:
             params.enable_optional_code("$Customizable Pretty Speedometer (Left Side)")
-            params.add_subst("fancy_km_h_som_num_decimal_places", speedometer.decimal_places)
+            params.add_subst("fancy_km_h_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
         elif speedometer.metric == SOM_METRIC_XYZ:
             params.enable_optional_code("$Customizable Pretty XYZ Speedometer (Left Side)")
-            params.add_subst("fancy_km_h_xyz_som_num_decimal_places", speedometer.decimal_places)
+            params.add_subst("fancy_km_h_xyz_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
         else:
             assert False
     elif speedometer.style == SOM_REGULAR_KM_H:
         if speedometer.metric == SOM_METRIC_ENGINE:
             params.enable_optional_code("$Customizable Pretty Speedometer with km/h text")
-            params.add_subst("regular_km_h_som_num_decimal_places", speedometer.decimal_places)
+            params.add_subst("regular_km_h_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
             params.add_subst("regular_km_h_som_xpos", regular_km_h_som_num_decimal_places_to_xpos[speedometer.decimal_places])
         elif speedometer.metric == SOM_METRIC_XYZ:
             params.enable_optional_code("$Customizable Pretty XYZ Speedometer with km/h text")
-            params.add_subst("regular_km_h_xyz_som_num_decimal_places", speedometer.decimal_places)
+            params.add_subst("regular_km_h_xyz_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
             params.add_subst("regular_km_h_xyz_som_xpos", regular_km_h_som_num_decimal_places_to_xpos[speedometer.decimal_places])
         else:
             assert False

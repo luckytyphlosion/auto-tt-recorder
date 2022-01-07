@@ -14,6 +14,7 @@ from contextlib import contextmanager
 import re
 import enumarg
 import dolphin_process
+import encode
 
 from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
@@ -91,7 +92,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         framedump_path.unlink(missing_ok=True)
     
         create_dolphin_configs_if_not_exist()
-        modify_dolphin_configs(resolution_as_dolphin_enum, use_ffv1)
+        modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1)
     
         dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
@@ -128,7 +129,7 @@ def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1):
 
     with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config:
         turn_off_dump_frames_audio(dolphin_config)
-        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config)
+        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1)
 
 def turn_off_dump_frames_audio(dolphin_config):
     dolphin_config["Movie"]["DumpFrames"] = "False"
@@ -251,7 +252,7 @@ def main():
     ap.add_argument("-et", "--encode-type", dest="encode_type", default=None, help="Type of encoding to perform. Valid options are crf for a constant quality encode, and size for a constrained size based output. Pick crf if you're unsure (this is the default)")
     ap.add_argument("-crf", "--crf-value", dest="crf", type=float, default=18, help="Crf value to pass to ffmpeg. Valid range is 0-51. Default is 18. Lower values provide higher quality at the cost of file size.")
     ap.add_argument("-hp", "--h26x-preset", dest="h26x_preset", default="medium", help="H.26x preset option which will be passed to ffmpeg. Ignored for non-crf based encodes. Default is medium.")
-    ap.add_argument("-c:v", "--video-codec", dest="video_codec", default=None, help="Video codec to encode the output video. Valid only for crf-based encodings. For crf-based encodes, valid options are libx264 and libx265, and the default is libx264. For constrained size-based encodes, valid options are libx264 and libvpx-vp9, and the default is libvpx-vp9. The difference between the two is that libx265 results in a smaller file size at the same quality at the cost of encoding time (unscientific tests suggest a speed decrease of 10x). libx265 will also not play in browsers or Discord. Other codecs (e.g. libvpx-vp9) may be supported in the future.")
+    ap.add_argument("-c:v", "--video-codec", dest="video_codec", default=None, help="Video codec to encode the output video. For crf-based encodes, valid options are libx264 and libx265, and the default is libx264. For constrained size-based encodes, valid options are libx264 and libvpx-vp9, and the default is libvpx-vp9. The difference between the two is that libx265 results in a smaller file size at the same quality at the cost of encoding time (unscientific tests suggest a speed decrease of 10x). libx265 will also not play in browsers or Discord. Other codecs may be supported in the future.")
     ap.add_argument("-c:a", "--audio-codec", dest="audio_codec", default=None, help="Audio codec to encode the audio of the output video. Valid options are aac and libopus. Opus results in higher quality and a lower file size than aac so it should be chosen for almost all use cases, the only reason that aac should be selected is if the desired output file is mp4 and maximizing compatibility across devices is desired. That being said, Opus in mp4 has been tested to work in VLC, PotPlayer, Discord client, Chrome, Firefox, and Discord mobile, and does not work with Windows Media Player. The default is aac for crf encoded mp4 files, libopus for size-based encoded mp4 files, and libopus for mkv and webm files.")
     #ap.add_argument("-f", "--output-format", dest="output_format", default=None, help="File format of the output video. Valid options are mp4, mkv, and webm. The default is mkv for crf-based encodes, and webm for size-based encodes. mkv supports many more codecs than mp4, and can be uploaded to YouTube, but cannot be played in by browsers or Discord. mp4 is supported almost universally but only accepts the libx264 and libx265 codecs from the codecs which auto-tt-recorder supports. webm is also widely supported but only accepts the libvpx-vp9 codec from the codecs supported by auto-tt-recorder. webm is not supported for crf-based encodes.")
     ap.add_argument("-es", "--encode-size", dest="encode_size", type=int, default=52428800, help="Max video size allowed. Currently only used for constrained size-based encodes (2-pass VBR) encoding. Default is 52428800 bytes (50MiB)")
@@ -373,7 +374,7 @@ def main():
     use_ffv1 = args.use_ffv1
     speedometer_style = som_enum_arg_table.parse_enum_arg(args.speedometer)
     if speedometer_style != SOM_NONE:
-        speedometer_metric = som_metric_enum_arg_table.parse_enum_arg(speedometer_metric)
+        speedometer_metric = som_metric_enum_arg_table.parse_enum_arg(args.speedometer_metric)
         if speedometer_style == SOM_FANCY_KM_H:
             speedometer_decimal_places = arg_default_or_validate_from_choices(args.speedometer_decimal_places,
                 1, 0, "Only 0 or 1 decimal places are allowed for fancy km/h speedometer! (got: \"{}\")")
@@ -401,4 +402,4 @@ def main3():
     print(gen_add_music_trim_loading_filter())
 
 if __name__ == "__main__":
-    main4()
+    main()

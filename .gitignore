@@ -158,3 +158,5 @@ storage/
 *.mbtree
 *.avi
 *.mov
+*.temp
+*.opus

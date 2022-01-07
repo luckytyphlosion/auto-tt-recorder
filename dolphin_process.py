@@ -1,7 +1,16 @@
 import platform
 import sys
+import pathlib
+import subprocess
+import os
+import glob
+import re
+import random
+import time
 
 on_wsl = "microsoft" in platform.uname()[3].lower()
+good_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-/.\\")
+dolphin_filename_regex = re.compile(r"Dolphin_[0-9]+_[0-9]+.exe")
 
 def sanitize_and_check_iso_exists(iso_filename):
     # bug in Dolphin Lua Core will cause Dolphin's memory and disk usage to spike extremely
