@@ -38,7 +38,7 @@ class IsoCode:
         self.bypass_crc = bypass_crc
         self.highlight = highlight
 
-ISO_CODES = {
+custom_top_10_region_dependent_codes = {
     # [flag changer, globe position, custom title, top 10, bypass crc, highlight]
     # [0,            1,              2,            3,      4,          5]
     "PAL": IsoCode("0242ABD8", "0442BBDC", "C25CDDCC", "C260BFAC", "040C997C", "C263DC48"),

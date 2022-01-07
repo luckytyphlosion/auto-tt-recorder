@@ -21,12 +21,14 @@
 # SOFTWARE.
 
 import itertools
-import struct
-import codecs
+
+import util
 import import_ghost_to_save
+from import_ghost_to_save import Rkg
 
 from constants.customtop10 import *
-from import_ghost_to_save import Rkg
+from stateclasses.gecko_code_line import *
+
 
 CONTROLLER_WII_WHEEL = 0
 
@@ -49,30 +51,6 @@ regional_to_country = {
 }
 
 ##############################################
-# UTILS
-##############################################
-
-def grouper(iterable, n, fillvalue=None):
-    "Collect data into non-overlapping fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
-    args = [iter(iterable)] * n
-    return itertools.zip_longest(*args, fillvalue=fillvalue)
-
-def utf_16_hex(s):
-    s_as_utf_16_bytes = s.encode(encoding="utf-16")
-    if s_as_utf_16_bytes[:2] == codecs.BOM_UTF16_LE:
-        struct_format = "<H"
-        s_as_utf_16_bytes_no_bom = s_as_utf_16_bytes[2:]
-    elif s_as_utf_16_bytes[:2] == codecs.BOM_UTF16_BE:
-        struct_format = ">H"
-        s_as_utf_16_bytes_no_bom = s_as_utf_16_bytes[2:]
-    else:
-        struct_format = "<H"
-        s_as_utf_16_bytes_no_bom = s_as_utf_16_bytes
-
-    return "".join(f"{num[0]:04x}" for num in struct.iter_unpack(struct_format, s_as_utf_16_bytes_no_bom))
-
-##############################################
 # CODE GENERATION FUNCTIONS
 ##############################################
 
@@ -87,13 +65,6 @@ def get_top_10_entries_from_filelist(*rkg_filenames):
         top_10_entries.append(Top10Entry.from_rkg(rkg))
 
     return top_10_entries
-
-class GeckoCodeLine:
-    __slots__ = ("left_side", "right_side")
-
-    def __init__(self, left_side, right_side):
-        self.left_side = left_side
-        self.right_side = right_side
 
 oMII_SYSTEM_ID = 0x1c
 oMII_SYSTEM_ID_END = 0x20
@@ -116,11 +87,11 @@ class Top10Entry:
         return cls(country, finish_time, wheel, partial_mii)
 
 class CustomTop10:
-    __slots__ = ("code", "region_dependent_iso_codes", "globe_location", "globe_position", "top_10_title", "highlight_index", "include_track_in_title", "entries")
+    __slots__ = ("code", "region_dependent_codes", "globe_location", "globe_position", "top_10_title", "highlight_index", "include_track_in_title", "entries")
 
     def __init__(self, iso_region, globe_location, top_10_title, entries, highlight_index=1, include_track_in_title=False):
         self.code = []
-        self.region_dependent_iso_codes = ISO_CODES[iso_region]
+        self.region_dependent_codes = custom_top_10_region_dependent_codes[iso_region]
         self.globe_location = globe_location
         self.globe_position = CustomTop10.get_globe_position_from_location(globe_location)
         self.top_10_title = top_10_title
@@ -169,21 +140,21 @@ class CustomTop10:
         if len(args) % 2 != 0:
             raise RuntimeError("Number of code elements not even!")
 
-        for left_side, right_side in grouper(args, 2):
+        for left_side, right_side in util.grouper(args, 2):
             self.code.append(GeckoCodeLine(left_side, right_side))
 
     def crc16_bypass_code(self):
-        self.add_code_line(self.region_dependent_iso_codes.bypass_crc, "48000010")
+        self.add_code_line(self.region_dependent_codes.bypass_crc, "48000010")
 
     def globe_position_code(self):
         if self.globe_location != "ww":
             self.add_code_lines(
-                self.region_dependent_iso_codes.flag_changer, "00004303",
-                self.region_dependent_iso_codes.globe_position, self.globe_position
+                self.region_dependent_codes.flag_changer, "00004303",
+                self.region_dependent_codes.globe_position, self.globe_position
             )
 
     def custom_title_code(self):
-        title_code = [self.region_dependent_iso_codes.custom_title, "XXXXXXXX",
+        title_code = [self.region_dependent_codes.custom_title, "XXXXXXXX",
                         "7D6802A6", "YYYYYYYY"]
 
         hex_title = ""
@@ -191,8 +162,8 @@ class CustomTop10:
             # this is string that will be replaced by the track name
             hex_title += "001A0802001100000020"
 
-        hex_title += utf_16_hex(self.top_10_title)
-        title_data = ["".join(eight_digit_chunk) for eight_digit_chunk in grouper(hex_title, 8, "0")]
+        hex_title += util.utf_16_hex(self.top_10_title)
+        title_data = ["".join(eight_digit_chunk) for eight_digit_chunk in util.grouper(hex_title, 8, "0")]
         title_data.append("00000000")
         title_code.extend(title_data)
         title_code.extend(("2C0E1776", "4082000C",
@@ -209,7 +180,7 @@ class CustomTop10:
 
     def add_highlight_code(self):
         if self.highlight_index != -1:
-            highlight_code = [self.region_dependent_iso_codes.highlight, "00000005",
+            highlight_code = [self.region_dependent_codes.highlight, "00000005",
                                     "386300A8", f"2C1C000{self.highlight_index:x}",
                                     "40A2001C", "A183003C",
                                     "2C0C7031", "40A20010",
@@ -223,7 +194,7 @@ class CustomTop10:
         entries_code_part = f"398000{total_entries:02x}"
         branch_code_part = f"48{0x05 + total_entries * 0x38:06x}"
 
-        top_10_code = [self.region_dependent_iso_codes.top_10, None,
+        top_10_code = [self.region_dependent_codes.top_10, None,
                             "BE41FFC8", "38800000",
                             "39800001", "91830058", 
                             entries_code_part, "91830060",
@@ -241,7 +212,7 @@ class CustomTop10:
             print(f"finish_time.pretty(): {finish_time.pretty()}")
             partial_mii_data_plus_country_wheel = entry.partial_mii + [country_id, (0 if wheel else 1)]
             #print(f"len(partial_mii_data_plus_country_wheel): {len(partial_mii_data_plus_country_wheel)}")
-            top_10_code.extend("".join(f"{num:02x}" for num in four_byte_chunk) for four_byte_chunk in grouper(partial_mii_data_plus_country_wheel, 4))
+            top_10_code.extend("".join(f"{num:02x}" for num in four_byte_chunk) for four_byte_chunk in util.grouper(partial_mii_data_plus_country_wheel, 4))
 
         top_10_code.extend(("7D8802A6",
                                 "BA4C0000", "B24B0001",
