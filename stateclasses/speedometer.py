@@ -42,7 +42,7 @@ class SpeedometerOption:
                 self.decimal_places = util.arg_default_or_validate_from_choices(decimal_places,
                     1, 0, "Only 0 or 1 decimal places are allowed for fancy km/h speedometer! (got: \"{}\")")
             elif self.style == SOM_REGULAR_KM_H:
-                self.decimal_places = util.arg_default_or_validate_from_choices(decimal_places
+                self.decimal_places = util.arg_default_or_validate_from_choices(decimal_places,
                     2, 0, 1, "Only 0 to 2 decimal places are allowed for regular km/h speedometer! (got: \"{}\")")
             elif self.style == SOM_STANDARD:
                 self.decimal_places = 2

@@ -33,11 +33,11 @@ class Encoder:
         self.dump_audio_len = None
         self.print_cmd = print_cmd
 
-    def get_dump_audio_len(self):
+    def get_dump_audio_len(self, audio_file="dolphin/User/Dump/Audio/dspdump.wav"):
         if self.dump_audio_len is not None:
             return self.dump_audio_len
 
-        dspdump_ffmpeg_output = subprocess.check_output([self.ffmpeg_filename, "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-acodec", "copy", "-f", "null", "-"], stderr=subprocess.STDOUT).decode(encoding="ascii")
+        dspdump_ffmpeg_output = subprocess.check_output([self.ffmpeg_filename, "-i", audio_file, "-acodec", "copy", "-f", "null", "-"], stderr=subprocess.STDOUT).decode(encoding="ascii")
         audio_len_match_obj = audio_len_regex.search(dspdump_ffmpeg_output)
         if not audio_len_match_obj:
             raise RuntimeError("FFmpeg command did not return dspdump.wav audio duration!")
@@ -75,7 +75,50 @@ class Encoder:
 
         return DynamicFilterArgs(adelay_value, fade_start_time, trim_start)
 
-    def encode_from_tt_ghost_select(self, output_video_filename):
+    def encode_from_top_10_leaderboard(self):
+        dolphin_resolution = self.dolphin_resolution
+        music_option = self.music_option
+        timeline_settings = self.timeline_settings
+
+        encode_settings = timeline_settings.encode_settings
+        fade_duration = encode_settings.fade_duration
+
+        dynamic_filter_args = self.gen_dynamic_filter_args(fade_duration)
+
+        top_10_video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/top10.avi")
+        top_10_audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/top10.wav")
+        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
+        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
+
+        if music_option.option == MUSIC_CUSTOM_MUSIC:
+            music_in_file = ffmpeg.input(music_option.music_filename)
+            game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
+            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_in_file], "amix", inputs=2, duration="first")            
+        else:
+            audio_combined_stream = audio_in_file
+
+        video_faded_stream = ffmpeg.filter(video_in_file, "fade", type="out", duration=fade_duration, start_time=dynamic_filter_args.fade_start_time)
+    
+        audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_duration, start_time=dynamic_filter_args.fade_start_time)
+    
+        all_streams = [
+            top_10_video_in_file,
+            top_10_audio_in_file,
+            video_faded_stream,
+            audio_combined_faded_stream
+        ]
+
+        almost_final_streams = ffmpeg.filter_multi_output(all_streams, "concat", n=2, v=1, a=1)
+        if encode_settings.output_width is not None:
+            final_video_stream = ffmpeg.filter(almost_final_streams[0], "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
+        else:
+            final_video_stream = almost_final_streams[0]
+
+        final_audio_stream = almost_final_streams[1]
+
+        return final_video_stream, final_audio_stream
+
+    def encode_from_tt_ghost_select(self):
         dolphin_resolution = self.dolphin_resolution
         music_option = self.music_option
         timeline_settings = self.timeline_settings
@@ -113,7 +156,24 @@ class Encoder:
             final_video_stream = almost_final_streams[0]
     
         final_audio_stream = almost_final_streams[1]
-    
+
+        return final_video_stream, final_audio_stream
+
+    def encode_complex(self, output_video_filename):
+        dolphin_resolution = self.dolphin_resolution
+        music_option = self.music_option
+        timeline_settings = self.timeline_settings
+
+        encode_settings = timeline_settings.encode_settings
+        fade_duration = encode_settings.fade_duration
+
+        if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
+            final_video_stream, final_audio_stream = self.encode_from_tt_ghost_select()
+        elif timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
+            final_video_stream, final_audio_stream = self.encode_from_top_10_leaderboard()
+        else:
+            raise RuntimeError(f"Unknown timeline type \"{timeline_settings.type}\"!")
+
         if encode_settings.type == ENCODE_TYPE_CRF:
             ffmpeg_output_kwargs = {
                 "vcodec": encode_settings.video_codec,
@@ -218,8 +278,8 @@ class Encoder:
 
         if self.timeline_settings.type == TIMELINE_NO_ENCODE:
             self.encode_stream_copy(output_video_filename)
-        elif self.timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
-            self.encode_from_tt_ghost_select(output_video_filename)
+        elif self.timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD):
+            self.encode_complex(output_video_filename)
         else:
             raise RuntimeError("Unimplemented timeline settings type!")
 

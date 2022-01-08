@@ -57,7 +57,7 @@ class EncodeSettings(ABC):
         if audio_bitrate is None:
             audio_bitrate = default_table[audio_codec]
 
-        self.audio_bitrate = parse_audio_bitrate(audio_bitrate)
+        self.audio_bitrate = self.parse_audio_bitrate(audio_bitrate)
 
 crf_encode_default_audio_bitrate_table = {
     "libopus": "128k",
@@ -77,16 +77,16 @@ class CrfEncodeSettings(EncodeSettings):
             raise RuntimeError(f"Invalid output format \"{output_format}\" for crf encode!")
         super().__init__(output_format)
 
-        self.crf = validate_int_and_or_float(crf, "Crf value", 0, 51)
+        self.crf = self.validate_int_and_or_float(crf, "Crf value", 0, 51)
 
         self.video_codec = util.arg_default_or_validate_from_choices(video_codec, "libx264", "libx265", "Unsupported crf-based codec \"{}\"!")
 
         self.h26x_preset = util.arg_default_or_validate_from_choices(h26x_preset, "medium", "ultrafast", "superfast", "veryfast", "faster", "fast", "slow", "slower", "veryslow", "placebo", "Unsupported H.26x preset \"{}\"!")
 
         if self.output_format == "mkv":
-            self.audio_codec = arg_default_select(audio_codec, "libopus")
+            self.audio_codec = util.arg_default_select(audio_codec, "libopus")
         elif self.output_format == "mp4":
-            self.audio_codec = arg_default_select(audio_codec, "aac")
+            self.audio_codec = util.arg_default_select(audio_codec, "aac")
         else:
             assert False
 
@@ -132,7 +132,7 @@ class SizeBasedEncodeSettings(EncodeSettings):
         else:
             assert False
 
-        self.encode_size = validate_int_and_or_float(encode_size, "Encode size", lower_bound=1, allowed_types=(int,))
+        self.encode_size = self.validate_int_and_or_float(encode_size, "Encode size", lower_bound=1, allowed_types=(int,))
         self.validate_default_set_audio_bitrate(audio_bitrate, self.audio_codec, size_based_encode_default_audio_bitrate_table)
         self.validate_and_set_output_width(output_width)
 

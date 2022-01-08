@@ -73,7 +73,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_C
 
     return data, r.status_code
 
-def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=None, rate_limit=None):
+def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=chadsoft_config.TRY_CACHED, rate_limit=chadsoft_config.RATE_LIMIT):
     params = {}
     if start is not None:
         params["start"] = start
@@ -106,7 +106,7 @@ def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, t
 # #filter-times-record-history
 # #filter-times-all
 
-leaderboard_regex = re.compile(r"^https://www\.chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02))\.html(.*)$")
+leaderboard_regex = re.compile(r"^https://www\.chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02|03|04|05|06))\.html(.*)$")
 
 region_name_to_id = {
     "all": None,
@@ -174,7 +174,7 @@ def get_top_10_lb_from_lb_link(lb_link):
 
     slot_id_track_sha1 = match_obj.group(1)
 
-    top_10_leaderboard = get_lb_from_href(f"/leaderboard/slot_id_track_sha1.json", start=0, limit=10, continent=continent, vehicle=vehicle, times=times, rate_limit=False)
+    top_10_leaderboard = get_lb_from_href(f"/leaderboard/{slot_id_track_sha1}.json", start=0, limit=10, continent=continent, vehicle=vehicle, times=times)
 
     if len(top_10_leaderboard["ghosts"]) == 0:
         raise RuntimeError("Leaderboard is empty!")

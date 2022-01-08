@@ -71,8 +71,7 @@ regional_to_full_name = {
 }
 
 def simplify_globe_location(globe_location):
-    globe_location = globe_location.lower()
-    if globe_location == "worldwide":
+    if globe_location.lower() in ("worldwide", "ww"):
         return "ww"
     else:
         return globe_location
@@ -101,6 +100,8 @@ def get_top_10_entries_from_filelist(*rkg_filenames):
     ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
     ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
 
+empty_tuple = tuple()
+
 class CustomTop10AndGhostDescription:
     __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "rkg_file_main")
 
@@ -112,7 +113,7 @@ class CustomTop10AndGhostDescription:
         self.rkg_file_main = rkg_file_main
 
     @classmethod
-    def from_chadsoft(chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False):
+    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
@@ -125,10 +126,13 @@ class CustomTop10AndGhostDescription:
         top_10_leaderboard = chadsoft.get_top_10_lb_from_lb_link(chadsoft_lb)
         rkg_file_main = None
         top_10_entries = []
-        censored_players_as_set = set(censored_players.split())
+        if censored_players is not None:
+            censored_players_as_set = set(censored_players.split())
+        else:
+            censored_players_as_set = empty_tuple
 
         for i, lb_entry in enumerate(top_10_leaderboard["ghosts"], 1):
-            rkg_data, status_code = chadsoft.get(rkg_link, is_binary=True)
+            rkg_data, status_code = chadsoft.get(lb_entry["href"], is_binary=True)
 
             if status_code != 404:
                 rkg = Rkg(rkg_data)
@@ -157,7 +161,7 @@ class CustomTop10AndGhostDescription:
         return cls(globe_location, course_name, ghost_description, top_10_code, rkg_file_main=rkg_file_main)
 
     @classmethod
-    def from_gecko_code_filename(gecko_code_filename, globe_location, course_name, ghost_description):
+    def from_gecko_code_filename(cls, gecko_code_filename, globe_location, course_name, ghost_description):
         with open(gecko_code_filename, "r") as f:
             top_10_code = f.read()
 
@@ -211,7 +215,7 @@ class CustomTop10:
         self.globe_location = simplify_globe_location(globe_location)
         self.globe_position = CustomTop10.get_globe_position_from_location(globe_location)
         if top_10_title is None:
-            top_10_title = get_default_top_10_title(top_10_title)
+            top_10_title = CustomTop10.get_default_top_10_title(top_10_title)
         self.top_10_title = top_10_title
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")

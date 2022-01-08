@@ -86,7 +86,7 @@ class MsgEditor:
         self.code.extend(("90610020", "7D6803A6"));
 
         if len(self.code) % 2 == 0:
-            self.code.push("60000000")
+            self.code.append("60000000")
 
         self.code.append("00000000")
         self.code[1] = f"{(len(self.code) // 2) - 1:08x}"

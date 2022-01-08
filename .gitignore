@@ -133,6 +133,7 @@ dolphin/Sys/*
 !dolphin/Sys/Scripts/
 dolphin/User
 dolphin/User2
+dolphin/User3
 *.dat
 !data/rksys.dat
 *.rkg

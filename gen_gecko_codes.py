@@ -1,6 +1,7 @@
 import pathlib
 from stateclasses.speedometer import *
 import msgeditor
+import identifiers
 
 class GeckoParams:
     __slots__ = ("substitutions", "optional_enabled_codes", "dynamic_codes")
@@ -27,14 +28,17 @@ class DynamicCode:
         self.value = value
 
     def format(self):
-        return f"{name}\n{value}\n"
+        return f"{self.name}\n{self.value}\n"
 
 class GeckoSubst:
     __slots__ = ("name", "value")
 
     def __init__(self, name, value, num_digits=2):
         self.name = f"{{{name}}}"
-        self.value = f"{{:0{num_digits}x}}".format(value)
+        if type(value) == str:
+            self.value = value
+        else:
+            self.value = f"{{:0{num_digits}x}}".format(value)
 
     def sub(self, line):
         return line.replace(self.name, self.value)
@@ -51,7 +55,7 @@ def create_gecko_code_file(template_file, out_file, params):
             continue
         elif line[0] in ("[", "$", "*"):
             if line.startswith("[Gecko_Enabled]"):
-                template_lines[i] = "[Gecko_Enabled]\n" + "\n".join(dynamic_code.format() for dynamic_code in params.dynamic_codes) + "\n"
+                template_lines[i] = "\n".join(dynamic_code.format() for dynamic_code in params.dynamic_codes) + "\n[Gecko_Enabled]\n"
 
             continue
 
@@ -157,11 +161,6 @@ def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings):
     params.add_dynamic_code("$Msg Editor", msg_editor_code)
 
     return params
-
-$Smooth Top 10 transition
-$Skip to Custom Top 10
-$Custom Top 10 (From customtop10.py)
-$Msg Editor (My Ghost -> World Champion, Toad's Factory -> Sakura Sanctuary)
 
 def main():
     pass

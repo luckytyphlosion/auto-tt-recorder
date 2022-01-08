@@ -36,3 +36,6 @@ def arg_default_or_validate_from_choices(arg, *choices_and_error_message):
         raise RuntimeError(error_message.format(arg))
 
     return arg
+
+def arg_default_select(arg, default):
+    return arg if arg is not None else default

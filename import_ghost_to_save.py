@@ -17,8 +17,8 @@ class BitManipulator(ABC):
 
     def __init__(self, filename_or_data):
         if type(filename_or_data) == str:
-            self.filename = filename
-            with open(filename, "rb") as f:
+            self.filename = filename_or_data
+            with open(self.filename, "rb") as f:
                 self.data = bytearray(f.read())
         elif type(filename_or_data) in (bytes, bytearray):
             self.filename = "<bytes>"

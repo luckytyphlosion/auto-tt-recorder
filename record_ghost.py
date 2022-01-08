@@ -6,13 +6,14 @@ import pathlib
 import time
 import os
 import configparser
-import argparse
+#import argparse
 import sys
 import mkw_filesys
 import shutil
 from contextlib import contextmanager
 import re
 import enumarg
+import configargparse
 
 import customtop10
 import util
@@ -25,25 +26,6 @@ from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
 
 from constants.lua_params import *
-
-# def export_enums(enum):
-#     globals().update(enum.__members__)
-#     return enum
-# 
-# @export_enums
-# class EncodePreset(Enum):
-#     ENCODE_COPY = 0
-#     ENCODE_x264_LIBOPUS = 1
-#     ENCODE_x265_LIBOPUS = 2
-#     ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 3
-#     ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 4
-
-ENCODE_COPY = 0
-ENCODE_x264_LIBOPUS = 1
-ENCODE_x265_LIBOPUS = 2
-ENCODE_x264_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 3
-ENCODE_x265_LIBOPUS_ADD_MUSIC_TRIM_LOADING = 4
-ENCODE_2PASS_VBR_WEBM = 5
 
 music_option_bgm = MusicOption(MUSIC_GAME_BGM)
 speedometer_option_none = SpeedometerOption(SOM_NONE)
@@ -58,7 +40,7 @@ resolution_string_to_dolphin_enum = {
     "4k": "9"
 }
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, timeline_settings=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, timeline_settings=None):
 
     iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
 
@@ -84,7 +66,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         
         params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings)
         gen_gecko_codes.create_gecko_code_file("data/RMCE01_custom_top_10_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
-        create_lua_params.create_lua_params_for_custom_top_10()
+        create_lua_params.create_lua_params_for_custom_top_10("dolphin/lua_config.txt")
 
         if not encode_only:
             output_params_path = pathlib.Path("dolphin/output_params.txt")
@@ -93,13 +75,13 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
             framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
             framedump_path.unlink(missing_ok=True)
 
-            create_dolphin_configs_if_not_exist("dolphin/lua_config.txt")
-            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1)
+            create_dolphin_configs_if_not_exist()
+            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
 
             dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
-        pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").rename(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
-        pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").rename(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
+            pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").rename(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
+            pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").rename(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
 
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
@@ -126,7 +108,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         framedump_path.unlink(missing_ok=True)
     
         create_dolphin_configs_if_not_exist()
-        modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1)
+        modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
     
         dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
@@ -144,6 +126,7 @@ def copy_config_if_not_exist(base_config_filename, dest_config_filename):
 def create_dolphin_configs_if_not_exist():
     copy_config_if_not_exist("data/Dolphin.ini", "dolphin/User/Config/Dolphin.ini")
     copy_config_if_not_exist("data/GFX.ini", "dolphin/User/Config/GFX.ini")
+    copy_config_if_not_exist("data/WiimoteNew.ini", "dolphin/User/Config/WiimoteNew.ini")
 
 @contextmanager
 def open_config_for_modification(config_filename):
@@ -157,21 +140,27 @@ def open_config_for_modification(config_filename):
         with open(config_filename, "w+") as f:
             config.write(f)
 
-def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1):
+def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume):
     dolphin_config_filename = "dolphin/User/Config/Dolphin.ini"
     dolphin_gfx_config_filename = "dolphin/User/Config/GFX.ini"
+    dolphin_wiimote_config_filename = "dolphin/User/Config/WiimoteNew.ini"
 
-    with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config:
+    with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config, open_config_for_modification(dolphin_wiimote_config_filename) as dolphin_wiimote_config:
         turn_off_dump_frames_audio(dolphin_config)
-        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1)
+        disable_wiimotes(dolphin_wiimote_config)
+        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
 
 def turn_off_dump_frames_audio(dolphin_config):
     dolphin_config["Movie"]["DumpFrames"] = "False"
     dolphin_config["DSP"]["DumpAudio"] = "False"
 
+def disable_wiimotes(dolphin_wiimote_config):
+    for section in ("Wiimote1", "Wiimote2", "Wiimote3", "Wiimote4"):
+        dolphin_wiimote_config[section]["Source"] = "0"
+
 # just use fixed values for now
-def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1):
-    dolphin_config["DSP"]["Volume"] = "0"
+def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume):
+    dolphin_config["DSP"]["Volume"] = str(dolphin_volume)
     dolphin_gfx_config["Settings"]["EFBScale"] = dolphin_resolution_as_enum
     dolphin_gfx_config["Settings"]["UseFFV1"] = str(use_ffv1)
     
@@ -216,14 +205,15 @@ encode_type_enum_arg_table = enumarg.EnumArgTable({
     "size": ENCODE_TYPE_SIZE_BASED
 })
 
-def arg_default_select(arg, default):
-    return arg if arg is not None else default
-
 empty_tuple = tuple()
 
 def main():
-    ap = argparse.ArgumentParser(allow_abbrev=False)
+    ap = configargparse.ArgumentParser(
+        allow_abbrev=False,
+        config_file_parser_class=configargparse.YAMLConfigFileParser
+    )
     # global args
+    ap.add_argument("-cfg", "--config", dest="config", default=None, is_config_file=True, help="Alternative config file to put in command line arguments. Arguments provided on the command line will override arguments provided in the config file, if specified.")
     ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record. Can be omitted if -ttc/--top-10-chadsoft is specified, if so then the ghost to record will be the one specified by -tth/--top-10-highlight", default=None)
     ap.add_argument("-o", "--output-video-filename", dest="output_video_filename", help="Filename of the output recorded ghost. All possible allowed formats are mkv, webm, and mp4, but further restrictions apply. See the note on output formats.", required=True)
     ap.add_argument("-r", "--iso-filename", dest="iso_filename", help="Filename of the Mario Kart Wii ISO.", required=True)
@@ -238,7 +228,7 @@ def main():
     ap.add_argument("-smt", "--speedometer-metric", dest="speedometer_metric", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), and xyz, the norm of the current position minus the previous position. Default is engine.")
     ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", type=int, default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
     ap.add_argument("-eo", "--encode-only", dest="encode_only", action="store_true", default=False, help="Assume that all necessary frame dumps already exist, instead of running Dolphin to dump out frames. Useful for testing in case an error occurs through the encoding stage.")
-
+    ap.add_argument("-dv", "--dolphin-volume", dest="dolphin_volume", type=int, default=0, help="Volume of the Dolphin executable. Only relevant for debugging, has no impact on audiodump volume.")
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
 
@@ -261,7 +251,7 @@ def main():
 
     # specific to custom top 10
     ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
-    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Currently only ww is implemented. Regional/country-based globes will eventually be supported. Still required if -ttg/--top-10-gecko-code-filename is specified so that the program knows whether to show the Regional or Worldwide Top 10 screen.")
+    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Possible options are ww/worldwide for the 3d globe, or a location option from the allowed options at https://www.tt-rec.com/customtop10/. If -ttg/--top-10-gecko-code-filename is specified instead, then the possible options are ww/worldwide for the 3d globe, and anything else to show the regional globe.")
     ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
@@ -367,8 +357,9 @@ def main():
     speedometer = SpeedometerOption(args.speedometer, args.speedometer_metric, args.speedometer_decimal_places)
 
     encode_only = args.encode_only
+    dolphin_volume = args.dolphin_volume
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, timeline_settings=timeline_settings)
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
