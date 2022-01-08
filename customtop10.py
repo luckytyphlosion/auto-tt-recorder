@@ -20,14 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import re
 import itertools
 
+import chadsoft
 import util
 import import_ghost_to_save
 from import_ghost_to_save import Rkg
 
 from constants.customtop10 import *
 from stateclasses.gecko_code_line import *
+from stateclasses.split_classes import *
 
 
 CONTROLLER_WII_WHEEL = 0
@@ -66,9 +69,80 @@ def get_top_10_entries_from_filelist(*rkg_filenames):
 
     return top_10_entries
 
+    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports (except flaps), i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
+    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Valid options are ww/worldwide, the name of a region, or the name of a country. For region/country, valid options are the same as on https://www.tt-rec.com/customtop10/. If -ttg/--top-10-gecko-code-filename is specified, then valid options are ww/worldwide and regional (so that the program knows whether to show the Regional or Worldwide Top 10 screen).")
+    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
+    ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
+    ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
+    ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
+    ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
+
+class CustomTop10AndGhostDescription:
+    __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "rkg_file_main")
+
+    def __init__(self, globe_location, course_name, ghost_description, top_10_code, rkg_file_main=None):
+        self.globe_location = globe_location
+        self.course_name = course_name
+        self.ghost_description = ghost_description
+        self.top_10_code = top_10_code
+        self.rkg_file_main = rkg_file_main
+
+    @classmethod
+    def from_chadsoft(chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False):
+        if type(highlight_index) != int:
+            raise RuntimeError(f"Highlight index not int!")
+
+        if highlight_index != -1 and not (1 <= highlight_index <= 10):
+            raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
+
+        if highlight_index == -1 and download_rkg_main:
+            raise RuntimeError("Unknown main ghost to download!")
+
+        top_10_leaderboard = chadsoft.get_top_10_lb_from_lb_link(chadsoft_lb)
+        rkg_file_main = None
+        top_10_entries = []
+        censored_players_as_set = set(censored_players.split())
+
+        for i, lb_entry in enumerate(top_10_leaderboard["ghosts"], 1):
+            rkg_data, status_code = chadsoft.get(rkg_link, is_binary=True)
+
+            if status_code != 404:
+                rkg = Rkg(rkg_data)
+                if lb_entry["playerId"] in censored_players_as_set:
+                    top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)                    
+                else:
+                    top_10_entry = Top10Entry.from_rkg(rkg)
+
+                if i == highlight_index:
+                    rkg_file_main = rkg
+            else:
+                top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)
+                if i == highlight_index:
+                    raise RuntimeError("Requested placement to download from leaderboard has missing ghost!")
+
+            top_10_entries.append(top_10_entry)
+
+        if rkg_file_main is None and download_rkg_main:
+            raise RuntimeError(f"Highlight index specified is out of bounds of top 10 leaderboard entries! (Leaderboard only has entry count {len(top_10_leaderboard['ghosts'])})")
+
+        custom_top_10 = CustomTop10("NTSC-U", globe_location, top_10_title, top_10_entries, highlight_index)
+        top_10_code = custom_top_10.generate()
+
+        return cls(globe_location, course_name, ghost_description, top_10_code, rkg_file_main=rkg_file_main)
+
+    @classmethod
+    def from_gecko_code_filename(gecko_code_filename, globe_location, course_name, ghost_description):
+        with open(gecko_code_filename, "r") as f:
+            top_10_code = f.read()
+
+        return cls(globe_location, course_name, ghost_description, top_10_code)
+
 oMII_SYSTEM_ID = 0x1c
 oMII_SYSTEM_ID_END = 0x20
 oMII_CREATOR_NAME = 0x36
+
+finish_time_regex = re.compile(r"^([0-9]{2}):([0-9]{2})\.([0-9]{3})$")
+
 class Top10Entry:
     __slots__ = ("country", "finish_time", "wheel", "partial_mii")
 
@@ -84,6 +158,22 @@ class Top10Entry:
         finish_time = rkg.finish_time
         wheel = (rkg.controller == CONTROLLER_WII_WHEEL)
         partial_mii = list(rkg.mii[:oMII_SYSTEM_ID] + rkg.mii[oMII_SYSTEM_ID_END:oMII_CREATOR_NAME])
+        return cls(country, finish_time, wheel, partial_mii)
+
+    @classmethod
+    def from_rkgless_lb_entry(cls, lb_entry, censor=False):
+        if censor:
+            country = countries_by_name["NO FLAG"]
+        else:
+            country = countries_by_code[lb_entry["country"]]
+
+        match_obj = finish_time_regex.match(lb_entry["finishTimeSimple"])
+        finish_time = Split(int(match_obj.group(1)), int(match_obj.group(2)), int(match_obj.group(3)))
+
+        wheel = (controller == CONTROLLER_WII_WHEEL)
+        # todo replace player name
+        partial_mii = list(DEFAULT_MII)
+
         return cls(country, finish_time, wheel, partial_mii)
 
 class CustomTop10:

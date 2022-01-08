@@ -34,3 +34,10 @@ class FromTTGhostSelectionTimelineSettings(TimelineSettings):
     @property
     def type(self):
         return TIMELINE_FROM_TT_GHOST_SELECTION
+
+class FromTop10LeaderboardTimelineSettings(TimelineSettings):
+    __slots__ = ("encode_settings", "custom_top_10_and_ghost_description")
+
+    def __init__(self, encode_settings, custom_top_10_and_ghost_description):
+        self.encode_settings = encode_settings
+        self.custom_top_10_and_ghost_description = custom_top_10_and_ghost_description

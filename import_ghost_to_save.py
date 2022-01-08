@@ -15,10 +15,16 @@ LITTLE_ENDIAN = 1
 class BitManipulator(ABC):
     __slots__ = ("data", "filename")
 
-    def __init__(self, filename):
-        self.filename = filename
-        with open(filename, "rb") as f:
-            self.data = bytearray(f.read())
+    def __init__(self, filename_or_data):
+        if type(filename_or_data) == str:
+            self.filename = filename
+            with open(filename, "rb") as f:
+                self.data = bytearray(f.read())
+        elif type(filename_or_data) in (bytes, bytearray):
+            self.filename = "<bytes>"
+            self.data = bytearray(filename_or_data)
+        else:
+            raise RuntimeError("Input not filename or bytes-like object!")
 
     def read(self, offset):
         return self._read_unpacked(offset.byte_offset, offset.bit_offset, offset.size)
@@ -239,8 +245,8 @@ class Rkg(BitManipulator):
         "_year", "_minutes", "_seconds", "_milliseconds", "_splits", "_lap_count", "_finish_time",
         "_country_code")
 
-    def __init__(self, filename, apply_crc_every_write=False):
-        super().__init__(filename)
+    def __init__(self, filename_or_data, apply_crc_every_write=False):
+        super().__init__(filename_or_data)
 
         self._set_compressed_from_data()
         self._track_id = self.read(Rkg.oTRACK_ID)
@@ -439,8 +445,8 @@ class Rksys(BitManipulator):
     oTL_LICENSE_PB_FLAGS_byte_offset = 0x4 + 0x8
     oTL_LICENSE_DOWNLOADED_GHOST_FLAGS_byte_offset = 0x8 + 0x8
 
-    def __init__(self, filename):
-        super().__init__(filename)
+    def __init__(self, filename_or_data):
+        super().__init__(filename_or_data)
 
     def set_pb_ghost_and_mii(self, rkg):
         self.write_range(Rksys.oTL_LICENSE_GHOSTS.get_array_offset(rkg.track_id_by_ghost_slot), rkg.data)
@@ -549,7 +555,11 @@ def decode_yaz1(src, offset, src_size, uncompressed_size):
     return src_pos, dst_pos, dst
 
 def import_ghost_to_save(rksys_file, rkg_file, rksys_out_file, rfl_db_out_file, rkg_file_comparison=None):
-    rkg = Rkg(rkg_file)
+    if isinstance(rkg_file, Rkg):
+        rkg = rkg_file
+    else:
+        rkg = Rkg(rkg_file)
+
     rkg.remove_ctgp_data()
     rkg.decompress_inputs()
     rkg.prepare_for_import(True)

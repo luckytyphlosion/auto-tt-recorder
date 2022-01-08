@@ -14,6 +14,7 @@ from contextlib import contextmanager
 import re
 import enumarg
 
+import customtop10
 import util
 import dolphin_process
 import encode
@@ -192,7 +193,7 @@ empty_tuple = tuple()
 def main():
     ap = argparse.ArgumentParser(allow_abbrev=False)
     # global args
-    ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record.", required=True)
+    ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record. Can be omitted if -ttc/--top-10-chadsoft is specified, if so then the ghost to record will be the one specified by -tth/--top-10-highlight", default=None)
     ap.add_argument("-o", "--output-video-filename", dest="output_video_filename", help="Filename of the output recorded ghost. All possible allowed formats are mkv, webm, and mp4, but further restrictions apply. See the note on output formats.", required=True)
     ap.add_argument("-r", "--iso-filename", dest="iso_filename", help="Filename of the Mario Kart Wii ISO.", required=True)
     ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost.")
@@ -228,14 +229,21 @@ def main():
     ap.add_argument("-pix_fmt", "--pixel-format", dest="pix_fmt", default="yuv420p", help="Pixel format of the output video. Default is yuv420p. This input is not validated against!")
 
     # specific to custom top 10
-    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times.")
-    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Currently only ww is implemented. Regional/country-based globes will eventually be supported.")
-    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is to choose based on the top 10 location (todo elaborate).")
-    ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1.")
+    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
+    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Currently only ww is implemented. Regional/country-based globes will eventually be supported. Still required if -ttg/--top-10-gecko-code-filename is specified so that the program knows whether to show the Regional or Worldwide Top 10 screen.")
+    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
+    ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
+    ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
+    ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
+    ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
+    ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
 
     args = ap.parse_args()
 
     #error_occurred = False
+
+    if args.input_ghost_filename is None and args.top_10_chadsoft is None:
+        raise RuntimeError("Ghost file or chadsoft leaderboard not specified!")
 
     rkg_file_main = args.input_ghost_filename
     output_video_filename = args.output_video_filename
@@ -294,9 +302,31 @@ def main():
 
         if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
             timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings)
-        #elif timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
-        #    
-        #    
+        elif timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
+            if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
+                raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
+            elif args.top_10_chadsoft is not None:
+                custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_chadsoft(
+                    args.top_10_chadsoft,
+                    args.top_10_location,
+                    args.top_10_title,
+                    args.top_10_highlight,
+                    args.top_10_course_name,
+                    args.top_10_ghost_description,
+                    args.top_10_censors,
+                    rkg_file_main is None
+                )
+            elif args.top_10_gecko_code_filename is not None:
+                custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
+                    args.top_10_gecko_code_filename,
+                    args.top_10_location,
+                    args.top_10_course_name,
+                    args.top_10_ghost_description
+                )
+            else:
+                raise RuntimeError("One of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename must be specified!")
+
+            timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, custom_top_10_and_ghost_description)
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 
