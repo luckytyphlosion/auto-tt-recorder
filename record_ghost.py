@@ -13,6 +13,8 @@ import shutil
 from contextlib import contextmanager
 import re
 import enumarg
+
+import util
 import dolphin_process
 import encode
 
@@ -182,47 +184,10 @@ encode_type_enum_arg_table = enumarg.EnumArgTable({
     "size": ENCODE_TYPE_SIZE_BASED
 })
 
-som_enum_arg_table = enumarg.EnumArgTable({
-    "fancy": SOM_FANCY_KM_H,
-    "regular": SOM_REGULAR_KM_H,
-    "standard": SOM_STANDARD,
-    "none": SOM_NONE
-})
-
-som_metric_enum_arg_table = enumarg.EnumArgTable({
-    "engine": SOM_METRIC_ENGINE,
-    "xyz": SOM_METRIC_XYZ
-})
-
-crf_encode_default_audio_bitrate_table = {
-    "libopus": "128k",
-    "aac": "384k"
-}
-
-size_based_encode_default_audio_bitrate_table = {
-    "libopus": "64k",
-    "aac": "128k"
-}
-
 def arg_default_select(arg, default):
     return arg if arg is not None else default
 
 empty_tuple = tuple()
-
-def arg_default_or_validate_from_choices(arg, *choices_and_error_message):
-    default = choices_and_error_message[0]
-    choices = choices_and_error_message[:-1]
-    error_message = choices_and_error_message[-1]
-
-    if arg is None:
-        arg = default
-    elif arg not in choices:
-        #assert len(choices) != 0
-        #if len(choices) == 1:
-        #    choices_str 
-        raise RuntimeError(error_message.format(arg))
-
-    return arg
 
 def main():
     ap = argparse.ArgumentParser(allow_abbrev=False)
@@ -313,61 +278,17 @@ def main():
         else:
             encode_type = encode_type_enum_arg_table.parse_enum_arg(args.encode_type, "Unknown encode type \"{}\"!")
             if encode_type == ENCODE_TYPE_CRF:
-                if output_format == "webm":
-                    raise RuntimeError("Webm is not supported with crf-based encodes!")
-    
-                crf = args.crf
-                video_codec = arg_default_or_validate_from_choices(args.video_codec, "libx264", "libx265", "Unsupported crf-based codec \"{}\"!")
-
-                h26x_preset = arg_default_or_validate_from_choices(args.h26x_preset, "medium", "ultrafast", "superfast", "veryfast", "faster", "fast", "slow", "slower", "veryslow", "placebo", "Unsupported H.26x preset \"{}\"!")
-
-                if output_format == "mkv":
-                    audio_codec = arg_default_select(args.audio_codec, "libopus")
-                elif output_format == "mp4":
-                    audio_codec = arg_default_select(args.audio_codec, "aac")
-                else:
-                    assert False
-
-                if args.audio_bitrate is not None:
-                    audio_bitrate = args.audio_bitrate
-                else:
-                    audio_bitrate = crf_encode_default_audio_bitrate_table[audio_codec]
-
-                output_width = args.output_width
-                pix_fmt = args.pix_fmt
-
-                encode_settings = CrfEncodeSettings(output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt)
+                encode_settings = CrfEncodeSettings(
+                    output_format, args.crf, args.h26x_preset,
+                    args.video_codec, args.audio_codec, args.audio_bitrate,
+                    args.output_width, args.pix_fmt
+                )
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
-                video_codec = args.video_codec
-                if output_format == "webm":
-                    video_codec = arg_default_or_validate_from_choices(video_codec, "libvpx-vp9",
-                        "Only libvpx-vp9 is supported for size-based webm encodes! (got: \"{}\")")
-                elif output_format == "mp4":
-                    video_codec = arg_default_or_validate_from_choices(video_codec, "libx264",
-                        "Only libx264 is supported for size-based mp4 encodes! (got: \"{}\")")
-                elif output_format == "mkv":
-                    video_codec = arg_default_or_validate_from_choices(video_codec, "libvpx-vp9", "libx264",
-                        "Only libx264 and libvpx-vp9 are supported for size-based mkv encodes! (got: \"{}\")")
-    
-                audio_codec = args.audio_codec
-                if output_format == "webm":
-                    audio_codec = arg_default_or_validate_from_choices(audio_codec, "libopus",
-                        "Only libopus is supported for size-based webm encodes! (got: \"{}\")")
-                elif output_format in ("mp4", "mkv"):
-                    audio_codec = arg_default_or_validate_from_choices(audio_codec, "libopus", "aac",
-                        f"Only libopus and aac are supported for size-based {output_format} encodes! (got: \"{{}}\")")
-
-                encode_size = args.encode_size
-    
-                if args.audio_bitrate is not None:
-                    audio_bitrate = args.audio_bitrate
-                else:
-                    audio_bitrate = size_based_encode_default_audio_bitrate_table[audio_codec]
-
-                output_width = args.output_width
-                pix_fmt = args.pix_fmt
-
-                encode_settings = SizeBasedEncodeSettings(output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt)
+                encode_settings = SizeBasedEncodeSettings(
+                    output_format, args.video_codec, args.audio_codec,
+                    args.audio_bitrate, args.encode_size, args.output_width,
+                    args.pix_fmt
+                )
             else:
                 assert False
 
@@ -381,21 +302,7 @@ def main():
 
     dolphin_resolution = args.dolphin_resolution
     use_ffv1 = args.use_ffv1
-    speedometer_style = som_enum_arg_table.parse_enum_arg(args.speedometer)
-    if speedometer_style != SOM_NONE:
-        speedometer_metric = som_metric_enum_arg_table.parse_enum_arg(args.speedometer_metric)
-        if speedometer_style == SOM_FANCY_KM_H:
-            speedometer_decimal_places = arg_default_or_validate_from_choices(args.speedometer_decimal_places,
-                1, 0, "Only 0 or 1 decimal places are allowed for fancy km/h speedometer! (got: \"{}\")")
-        elif speedometer_style == SOM_REGULAR_KM_H:
-            speedometer_decimal_places = arg_default_or_validate_from_choices(args.speedometer_decimal_places,
-                2, 0, 1, "Only 0 to 2 decimal places are allowed for regular km/h speedometer! (got: \"{}\")")
-        else:
-            speedometer_decimal_places = 2
-
-        speedometer = SpeedometerOption(speedometer_style, speedometer_metric, speedometer_decimal_places)
-    else:
-        speedometer = SpeedometerOption(SOM_NONE)
+    speedometer = SpeedometerOption(args.speedometer, args.speedometer_metric, args.speedometer_decimal_places)
 
     encode_only = args.encode_only
 

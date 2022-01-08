@@ -24,3 +24,15 @@ def grouper(iterable, n, fillvalue=None):
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
     return itertools.zip_longest(*args, fillvalue=fillvalue)
+
+def arg_default_or_validate_from_choices(arg, *choices_and_error_message):
+    default = choices_and_error_message[0]
+    choices = choices_and_error_message[:-1]
+    error_message = choices_and_error_message[-1]
+
+    if arg is None:
+        arg = default
+    elif arg not in choices:
+        raise RuntimeError(error_message.format(arg))
+
+    return arg
