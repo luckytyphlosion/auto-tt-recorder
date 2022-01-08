@@ -41,3 +41,7 @@ class FromTop10LeaderboardTimelineSettings(TimelineSettings):
     def __init__(self, encode_settings, custom_top_10_and_ghost_description):
         self.encode_settings = encode_settings
         self.custom_top_10_and_ghost_description = custom_top_10_and_ghost_description
+
+    @property
+    def type(self):
+        return TIMELINE_FROM_TOP_10_LEADERBOARD

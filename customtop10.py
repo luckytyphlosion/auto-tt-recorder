@@ -53,6 +53,30 @@ regional_to_country = {
     "oceania": "Australia"
 }
 
+regional_to_full_name = {
+    "eu": "Europe",
+    "europe": "Europe",
+    "na": "North America",
+    "north america": "North America",
+    "northamerica": "North America",
+    "ame": "Americas",
+    "americas": "Americas",
+    "la": "Latin America",
+    "latin": "Latin America",
+    "latinamerica": "Latin America",
+    "latin america": "Latin America",
+    "asia": "Asia",
+    "oc": "Oceania",
+    "oceania": "Oceania"
+}
+
+def simplify_globe_location(globe_location):
+    globe_location = globe_location.lower()
+    if globe_location == "worldwide":
+        return "ww"
+    else:
+        return globe_location
+
 ##############################################
 # CODE GENERATION FUNCTIONS
 ##############################################
@@ -81,7 +105,7 @@ class CustomTop10AndGhostDescription:
     __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "rkg_file_main")
 
     def __init__(self, globe_location, course_name, ghost_description, top_10_code, rkg_file_main=None):
-        self.globe_location = globe_location
+        self.globe_location = simplify_globe_location(globe_location)
         self.course_name = course_name
         self.ghost_description = ghost_description
         self.top_10_code = top_10_code
@@ -114,7 +138,7 @@ class CustomTop10AndGhostDescription:
                     top_10_entry = Top10Entry.from_rkg(rkg)
 
                 if i == highlight_index:
-                    rkg_file_main = rkg
+                    rkg_file_main = rkg_data
             else:
                 top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)
                 if i == highlight_index:
@@ -124,6 +148,8 @@ class CustomTop10AndGhostDescription:
 
         if rkg_file_main is None and download_rkg_main:
             raise RuntimeError(f"Highlight index specified is out of bounds of top 10 leaderboard entries! (Leaderboard only has entry count {len(top_10_leaderboard['ghosts'])})")
+
+        globe_location = simplify_globe_location(globe_location)
 
         custom_top_10 = CustomTop10("NTSC-U", globe_location, top_10_title, top_10_entries, highlight_index)
         top_10_code = custom_top_10.generate()
@@ -182,8 +208,10 @@ class CustomTop10:
     def __init__(self, iso_region, globe_location, top_10_title, entries, highlight_index=1, include_track_in_title=False):
         self.code = []
         self.region_dependent_codes = custom_top_10_region_dependent_codes[iso_region]
-        self.globe_location = globe_location
+        self.globe_location = simplify_globe_location(globe_location)
         self.globe_position = CustomTop10.get_globe_position_from_location(globe_location)
+        if top_10_title is None:
+            top_10_title = get_default_top_10_title(top_10_title)
         self.top_10_title = top_10_title
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
@@ -193,6 +221,26 @@ class CustomTop10:
         if not (1 <= len(entries) <= 10):
             raise RuntimeError(f"Number of entries \"{len(entries)}\" not in range [1, 10]!")
         self.entries = entries
+
+    @staticmethod
+    def get_default_top_10_title(globe_location):
+        if globe_location == "ww":
+            top_10_title = "Worldwide Top 10"
+        else:
+            try:
+                location_full_name = regional_to_full_name[globe_location.lower()]
+            except KeyError:
+                try:
+                    location_full_name = countries_by_name[globe_location].name
+                except KeyError:
+                    try:
+                        location_full_name = countries_by_flag_id[globe_location.upper()].name
+                    except KeyError as e:
+                        raise RuntimeError(f"Unknown country \"{globe_location}\"!") from e
+
+            top_10_title = f"{location_full_name} Top 10"
+
+        return top_10_title
 
     @staticmethod
     def get_globe_position_from_location(globe_location):

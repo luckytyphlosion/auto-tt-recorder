@@ -24,6 +24,8 @@ from stateclasses.timeline_classes import *
 from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
 
+from constants.lua_params import *
+
 # def export_enums(enum):
 #     globals().update(enum.__members__)
 #     return enum
@@ -72,6 +74,33 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     if dolphin_resolution_as_enum is None:
         raise RuntimeError(f"Unknown Dolphin resolution \"{dolphin_resolution}\"!")
 
+    if timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
+        rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
+            "data/rksys.dat", rkg_file_main,
+            "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
+            "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
+            rkg_file_comparison
+        )
+        
+        params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings)
+        gen_gecko_codes.create_gecko_code_file("data/RMCE01_custom_top_10_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
+        create_lua_params.create_lua_params_for_custom_top_10()
+
+        if not encode_only:
+            output_params_path = pathlib.Path("dolphin/output_params.txt")
+            output_params_path.unlink(missing_ok=True)
+
+            framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
+            framedump_path.unlink(missing_ok=True)
+
+            create_dolphin_configs_if_not_exist("dolphin/lua_config.txt")
+            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1)
+
+            dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
+
+        pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").rename(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
+        pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").rename(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
+
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -83,7 +112,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings)
     gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
-    create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt")
+    lua_mode = LUA_MODE_RECORD_GHOST_STANDARD if timeline_settings.type in (TIMELINE_NO_ENCODE, TIMELINE_FROM_TT_GHOST_SELECTION) else LUA_MODE_RECORD_GHOST_FOR_TOP_10
+
+    create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt", lua_mode)
     mkw_filesys.replace_track(szs_filename, rkg)
     mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer)
 
@@ -236,7 +267,7 @@ def main():
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
     ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
-    ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
+    ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is Ghost Data.")
 
     args = ap.parse_args()
 
@@ -316,6 +347,7 @@ def main():
                     args.top_10_censors,
                     rkg_file_main is None
                 )
+                rkg_file_main = custom_top_10_and_ghost_description.rkg_file_main
             elif args.top_10_gecko_code_filename is not None:
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
                     args.top_10_gecko_code_filename,

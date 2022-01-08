@@ -554,11 +554,8 @@ def decode_yaz1(src, offset, src_size, uncompressed_size):
 
     return src_pos, dst_pos, dst
 
-def import_ghost_to_save(rksys_file, rkg_file, rksys_out_file, rfl_db_out_file, rkg_file_comparison=None):
-    if isinstance(rkg_file, Rkg):
-        rkg = rkg_file
-    else:
-        rkg = Rkg(rkg_file)
+def import_ghost_to_save(rksys_file, rkg_file_or_data, rksys_out_file, rfl_db_out_file, rkg_file_comparison=None):
+    rkg = Rkg(rkg_file_or_data)
 
     rkg.remove_ctgp_data()
     rkg.decompress_inputs()

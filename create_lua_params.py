@@ -1,4 +1,6 @@
 
+from constants.lua_params import *
+
 easy_staff_ghost_times = [
     129670,
     137856,
@@ -45,11 +47,12 @@ class GhostEntry:
         self.type = type
         self.time = time
 
-def create_lua_params(rkg, rkg_comparison, output_file):
+def create_lua_params(rkg, rkg_comparison, output_file, mode):
     cup = rkg.track_by_human_id // 4
     cup_menu_pos = rkg.track_by_human_id % 4
 
     output = ""
+    output += f"mode: {mode}\n"
     output += f"cup: {cup}\n"
     output += f"cupMenuPos: {cup_menu_pos}\n"
     output += f"comparison: {'True' if rkg_comparison is not None else 'False'}\n"
@@ -75,6 +78,10 @@ def create_lua_params(rkg, rkg_comparison, output_file):
 
     with open(output_file, "w+") as f:
         f.write(output)
+
+def create_lua_params_for_custom_top_10(output_file):
+    with open(output_file, "w+") as f:
+        f.write(f"mode: {LUA_MODE_RECORD_TOP_10}\n")
 
 def main():
     pass

@@ -1,18 +1,33 @@
 import pathlib
 from stateclasses.speedometer import *
+import msgeditor
 
 class GeckoParams:
-    __slots__ = ("substitutions", "optional_enabled_codes")
+    __slots__ = ("substitutions", "optional_enabled_codes", "dynamic_codes")
 
     def __init__(self):
         self.substitutions = []
         self.optional_enabled_codes = set()
+        self.dynamic_codes = []
 
     def add_subst(self, name, value, num_digits=2):
         self.substitutions.append(GeckoSubst(name, value, num_digits))
 
     def enable_optional_code(self, code_name):
         self.optional_enabled_codes.add(code_name)
+
+    def add_dynamic_code(self, name, value):
+        self.dynamic_codes.append(DynamicCode(name, value))
+
+class DynamicCode:
+    __slots__ = ("name", "value")
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def format(self):
+        return f"{name}\n{value}\n"
 
 class GeckoSubst:
     __slots__ = ("name", "value")
@@ -35,6 +50,9 @@ def create_gecko_code_file(template_file, out_file, params):
         if line.strip() == "":
             continue
         elif line[0] in ("[", "$", "*"):
+            if line.startswith("[Gecko_Enabled]"):
+                template_lines[i] = "[Gecko_Enabled]\n" + "\n".join(dynamic_code.format() for dynamic_code in params.dynamic_codes) + "\n"
+
             continue
 
         # dumb algorithm but whatever
@@ -105,6 +123,45 @@ def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bg
     default_drift = 2 if rkg.drift_type else 1
 
     return create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm)
+
+def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings):
+    custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description
+
+    params = GeckoParams()
+    params.add_subst("custom_top_10_course_id", rkg.track_id)
+
+    if custom_top_10_and_ghost_description.globe_location == "ww":
+        params.add_subst("custom_top_10_area", 2)
+    else:
+        params.add_subst("custom_top_10_area", 1)
+
+    track_msg_id = identifiers.MARIO_CIRCUIT_MSG_ID + rkg.track_id
+    course_name = custom_top_10_and_ghost_description.course_name
+    if course_name is None:
+        # lazy
+        course_name = identifiers.track_names[rkg.track_by_human_id]
+
+    ghost_description = custom_top_10_and_ghost_description.ghost_description
+    if ghost_description is None:
+        ghost_description = "Ghost Data"
+
+    msg_substs = (
+        msgeditor.MsgSubst(identifiers.MY_GHOST_MSG_ID, ghost_description),
+        msgeditor.MsgSubst(track_msg_id, course_name)
+    )
+
+    msg_editor = msgeditor.MsgEditor(msg_substs, "NTSC-U")
+    msg_editor_code = msg_editor.generate()
+
+    params.add_dynamic_code("$Custom Top 10", custom_top_10_and_ghost_description.top_10_code)
+    params.add_dynamic_code("$Msg Editor", msg_editor_code)
+
+    return params
+
+$Smooth Top 10 transition
+$Skip to Custom Top 10
+$Custom Top 10 (From customtop10.py)
+$Msg Editor (My Ghost -> World Champion, Toad's Factory -> Sakura Sanctuary)
 
 def main():
     pass

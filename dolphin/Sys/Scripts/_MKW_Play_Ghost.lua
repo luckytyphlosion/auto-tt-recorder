@@ -459,8 +459,9 @@ function readInParams()
 end
 
 function initializePlayGhost()
-	initializeSegmentTable()
 	readInParams()
+	--local segmentTable
+	initializeSegmentTable()
 end
 
 function writeOutputParams()

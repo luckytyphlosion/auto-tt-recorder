@@ -119,6 +119,9 @@ track_names = [
     "N64 Bowser's Castle"
 ]
 
+MARIO_CIRCUIT_MSG_ID = 0x2454
+MY_GHOST_MSG_ID = 0x1398
+
 track_filenames = [
     "beginner_course.szs",
     "farm_course.szs",
