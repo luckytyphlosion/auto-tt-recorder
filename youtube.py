@@ -198,9 +198,14 @@ def update_title_description_and_schedule(yt_recorder_config):
         #print(f"inspect.getsourcefile(yt_credentials.refresh): {inspect.getsourcefile(yt_credentials.refresh)}")
         #print(f"type(yt_credentials).__name__: {type(yt_credentials).__name__}")
         request = google.auth.transport.requests.Request()
-        yt_credentials.refresh(request)
-        #print(f"yt_credentials.expired: {yt_credentials.expired}")
-        get_credentials_from_api = yt_credentials.expired
+        try:
+            yt_credentials.refresh(request)
+            get_credentials_from_api = False
+        except google.auth.exceptions.RefreshError:
+            get_credentials_from_api = True
+
+        print(f"yt_credentials.expired: {yt_credentials.expired}")
+        # = yt_credentials.expired
 
     if get_credentials_from_api:
         flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
