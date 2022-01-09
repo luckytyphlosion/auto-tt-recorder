@@ -163,3 +163,4 @@ storage/
 *.opus
 
 !data/Race_U.szs
+!layouts/**/*

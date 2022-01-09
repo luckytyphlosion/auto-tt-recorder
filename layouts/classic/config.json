@@ -1,0 +1,99 @@
+{
+    "width": 400,
+    "height": 250,
+    "bg_color": [0, 255, 0],
+    "components": [
+        {
+            "name": "Categorical_C",
+            "input_type": "trick",
+            "info": {
+                "categories": {
+                    "0": {
+                        "position": [50, 100],
+                        "image": "dpad.png"
+                    },
+                    "1": {
+                        "position": [50, 100],
+                        "image": "dpad_1.png"
+                    },
+                    "2": {
+                        "position": [50, 100],
+                        "image": "dpad_2.png"
+                    },
+                    "3": {
+                        "position": [50, 100],
+                        "image": "dpad_3.png"
+                    },
+                    "4": {
+                        "position": [50, 100],
+                        "image": "dpad_4.png"
+                    }
+                }
+            }
+        }, 
+        {
+            "name": "StaticImage_C",
+            "info": {
+                "position": [155, 97],
+                "image": "analog_outer.png"
+            }
+        },
+        {
+            "name": "Tuple_C",
+            "input_type": "analog",
+            "info": {
+                "position": [155, 97],
+                "image": "analog.png",
+                "pos_range": [25, 25]
+            }
+        },
+        {
+            "name": "Categorical_C",
+            "input_type": "a_btn",
+            "info": {
+                "categories": {
+                    "0": {
+                        "position": [270, 118],
+                        "image": "button.png"
+                    },
+                    "1": {
+                        "position": [270, 118],
+                        "image": "button_filled.png"
+                    }
+                }
+            }
+        },
+        {
+            "name": "Categorical_C",
+            "input_type": "b_btn",
+            "info": {
+                "categories": {
+                    "0": {
+                        "position": [240, 50],
+                        "image": "shoulder.png"
+                    },
+                    "1": {
+                        "position": [240, 50],
+                        "image": "shoulder_filled.png"
+                    }
+                }
+            }
+        },
+        {
+            "name": "Categorical_C",
+            "input_type": "l_btn",
+            "info": {
+                "categories": {
+                    "0": {
+                        "position": [60, 50],
+                        "image": "shoulder.png"
+                    },
+                    "1": {
+                        "position": [60, 50],
+                        "image": "shoulder_filled.png"
+                    }
+                }
+            }
+        }
+    ]
+}
