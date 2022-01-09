@@ -1,24 +1,24 @@
-import import_ghost_to_save
-import gen_gecko_codes
-import create_lua_params
+
 import subprocess
 import pathlib
 import time
 import os
 import configparser
-#import argparse
 import sys
-import mkw_filesys
 import shutil
 from contextlib import contextmanager
 import re
-import enumarg
 import configargparse
 
 import customtop10
+import enumarg
 import util
 import dolphin_process
 import encode
+import import_ghost_to_save
+import gen_gecko_codes
+import create_lua_params
+import mkw_filesys
 
 from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
