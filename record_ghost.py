@@ -249,6 +249,9 @@ def main():
     #width_height_group.add_argument("-ow", "--output-width", dest="output_width", default=None, help="Width of the output video. Cannot be specified together with -oh/--output-height. If omitted, 
     ap.add_argument("-ow", "--output-width", dest="output_width", type=int, default=None, help="Width of the output video. If omitted, don't rescale the video at all.")
     ap.add_argument("-pix_fmt", "--pixel-format", dest="pix_fmt", default="yuv420p", help="Pixel format of the output video. Default is yuv420p. This input is not validated against!")
+    ap.add_argument("-yt", "--youtube-settings", dest="youtube_settings", action="store_true", default=False, help="Add some encoding settings recommended by YouTube. This might increase quality on YouTube's end. Ignored for size based encodes.")
+    ap.add_argument("-gv", "--game-volume", dest="game_volume", type=float, default=0.6, help="Multiplicative factor to control game volume in the output video (e.g. 0.5 to halve the game volume). Default is 0.6")
+    ap.add_argument("-mv", "--music-volume", dest="music_volume", type=float, default=1.0, help="Multiplicative factor to control music volume in the output video (e.g. 0.5 to halve the game volume). Default is 1.0. Ignored if no music is specified.")
 
     # specific to custom top 10
     ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
@@ -312,13 +315,14 @@ def main():
                 encode_settings = CrfEncodeSettings(
                     output_format, args.crf, args.h26x_preset,
                     args.video_codec, args.audio_codec, args.audio_bitrate,
-                    args.output_width, args.pix_fmt
+                    args.output_width, args.pix_fmt, args.youtube_settings,
+                    args.game_volume, args.music_volume
                 )
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
                 encode_settings = SizeBasedEncodeSettings(
                     output_format, args.video_codec, args.audio_codec,
                     args.audio_bitrate, args.encode_size, args.output_width,
-                    args.pix_fmt
+                    args.pix_fmt, args.game_volume, args.music_volume
                 )
             else:
                 assert False

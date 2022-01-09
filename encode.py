@@ -200,7 +200,18 @@ class Encoder:
                 if encode_settings.audio_codec == "libopus":
                     ffmpeg_output_kwargs["strict"] = "-2"
                 ffmpeg_output_kwargs["movflags"] = "+faststart"
-                
+
+            if encode_settings.youtube_settings:
+                if encode_settings.video_codec == "libx264":
+                    ffmpeg_output_kwargs.update({
+                        "bf": 2,
+                        "g": 30
+                    })
+                elif encode_settings.video_codec == "libx265":
+                    ffmpeg_output_kwargs["x265-params"] = "no-open-gop=1:keyint=30:bframes=2"
+                else:
+                    assert False
+                    
             output_stream = ffmpeg.output(final_video_stream, final_audio_stream, output_video_filename, **ffmpeg_output_kwargs)
             if self.print_cmd:
                 command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
