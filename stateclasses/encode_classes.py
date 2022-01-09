@@ -70,7 +70,7 @@ size_based_encode_default_audio_bitrate_table = {
 }
 
 class CrfEncodeSettings(EncodeSettings):
-    __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate", "output_width", "fade_duration", "game_volume", "pix_fmt")
+    __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate", "output_width", "fade_duration", "game_volume", "pix_fmt", "music_volume")
 
     def __init__(self, output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt):
         if output_format not in ("mkv", "mp4"):
@@ -97,6 +97,7 @@ class CrfEncodeSettings(EncodeSettings):
         self.output_width = output_width
         self.fade_duration = 2.5
         self.game_volume = 0.6
+        self.music_volume = 1.0
         self.pix_fmt = pix_fmt
 
     @property
@@ -104,7 +105,7 @@ class CrfEncodeSettings(EncodeSettings):
         return ENCODE_TYPE_CRF
 
 class SizeBasedEncodeSettings(EncodeSettings):
-    __slots__ = ("video_codec", "audio_codec", "audio_bitrate", "encode_size", "output_width", "fade_duration", "game_volume", "pix_fmt")
+    __slots__ = ("video_codec", "audio_codec", "audio_bitrate", "encode_size", "output_width", "fade_duration", "game_volume", "pix_fmt", "music_volume")
 
     def __init__(self, output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt):
         if output_format not in ("mkv", "mp4", "webm"):
@@ -138,6 +139,7 @@ class SizeBasedEncodeSettings(EncodeSettings):
 
         self.fade_duration = 2.5
         self.game_volume = 0.6
+        self.music_volume = 1.0
 
         self.pix_fmt = pix_fmt
 

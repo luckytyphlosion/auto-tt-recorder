@@ -161,7 +161,7 @@ def get_top_10_lb_from_lb_link(lb_link):
                     vehicle = None
                 else:
                     try:
-                        vehicle = vehicle_ids_by_filter_name[filter_value]
+                        vehicle = identifiers.vehicle_ids_by_filter_name[filter_value]
                     except KeyError:
                         raise RuntimeError(f"Invalid vehicle value \"{filter_value}\"!")
             elif filter_name == "times":

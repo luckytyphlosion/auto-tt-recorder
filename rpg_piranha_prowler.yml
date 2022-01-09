@@ -1,0 +1,18 @@
+output-video-filename: ds_peach_gardens_pirahna_prowler_50mb.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#szs-filename: desktop_dash_v1.3.szs
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: xyz
+speedometer-decimal-places: 2
+
+music-filename: forest_mushrooms.opus
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+
+top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/16/F9A62BEF04CC8F499633E4023ACC7675A92771F0/00.html#filter-vehicle-piranha-prowler"
+top-10-location: ww
+top-10-title: "DS Peach Gardens Pirahna Prowler CTGP Top 10"
+top-10-ghost-description: Pirahna Prowler CTGP Champion

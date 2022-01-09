@@ -32,19 +32,19 @@ def sanitize_and_check_iso_exists(iso_filename):
 # Also, if on WSL, ISO filename must also be sanitized to prevent shell injection within powershell.exe
 def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
     iso_filename = sanitize_and_check_iso_exists(iso_filename)
-    double_dot_iso_filename = str(".." / pathlib.Path(iso_filename))
+    iso_filename_resolved = str(pathlib.Path(iso_filename).resolve())
 
     os.chdir("dolphin/")
 
     if on_wsl:
-        run_dolphin_wsl(double_dot_iso_filename, hide_window)
+        run_dolphin_wsl(iso_filename_resolved, hide_window)
     else:
-        run_dolphin_non_wsl(double_dot_iso_filename, hide_window)
+        run_dolphin_non_wsl(iso_filename_resolved, hide_window)
 
     os.chdir("..")
 
-def run_dolphin_non_wsl(double_dot_iso_filename, hide_window):
-    args = ["./DolphinR.exe", "-b", "-e", double_dot_iso_filename]
+def run_dolphin_non_wsl(iso_filename_resolved, hide_window):
+    args = ["./DolphinR.exe", "-b", "-e", iso_filename_resolved]
     if hide_window:
         args.extend(("-hm", "-dr"))
 
@@ -82,7 +82,9 @@ def run_dolphin_non_wsl(double_dot_iso_filename, hide_window):
 #   - so just fallback to original behaviour
 
 # nothing worked, powershell.exe through wsl has issues, so fallback to the renaming solution
-def run_dolphin_wsl(double_dot_iso_filename, hide_window):
+def run_dolphin_wsl(iso_filename_resolved, hide_window):
+    windows_iso_filename_resolved = subprocess.check_output(("wslpath", "-w", str(iso_filename_resolved)), encoding="utf-8").replace("\n", "")
+
     good_dolphin_filenames = [name for name in glob.iglob("Dolphin*.exe") if name in ("Dolphin.exe", "DolphinR.exe") or dolphin_filename_regex.match(name)]
 
     if len(good_dolphin_filenames) != 1:
@@ -94,7 +96,7 @@ def run_dolphin_wsl(double_dot_iso_filename, hide_window):
     new_dolphin_filepath = pathlib.Path(new_dolphin_filename)
     dolphin_filepath.rename(new_dolphin_filepath)
 
-    args = [f"./{new_dolphin_filename}", "-b", "-e", double_dot_iso_filename]
+    args = [f"./{new_dolphin_filename}", "-b", "-e", windows_iso_filename_resolved]
     if hide_window:
         args.extend(("-hm", "-dr"))
 

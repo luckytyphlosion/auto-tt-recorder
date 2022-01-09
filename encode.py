@@ -23,19 +23,20 @@ class DynamicFilterArgs:
 FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP = 3.1
 
 class Encoder:
-    __slots__ = ("ffmpeg_filename", "dolphin_resolution", "music_option", "timeline_settings", "dump_audio_len", "print_cmd")
+    __slots__ = ("ffmpeg_filename", "dolphin_resolution", "music_option", "timeline_settings", "dump_audio_lens", "print_cmd")
 
     def __init__(self, ffmpeg_filename, dolphin_resolution, music_option, timeline_settings, print_cmd=False):
         self.ffmpeg_filename = ffmpeg_filename
         self.dolphin_resolution = dolphin_resolution
         self.music_option = music_option
         self.timeline_settings = timeline_settings
-        self.dump_audio_len = None
+        self.dump_audio_lens = {}
         self.print_cmd = print_cmd
 
     def get_dump_audio_len(self, audio_file="dolphin/User/Dump/Audio/dspdump.wav"):
-        if self.dump_audio_len is not None:
-            return self.dump_audio_len
+        dump_audio_len = self.dump_audio_lens.get(audio_file)
+        if dump_audio_len is not None:
+            return dump_audio_len
 
         dspdump_ffmpeg_output = subprocess.check_output([self.ffmpeg_filename, "-i", audio_file, "-acodec", "copy", "-f", "null", "-"], stderr=subprocess.STDOUT).decode(encoding="ascii")
         audio_len_match_obj = audio_len_regex.search(dspdump_ffmpeg_output)
@@ -46,7 +47,7 @@ class Encoder:
         audio_len_seconds = float(audio_len_match_obj.group(3))
         audio_len = audio_len_hours * 3600 + audio_len_minutes * 60 + audio_len_seconds
 
-        self.dump_audio_len = audio_len
+        self.dump_audio_lens[audio_file] = audio_len
         return audio_len
 
     def encode_stream_copy(self, output_video_filename):
@@ -92,8 +93,12 @@ class Encoder:
 
         if music_option.option == MUSIC_CUSTOM_MUSIC:
             music_in_file = ffmpeg.input(music_option.music_filename)
+            if encode_settings.music_volume == 1.0:
+                music_volume_stream = music_in_file
+            else:
+                music_volume_stream = ffmpeg.filter(music_in_file, "volume", volume=encode_settings.music_volume)
             game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
-            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_in_file], "amix", inputs=2, duration="first")            
+            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")            
         else:
             audio_combined_stream = audio_in_file
 
@@ -116,7 +121,7 @@ class Encoder:
 
         final_audio_stream = almost_final_streams[1]
 
-        return final_video_stream, final_audio_stream
+        return final_video_stream, final_audio_stream, dynamic_filter_args
 
     def encode_from_tt_ghost_select(self):
         dolphin_resolution = self.dolphin_resolution
@@ -133,8 +138,13 @@ class Encoder:
         if music_option.option == MUSIC_CUSTOM_MUSIC:
             music_in_file = ffmpeg.input(music_option.music_filename)
             adelay_stream = ffmpeg.filter(music_in_file, "adelay", f"{dynamic_filter_args.adelay_value}|{dynamic_filter_args.adelay_value}")
+            if encode_settings.music_volume == 1.0:
+                music_volume_stream = adelay_stream
+            else:
+                music_volume_stream = ffmpeg.filter(adelay_stream, "volume", volume=encode_settings.music_volume)
+
             game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
-            audio_combined_stream = ffmpeg.filter([game_volume_stream, adelay_stream], "amix", inputs=2, duration="first")            
+            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")                   
         else:
             audio_combined_stream = audio_in_file
 
@@ -157,7 +167,7 @@ class Encoder:
     
         final_audio_stream = almost_final_streams[1]
 
-        return final_video_stream, final_audio_stream
+        return final_video_stream, final_audio_stream, dynamic_filter_args
 
     def encode_complex(self, output_video_filename):
         dolphin_resolution = self.dolphin_resolution
@@ -168,9 +178,9 @@ class Encoder:
         fade_duration = encode_settings.fade_duration
 
         if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
-            final_video_stream, final_audio_stream = self.encode_from_tt_ghost_select()
+            final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_from_tt_ghost_select()
         elif timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
-            final_video_stream, final_audio_stream = self.encode_from_top_10_leaderboard()
+            final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_from_top_10_leaderboard()
         else:
             raise RuntimeError(f"Unknown timeline type \"{timeline_settings.type}\"!")
 
@@ -196,7 +206,12 @@ class Encoder:
                 ffmpeg.run(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
         elif encode_settings.type == ENCODE_TYPE_SIZE_BASED:
             encode_size_bits = encode_settings.encode_size * 8
-            run_len = self.get_dump_audio_len() - (dynamic_filter_args.trim_start - FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP)
+            if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
+                run_len = self.get_dump_audio_len() - (dynamic_filter_args.trim_start - FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP)
+            elif timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
+                run_len = self.get_dump_audio_len() + self.get_dump_audio_len("dolphin/User/Dump/Audio/top10.wav")
+            else:
+                assert False
             print(f"run_len: {run_len}")
             if encode_settings.video_codec == "libx264":
                 dampening_factor = 0.98
