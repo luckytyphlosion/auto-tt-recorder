@@ -38,6 +38,8 @@ vehicle_names = {
     0x23: "Phantom"
 }
 
+vehicle_ids_by_filter_name = {vehicle_name.lower().replace(" ", "-"): vehicle_id for vehicle_id, vehicle_name in vehicle_names.items()}
+
 vehicle_names_eu = {
     0x03: "Baby Booster",
     0x04: "Nostalgia 1",
@@ -116,6 +118,9 @@ track_names = [
     "GCN DK Mountain",
     "N64 Bowser's Castle"
 ]
+
+MARIO_CIRCUIT_MSG_ID = 0x2454
+MY_GHOST_MSG_ID = 0x1398
 
 track_filenames = [
     "beginner_course.szs",

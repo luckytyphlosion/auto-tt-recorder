@@ -132,7 +132,10 @@ dolphin/**/*.txt
 dolphin/Sys/*
 !dolphin/Sys/Scripts/
 dolphin/User
+dolphin/User2
+dolphin/User3
 *.dat
+!data/rksys.dat
 *.rkg
 compare.sh
 mock_api/
@@ -149,3 +152,12 @@ client_secrets.json
 credentials.yml
 *.webm
 *.szs
+*.wbz
+
+bin/
+storage/
+*.mbtree
+*.avi
+*.mov
+*.temp
+*.opus

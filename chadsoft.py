@@ -3,10 +3,14 @@ import urllib
 import pathlib
 import json
 import time
+import re
+import identifiers
+import chadsoft
+import chadsoft_config
 
 API_URL = "https://tt.chadsoft.co.uk"
 
-def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True):
+def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_CACHED, rate_limit=chadsoft_config.RATE_LIMIT):
     if params is None:
         params = {}
 
@@ -69,7 +73,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=True, rate_limit=True
 
     return data, r.status_code
 
-def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=True, rate_limit=True):
+def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=chadsoft_config.TRY_CACHED, rate_limit=chadsoft_config.RATE_LIMIT):
     params = {}
     if start is not None:
         params["start"] = start
@@ -85,3 +89,94 @@ def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, t
         params["_"] = override_cache
 
     return get(endpoint, params, try_cached=try_cached, rate_limit=rate_limit)[0]
+
+# #filter-region-all
+# #filter-region-asia
+# #filter-region-america
+# #filter-region-europe-and-africa
+# #filter-region-oceania
+# #filter-region-korea
+
+# #filter-vehicle-all
+# #filter-vehicle-karts
+# #filter-vehicle-bikes
+
+# #filter-times-personal-best
+# #filter-times-personal-records
+# #filter-times-record-history
+# #filter-times-all
+
+leaderboard_regex = re.compile(r"^https://(?:www\.)?chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02|03|04|05|06))\.html(.*)$")
+
+region_name_to_id = {
+    "all": None,
+    "asia": 1,
+    "america": 2,
+    "europe-and-africa": 3,
+    "oceania": 4,
+    "korea": 5
+}
+
+time_measure_to_id = {
+    "personal-best": "pb",
+    "personal-records": "pr",
+    "record-history": "wr",
+    "all": None
+}
+
+def get_top_10_lb_from_lb_link(lb_link):
+    match_obj = leaderboard_regex.match(lb_link)
+    if not match_obj:
+        raise RuntimeError("Invalid chadsoft leaderbord link!")
+
+    filters = match_obj.group(2)
+    continent = None
+    vehicle = None
+    times = "pb"
+
+    if filters != "":
+        split_filters = filters.split("#filter-")
+        if len(split_filters) < 2:
+            raise RuntimeError("Invalid chadsoft leaderboard filters!")
+
+        split_filters = split_filters[1:]
+
+        for filter in split_filters:
+            split_filter = filter.split("-", maxsplit=1)
+            if len(split_filter) != 2:
+                raise RuntimeError(f"Invalid chadsoft leaderboard filter \"#filter-{filter}\"!")
+    
+            filter_name = split_filter[0].lower()
+            filter_value = split_filter[1].lower()
+    
+            if filter_name == "region":
+                try:
+                    continent = region_name_to_id[filter_value]
+                except KeyError:
+                    raise RuntimeError(f"Invalid region value \"{filter_value}\"!")
+            elif filter_name == "vehicle":
+                if filter_value in ("karts", "bikes"):
+                    vehicle = filter_value
+                elif filter_value == "all":
+                    vehicle = None
+                else:
+                    try:
+                        vehicle = vehicle_ids_by_filter_name[filter_value]
+                    except KeyError:
+                        raise RuntimeError(f"Invalid vehicle value \"{filter_value}\"!")
+            elif filter_name == "times":
+                try:
+                    times = time_measure_to_id[filter_value]
+                except KeyError:
+                    raise RuntimeError(f"Invalid times value \"{filter_value}\"!")
+            else:
+                raise RuntimeError(f"Unknown filter name \"{filter_name}\"!")
+
+    slot_id_track_sha1 = match_obj.group(1)
+
+    top_10_leaderboard = get_lb_from_href(f"/leaderboard/{slot_id_track_sha1}.json", start=0, limit=10, continent=continent, vehicle=vehicle, times=times)
+
+    if len(top_10_leaderboard["ghosts"]) == 0:
+        raise RuntimeError("Leaderboard is empty!")
+
+    return top_10_leaderboard

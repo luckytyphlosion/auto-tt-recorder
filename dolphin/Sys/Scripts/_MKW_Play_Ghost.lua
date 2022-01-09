@@ -24,6 +24,10 @@ end
 
 local helper_isScriptEnabled = true
 
+local LUA_MODE_RECORD_GHOST_STANDARD = 0
+local LUA_MODE_RECORD_TOP_10 = 1
+local LUA_MODE_RECORD_GHOST_FOR_TOP_10 = 2
+
 local ADVANCE_TO_TRACK_SELECT = 1
 local CHOOSE_MUSHROOM_CUP = 2
 local CHOOSE_FLOWER_CUP = 3
@@ -49,6 +53,8 @@ local NAVIGATE_TO_2ND_GHOST_NO_COMPARE = 22
 local ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE = 23
 local NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2 = 24
 local ADV_LIVE_REPLAY_SOLO_TIME_TRIAL = 25
+
+local DO_CUSTOM_TOP_10 = 1
 
 local EXECUTING_ACTION = 1
 local IN_DELAY = 2
@@ -170,6 +176,30 @@ function startDumpFrames(curSegmentIndex, curActionIndex, curState)
 	curActionIndex = curActionIndex + 1
 	curState = EXIT_LOOP_NO_DELAY
 	return curSegmentIndex, curActionIndex, curState
+end
+
+function startDumpFramesForRace(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_STANDARD then
+		SetFrameAndAudioDump(true)
+		outputParams["frameRecordingStarts"] = GetFrameCount()		
+	end
+
+	curActionIndex = curActionIndex + 1
+	curState = EXIT_LOOP_NO_DELAY
+
+	return curSegmentIndex, curActionIndex, curState	
+end
+
+function startDumpFramesForTop10WorldChamp(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FOR_TOP_10 then
+		SetFrameAndAudioDump(true)
+		outputParams["frameRecordingStarts"] = GetFrameCount()		
+	end
+
+	curActionIndex = curActionIndex + 1
+	curState = EXIT_LOOP_NO_DELAY
+
+	return curSegmentIndex, curActionIndex, curState	
 end
 
 function stopDumpFrames(curSegmentIndex, curActionIndex, curState)
@@ -351,11 +381,12 @@ local navigateTo3rdGhost2Segment = {
 
 local advLiveReplayRaceGhostSegment = {
 	{"none", 30},
-	{startDumpFrames, 0},
+	{startDumpFramesForRace, 0},
 	{"none", 60},
 	{"A", 30},
 	{"A", 10},
 	{waitFrameOfInput0, 0},
+	{startDumpFramesForTop10WorldChamp, 0},
 	{setFrameReplayStarts, 0},
 	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
@@ -396,18 +427,36 @@ local navigateTo2ndGhostNoCompare2Segment = {
 
 local advLiveReplaySoloTimeTrialSegment = {
 	{"up", 30},
-	{startDumpFrames, 0},
+	{startDumpFramesForRace, 0},
 	{"none", 60},
 	{"A", 30},
 	{"A", 10},
 	{waitFrameOfInput0, 0},
+	{startDumpFramesForTop10WorldChamp, 0},
 	{setFrameReplayStarts, 0},
 	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
 	{"done", 0}
 }
 
-local segments = {
+-- ###################################################
+-- CUSTOM TOP 10
+-- ###################################################
+
+local doCustomTop10Segment = {
+	{"none", 519},--520},
+	{startDumpFrames, 0},
+	{"none", 240},
+	{"B", 90},
+	{"down", 27},
+	{"A", 55},
+	{stopDumpFrames, 0},
+	{"done", 0}
+}
+
+local segments = {}
+
+local recordGhostStandardSegments = {
 	[ADVANCE_TO_TRACK_SELECT] = advanceToCharacterSelectSegment,
 	[CHOOSE_MUSHROOM_CUP] = chooseMushroomCupSegment,
 	[CHOOSE_FLOWER_CUP] = chooseFlowerCupSegment,
@@ -436,7 +485,17 @@ local segments = {
 	[ADV_LIVE_REPLAY_SOLO_TIME_TRIAL] = advLiveReplaySoloTimeTrialSegment
 }
 
-function initializeSegmentTable()
+local recordTop10Segments = {
+	[DO_CUSTOM_TOP_10] = doCustomTop10Segment
+}
+
+function initializeSegmentTable(mode)
+	if mode == LUA_MODE_RECORD_TOP_10 then
+		segments = recordTop10Segments
+	else
+		segments = recordGhostStandardSegments
+	end
+
 	for i, segment in ipairs(segments) do
 		for i, action in ipairs(segment) do
 			segment[i] = {
@@ -459,8 +518,9 @@ function readInParams()
 end
 
 function initializePlayGhost()
-	initializeSegmentTable()
 	readInParams()
+	params["mode"] = tonumber(params["mode"])
+	initializeSegmentTable(params["mode"])
 end
 
 function writeOutputParams()
@@ -476,6 +536,7 @@ end
 
 pressButtonCommands = {
 	["A"] = true,
+	["B"] = true,
 	["Start"] = true
 }
 
@@ -559,9 +620,10 @@ function onScriptUpdate()
 				SetMainStickX(255)
 			elseif curAction.command == "done" then
 				writeOutputParams()
-				file = io.open("kill.txt", "w")
-				file:close()
+				--file = io.open("kill.txt", "w")
+				--file:close()
 				CancelScript()
+				ExitDolphin()
 				return
 			end
 			curState = IN_DELAY
