@@ -106,7 +106,7 @@ def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, t
 # #filter-times-record-history
 # #filter-times-all
 
-leaderboard_regex = re.compile(r"^https://www\.chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02|03|04|05|06))\.html(.*)$")
+leaderboard_regex = re.compile(r"^https://(?:www\.)?chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02|03|04|05|06))\.html(.*)$")
 
 region_name_to_id = {
     "all": None,
@@ -130,16 +130,16 @@ def get_top_10_lb_from_lb_link(lb_link):
         raise RuntimeError("Invalid chadsoft leaderbord link!")
 
     filters = match_obj.group(2)
+    continent = None
+    vehicle = None
+    times = "pb"
+
     if filters != "":
         split_filters = filters.split("#filter-")
         if len(split_filters) < 2:
             raise RuntimeError("Invalid chadsoft leaderboard filters!")
 
         split_filters = split_filters[1:]
-
-        continent = None
-        vehicle = None
-        times = "pb"
 
         for filter in split_filters:
             split_filter = filter.split("-", maxsplit=1)

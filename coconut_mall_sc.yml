@@ -1,0 +1,19 @@
+output-video-filename: coconut_mall_sc_7th.mkv
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#szs-filename: pinewood_path_v1.7.1.szs
+timeline: top10
+dolphin-resolution: 480p
+speedometer: fancy
+speedometer-metric: engine
+speedometer-decimal-places: 1
+
+music-filename: bgm
+encode-type: crf
+video-codec: libx264
+audio-codec: libopus
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/05/E4BF364CB0C5899907585D731621CA930A4EF85C/00.html"
+top-10-location: ww
+top-10-highlight: 7
+top-10-title: "Coconut Mall Shortcut Worldwide Top 10"
+#top-10-ghost-description: Ghost Data

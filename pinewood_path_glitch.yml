@@ -1,0 +1,19 @@
+output-video-filename: pinewood_path_glitch_wr.mkv
+iso-filename: "../../RMCE 01/RMCE01.iso"
+szs-filename: pinewood_path_v1.7.1.szs
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: xyz
+speedometer-decimal-places: 2
+
+music-filename: bgm
+encode-type: crf
+video-codec: libx264
+audio-codec: libopus
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/17/26E4FDFA19D756881BBD40FC4584A22DAFE7DF28/01.html"
+top-10-location: ww
+top-10-title: "Pinewood Path (v1.7.1) Glitch Top 10"
+top-10-course-name: Pinewood Path
+top-10-ghost-description: World Champion

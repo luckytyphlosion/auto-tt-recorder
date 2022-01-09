@@ -444,7 +444,7 @@ local advLiveReplaySoloTimeTrialSegment = {
 -- ###################################################
 
 local doCustomTop10Segment = {
-	{"none", 520},
+	{"none", 519},--520},
 	{startDumpFrames, 0},
 	{"none", 240},
 	{"B", 90},
