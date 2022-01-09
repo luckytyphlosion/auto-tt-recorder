@@ -40,7 +40,7 @@ resolution_string_to_dolphin_enum = {
     "4k": "9"
 }
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, timeline_settings=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, timeline_settings=None):
 
     iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
 
@@ -112,7 +112,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     
         dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
-    encode.encode_video(output_video_filename, ffmpeg_filename, dolphin_resolution, music_option, timeline_settings)
+    encode.encode_video(output_video_filename, ffmpeg_filename, ffprobe_filename, dolphin_resolution, music_option, timeline_settings)
 
     print("Done!")
 
@@ -222,6 +222,7 @@ def main():
     ap.add_argument("-kw", "--keep-window", dest="keep_window", action="store_true", default=False, help="By default, the Dolphin executable used to record the ghost is hidden to prevent accidental interaction with the window. Enabling this option will keep the window open, e.g. for debugging.")
     ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Default is noencode (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
     ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
+    ap.add_argument("-fp", "--ffprobe-filename", dest="ffprobe_filename", default="ffprobe", help="Path to the ffprobe executable to use. Default is ffprobe (use system ffprobe).")
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
     ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
@@ -276,6 +277,7 @@ def main():
     iso_filename = args.iso_filename
     rkg_file_comparison = args.comparison_ghost_filename
     ffmpeg_filename = args.ffmpeg_filename
+    ffprobe_filename = args.ffprobe_filename
     szs_filename = args.szs_filename
     hide_window = not args.keep_window
     timeline = timeline_enum_arg_table.parse_enum_arg(args.timeline, "Unknown timeline \"{}\"!")
@@ -359,7 +361,7 @@ def main():
     encode_only = args.encode_only
     dolphin_volume = args.dolphin_volume
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, timeline_settings=timeline_settings)
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
