@@ -24,6 +24,7 @@ from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
 from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
+from stateclasses.input_display import *
 
 from constants.lua_params import *
 
@@ -55,6 +56,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     dolphin_resolution_as_enum = resolution_string_to_dolphin_enum.get(dolphin_resolution)
     if dolphin_resolution_as_enum is None:
         raise RuntimeError(f"Unknown Dolphin resolution \"{dolphin_resolution}\"!")
+
+    if timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD):
+        timeline_settings.input_display.set_rkg_file_or_data(rkg_file_main)
 
     if timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
@@ -197,6 +201,12 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
     "top10": TIMELINE_FROM_TOP_10_LEADERBOARD
 })
 
+input_display_enum_arg_table = enumarg.EnumArgTable({
+    "classic": INPUT_DISPLAY_CLASSIC,
+    "gcn": INPUT_DISPLAY_CLASSIC,
+    "none": INPUT_DISPLAY_CLASSIC
+})
+
 #class NoEncodeTimelineArgs:
 #    __slots__ = ("no_music
 
@@ -252,7 +262,8 @@ def main():
     ap.add_argument("-yt", "--youtube-settings", dest="youtube_settings", action="store_true", default=False, help="Add some encoding settings recommended by YouTube. This might increase quality on YouTube's end. Ignored for size based encodes.")
     ap.add_argument("-gv", "--game-volume", dest="game_volume", type=float, default=0.6, help="Multiplicative factor to control game volume in the output video (e.g. 0.5 to halve the game volume). Default is 0.6")
     ap.add_argument("-mv", "--music-volume", dest="music_volume", type=float, default=1.0, help="Multiplicative factor to control music volume in the output video (e.g. 0.5 to halve the game volume). Default is 1.0. Ignored if no music is specified.")
-
+    ap.add_argument("-id", "--input-display", dest="input_display", default="none", help="Whether to include the input display in the output video. Currently supported options are classic, gcn, and none (for no input display). The rest of the controllers may be supported in the future.")
+    ap.add_argument("-idd", "--input-display-dont-create", dest="input_display_dont_create", action="store_true", default=False, help="If enabled, assumes that the video file for the input display has already been created. Only relevant for debugging.")
     # specific to custom top 10
     ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
     ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Possible options are ww/worldwide for the 3d globe, or a location option from the allowed options at https://www.tt-rec.com/customtop10/. If -ttg/--top-10-gecko-code-filename is specified instead, then the possible options are ww/worldwide for the 3d globe, and anything else to show the regional globe.")
@@ -327,8 +338,11 @@ def main():
             else:
                 assert False
 
+        input_display_type = input_display_enum_arg_table.parse_enum_arg(args.input_display, "Unknown input display type \"{}\"!")
+        input_display = InputDisplay(input_display_type, args.input_display_dont_create)
+
         if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
-            timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings)
+            timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings, input_display)
         elif timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
             if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
                 raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
@@ -354,7 +368,7 @@ def main():
             else:
                 raise RuntimeError("One of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename must be specified!")
 
-            timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, custom_top_10_and_ghost_description)
+            timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 

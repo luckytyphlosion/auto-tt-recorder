@@ -1,5 +1,6 @@
 from math import floor
 from .Decomp import decode_RKG
+from .CONFIG import VIDEO_FRAME_RATE
 
 class Inputs:
 
@@ -13,21 +14,29 @@ class Inputs:
         return len(self.inputs)
 
     def read_file(self, file_name):
+        if type(file_name) == bytes:
+            self.read_ghost_data(file_name)
+            return VIDEO_FRAME_RATE
+
         extension = file_name.split('.')[-1]
         if extension == "rkg":
             self.read_ghost_file(file_name)
-            return 59.94
+            return VIDEO_FRAME_RATE
         elif extension == "dtm":
             self.read_dtm(file_name)
             return 180
         else:
             self.read_ghost_file(file_name)
-            return 59.94
+            return VIDEO_FRAME_RATE
 
     def read_ghost_file(self, file_name):
         with open(file_name, "rb") as f:
             src = f.read()
-        raw_data = decode_RKG(src[0x8C:]) # remove the rkg header and decompress
+
+        self.read_ghost_data(src)
+
+    def read_ghost_data(self, src):
+        raw_data = decode_RKG(src) # remove the rkg header and decompress
 
         # header
         nr_button_inputs = (raw_data[0] << 0x8) | raw_data[1]
@@ -68,6 +77,8 @@ class Inputs:
 
             trick_inputs += [trick] * (frames + extra_frames)
             cur_byte += 2
+
+        print(f"len(button_inputs): {len(button_inputs)}, len(analog_inputs): {len(analog_inputs)}, len(trick_inputs): {len(trick_inputs)}")
 
         self.inputs = [(button_inputs[i][0], button_inputs[i][1], button_inputs[i][2], analog_inputs[i][0], analog_inputs[i][1], trick_inputs[i])
                         for i in range(len(button_inputs))]

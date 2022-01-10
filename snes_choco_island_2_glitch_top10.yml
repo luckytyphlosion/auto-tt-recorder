@@ -1,0 +1,23 @@
+output-video-filename: snes_choco_island_2_glitch_top10_input_display.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#main-ghost-filename: 00m29s2066304 Flαg En.rkg
+szs-filename: SNES Choco Island 2 v1.2 (zilly) [r83,ma21,norm,alt].szs
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: 349494_Wander_of_Thought___F_777.mp3
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/13/3A0467E2CDF9C998677D214B39206AF6C6FC11A6/01.html"
+top-10-location: ww
+top-10-title: "SNES Choco Island 2 (v1.2) Glitch Top 10"
+top-10-course-name: SNES Choco Island 2
+top-10-ghost-description: World Champion

@@ -257,6 +257,19 @@ function setFrameReplayStarts(curSegmentIndex, curActionIndex, curState)
 	return curSegmentIndex, curActionIndex, curState
 end
 
+function waitFrameOfInput1ThenSetFrameInputStarts(curSegmentIndex, curActionIndex, curState)
+	frameOfInput = core.getFrameOfInput()
+	if frameOfInput ~= 1 then
+		curState = EXIT_LOOP_NO_DELAY
+	else
+		curActionIndex = curActionIndex + 1
+		curState = IN_DELAY
+		outputParams["frameInputStarts"] = GetFrameCount()
+	end
+
+	return curSegmentIndex, curActionIndex, curState
+end
+
 local advanceToCharacterSelectSegment = {
 	{"none", 70},
 	{"A", 230},
@@ -388,6 +401,7 @@ local advLiveReplayRaceGhostSegment = {
 	{waitFrameOfInput0, 0},
 	{startDumpFramesForTop10WorldChamp, 0},
 	{setFrameReplayStarts, 0},
+	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
 	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
 	{"done", 0}
@@ -434,6 +448,7 @@ local advLiveReplaySoloTimeTrialSegment = {
 	{waitFrameOfInput0, 0},
 	{startDumpFramesForTop10WorldChamp, 0},
 	{setFrameReplayStarts, 0},
+	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
 	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
 	{"done", 0}

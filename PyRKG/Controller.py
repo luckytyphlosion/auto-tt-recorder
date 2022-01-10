@@ -27,10 +27,20 @@ class Controller:
 
         # create all components
         for comp in config["components"]:
+            got_attribute_error = False
             try:
                 comp_class = getattr(importlib.import_module("src.Component"), comp["name"])
+            except ModuleNotFoundError:
+                try:
+                    comp_class = getattr(importlib.import_module("PyRKG.Component"), comp["name"])
+                except AttributeError:
+                    got_attribute_error = True
             except AttributeError:
+                got_attribute_error = True
+
+            if got_attribute_error:
                 comp_class = getattr(importlib.import_module(f"layouts.{layout_name}.Component"), comp["name"])
+
             input_type = comp["input_type"] if "input_type" in comp else None
             instance = comp_class(self.canvas, input_type)
             instance.init_component(comp["info"])

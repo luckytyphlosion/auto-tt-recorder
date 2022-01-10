@@ -4,9 +4,12 @@ import os
 import re
 import pathlib
 
+import PyRKG.VideoGenerator
+
 from stateclasses.timeline_classes import *
 from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
+from stateclasses.input_display import *
 
 nb_frames_regex = re.compile(r"^nb_frames=([0-9]+)", flags=re.MULTILINE)
 
@@ -15,16 +18,40 @@ dev_null = "/dev/null" if os.name == "posix" else "NUL"
 FPS = 60
 
 class DynamicFilterArgs:
-    __slots__ = ("adelay_frame_value", "fade_start_frame", "trim_start_frame")
+    __slots__ = ("adelay_frame_value", "fade_start_frame", "trim_start_frame", "input_display_start_frame")
 
-    def __init__(self, adelay_frame_value, fade_start_frame, trim_start_frame):
+    def __init__(self, adelay_frame_value, fade_start_frame, trim_start_frame, input_display_start_frame):
         self.adelay_frame_value = adelay_frame_value
         self.fade_start_frame = fade_start_frame
         self.trim_start_frame = trim_start_frame
+        self.input_display_start_frame = input_display_start_frame
 
 FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_FRAME_TIMESTAMP = 186
 FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP = 3.1
 
+class InputDisplayGfxInfo:
+    __slots__ = ("input_box_filename", "box_x", "box_y", "inputs_x", "inputs_y", "inputs_width", "inputs_height")
+
+    def __init__(self, input_box_filename, inputs_width, inputs_height, inputs_x, inputs_y, box_x, box_y):
+        self.input_box_filename = input_box_filename
+        self.inputs_width = inputs_width
+        self.inputs_height = inputs_height
+        self.inputs_x = inputs_x
+        self.inputs_y = inputs_y
+        self.box_x = box_x
+        self.box_y = box_y
+
+# positions and scaling were manually calculated
+# these are not centered by any means, and are some pixels off for each resolution
+dolphin_resolution_to_input_display_gfx_info = {
+    "480p": InputDisplayGfxInfo("data/input_box_480p.png", 203, 127, 22, 361, 32, 366),
+    "720p": InputDisplayGfxInfo("data/input_box_720p.png", None, None, 56, 724, 75, 734),
+    "1080p": InputDisplayGfxInfo("data/input_box_1080p.png", 608, 380, 76, 1082, 106, 1102),
+    "1440p": InputDisplayGfxInfo("data/input_box_2k.png", 810, 516, 88, 1447, 129, 1471),
+    "2160p": InputDisplayGfxInfo("data/input_box.png", 1216, 769, 148, 2161, 209, 2195),
+}
+
+#ENABLE_EQUALS = 
 class Encoder:
     __slots__ = ("ffmpeg_filename", "ffprobe_filename", "dolphin_resolution", "music_option", "timeline_settings", "video_frame_durations", "print_cmd")
 
@@ -77,7 +104,11 @@ class Encoder:
         fade_start_frame = video_frame_len - fade_frame_duration
         trim_start_frame = frame_replay_starts - frame_recording_starts
 
-        return DynamicFilterArgs(adelay_frame_value, fade_start_frame, trim_start_frame)
+        frame_input_starts = int(output_params["frameInputStarts"])
+
+        input_display_start_frame = frame_input_starts - frame_recording_starts + 1
+
+        return DynamicFilterArgs(adelay_frame_value, fade_start_frame, trim_start_frame, input_display_start_frame)
 
     def encode_from_top_10_leaderboard(self):
         dolphin_resolution = self.dolphin_resolution
@@ -105,7 +136,14 @@ class Encoder:
         else:
             audio_combined_stream = audio_in_file
 
-        video_faded_stream = ffmpeg.filter(video_in_file, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
+        if timeline_settings.input_display.type == INPUT_DISPLAY_CLASSIC:
+            video_with_input_display = self.add_input_display_to_video(video_in_file, dynamic_filter_args)
+        elif timeline_settings.input_display.type == INPUT_DISPLAY_NONE:
+            video_with_input_display = video_in_file
+        else:
+            assert False
+
+        video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
     
         audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
     
@@ -126,6 +164,69 @@ class Encoder:
 
         return final_video_stream, final_audio_stream, dynamic_filter_args
 
+    def encode_ffmpeg_weird_behaviour(self, dynamic_filter_args):
+        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
+        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
+        input_display_frame_duration = 1991
+
+        input_display_start_frame = dynamic_filter_args.input_display_start_frame
+        input_display_end_frame = input_display_start_frame + input_display_frame_duration - 1
+        input_display_in_file = ffmpeg.input("temp/input_display.mov")
+        input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
+
+        scaled_input_display_shifted = input_display_in_file.setpts(f"PTS-STARTPTS+{input_display_start_frame}")
+        video_with_input_display = ffmpeg.filter(
+            (video_in_file, scaled_input_display_shifted),
+            "overlay",
+            enable=f"between(t,{input_display_start_frame/FPS},{input_display_end_frame/FPS})",
+            x=input_display_gfx_info.inputs_x, y=input_display_gfx_info.inputs_y,
+            eof_action="pass", eval="init"
+        )
+
+        return video_with_input_display, audio_in_file, dynamic_filter_args
+
+    def add_input_display_to_video(self, video_in_file, dynamic_filter_args):
+        video_generator = PyRKG.VideoGenerator.VideoGenerator("classic", self.timeline_settings.input_display.rkg_file_or_data)
+        print("Generating input display!")
+        if not self.timeline_settings.input_display.dont_create:
+            video_generator.run("temp/input_display.mov", self.ffmpeg_filename)
+        input_display_frame_duration = video_generator.inputs.get_total_frame_nr()
+
+        input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
+        input_box_in_file = ffmpeg.input(input_display_gfx_info.input_box_filename)
+
+        input_display_start_frame = dynamic_filter_args.input_display_start_frame
+        input_display_end_frame = input_display_start_frame + input_display_frame_duration - 1
+
+        #input_box_shifted = input_box_in_file#.setpts(f"PTS-STARTPTS+{input_display_start_frame}")
+
+        box_on_video = ffmpeg.filter(
+            (video_in_file, input_box_in_file),
+            "overlay",
+            enable=f"between(t,{input_display_start_frame/FPS},{input_display_end_frame/FPS})",
+            x=input_display_gfx_info.box_x, y=input_display_gfx_info.box_y,
+            eval="init"
+        ).setpts(f"PTS-STARTPTS")
+
+        input_display_in_file = ffmpeg.input("temp/input_display.mov")
+
+        scaled_input_display = ffmpeg.filter(input_display_in_file, "scale",
+            input_display_gfx_info.inputs_width, input_display_gfx_info.inputs_height, flags="bicubic"
+        )
+        # +{input_display_start_frame/60}/TB
+        # {input_display_start_frame}
+        print(f"input_display_start_frame: {input_display_start_frame}")
+        scaled_input_display_shifted = scaled_input_display.setpts(f"PTS-STARTPTS+{input_display_start_frame/60}/TB")
+        video_with_input_display = ffmpeg.filter(
+            (box_on_video, scaled_input_display_shifted),
+            "overlay",
+            enable=f"between(t,{input_display_start_frame/FPS},{input_display_end_frame/FPS})",
+            x=input_display_gfx_info.inputs_x, y=input_display_gfx_info.inputs_y,
+            eof_action="pass", eval="init"
+        )
+
+        return video_with_input_display
+
     def encode_from_tt_ghost_select(self):
         dolphin_resolution = self.dolphin_resolution
         music_option = self.music_option
@@ -135,6 +236,9 @@ class Encoder:
         fade_frame_duration = encode_settings.fade_frame_duration
 
         dynamic_filter_args = self.gen_dynamic_filter_args(fade_frame_duration)
+
+        if False:
+            return self.encode_ffmpeg_weird_behaviour(dynamic_filter_args)
 
         video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
         audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
@@ -152,7 +256,21 @@ class Encoder:
         else:
             audio_combined_stream = audio_in_file
 
-        video_faded_stream = ffmpeg.filter(video_in_file, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS).split()
+# ffmpeg -i tt_2k.png -i input_box_2k.png -i input_display_bottom.png -filter_complex \
+#     "[2]scale=810:506:flags=bicubic[input_display_scaled];
+#     [0][1]overlay=x=129:y=1471:eval=init[tt_and_box];
+#      [tt_and_box][input_display_scaled]overlay=x=88:y=1447:eval=init[tt_box_input];
+#      [tt_box_input]scale=2560:trunc(ow/a/2)*2:flags=bicubic[tt_box_input_scaled]" \
+# -map "[tt_box_input_scaled]" tt_2k_with_input_display.png
+
+        if timeline_settings.input_display.type == INPUT_DISPLAY_CLASSIC:
+            video_with_input_display = self.add_input_display_to_video(video_in_file, dynamic_filter_args)
+        elif timeline_settings.input_display.type == INPUT_DISPLAY_NONE:
+            video_with_input_display = video_in_file
+        else:
+            assert False
+
+        video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS).split()
     
         audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS).asplit()
     
@@ -337,20 +455,20 @@ def test_generated_command():
     # SizeBasedEncodeSettings(output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt)
     MODE = 2
     if MODE == 0:
-        crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", 854, "yuv420p")
+        crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", 854, "yuv420p", True, 0.6, 1.0)
         timeline_settings = FromTTGhostSelectionTimelineSettings(crf_encode_settings)
         music_option = MusicOption(MUSIC_CUSTOM_MUSIC, "bubble_bath_the_green_orbs.wav")
         encoder = Encoder("ffmpeg", "ffprobe", "480p", music_option, timeline_settings, print_cmd=True)
         encoder.encode("test_crf_command.mkv")
     elif MODE == 1:
         #size_based_encode_settings = SizeBasedEncodeSettings("webm", "libvpx-vp9", "libopus", "64k", 52428800, None, "yuv420p")
-        size_based_encode_settings = SizeBasedEncodeSettings("mp4", "libx264", "libopus", "64k", 52428800, None, "yuv420p")
+        size_based_encode_settings = SizeBasedEncodeSettings("mp4", "libx264", "libopus", "64k", 52428800, None, "yuv420p", 0.6, 1.0)
         timeline_settings = FromTTGhostSelectionTimelineSettings(size_based_encode_settings)
         music_option = MusicOption(MUSIC_CUSTOM_MUSIC, "bubble_bath_the_green_orbs.wav")
         encoder = Encoder("ffmpeg", "ffprobe", "480p", music_option, timeline_settings, print_cmd=False)
         encoder.encode("test_size_based_command.mp4")
     elif MODE == 2:
-        crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", None, "yuv420p")
+        crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", None, "yuv420p", True, 0.6, 1.0)
         timeline_settings = FromTTGhostSelectionTimelineSettings(crf_encode_settings)
         music_option = MusicOption(MUSIC_GAME_BGM)
         encoder = Encoder("ffmpeg", "ffprobe", "480p", music_option, timeline_settings, print_cmd=False)

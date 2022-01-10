@@ -1,0 +1,23 @@
+output-video-filename: gv_america_kart_top_10_music_yt_volume.mkv
+iso-filename: "../../RMCE 01/RMCE01.iso"
+main-ghost-filename: 00m22s2884188 ☆Lord7κユイリ.rkg
+#szs-filename: desktop_dash_v1.3.szs
+timeline: ghostselect
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: xyz
+speedometer-decimal-places: 2
+
+music-filename: careless_whisper_eurobeat.mkv
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+music-volume: 0.9
+game-volume: 0.7
+youtube-settings: true
+
+#top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/03/ACC0883AE0CE7879C6EFBA20CFE5B5909BF7841B/01.html#filter-region-america#filter-vehicle-karts"
+#top-10-location: Americas
+#top-10-title: "Grumble Volcano America Kart Top 10"
+#top-10-course-name: Grumble Volcano
+#top-10-ghost-description: Kart BKT

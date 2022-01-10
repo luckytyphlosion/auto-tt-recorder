@@ -1,37 +1,12 @@
 # This code was translated from Thakis' C++ Yaz0 decoder into python
 
-def decode_RKG(src):
-	readBytes = 0
-	srcSize = len(src)
-	decodedBytes = []
-	header = []
-
-	# search yaz1 block
-	start_text = src[readBytes:readBytes+4]
-	start_found = False
-	while readBytes + 3 < srcSize:
-		try:
-			start_found = start_text.decode() == "Yaz1"
-		except UnicodeDecodeError:
-			pass
-		if start_found:
-			break
-		
-		readBytes += 1
-		start_text = src[readBytes:readBytes+4]
-
-	if readBytes + 3 >= srcSize:
-		return decodedBytes # nothing left to decode
-
-	header = list(src)[:readBytes]
-	readBytes += 4
-
-	og = src[readBytes:readBytes+4]
-	size = (og[0] << 24) + (og[1] << 16) + (og[2] << 8) + og[3]
-	readBytes += 12; # 4 byte size, 8 byte unused
-	decodedBytes = decode_Yaz1(src, readBytes, size)
-
-	return header + decodedBytes
+def decode_RKG(ghost_src):
+    # check uncompressed
+    if (ghost_src[0xc] >> 3) & 1 == 0:
+        return list(ghost_src[0x88:])
+    else:
+        uncompressed_size = (ghost_src[0x90] << 24) + (ghost_src[0x91] << 16) + (ghost_src[0x92] << 8) + ghost_src[0x93]
+        return decode_Yaz1(ghost_src, 0x9c, uncompressed_size)
 
 def decode_Yaz1(src, offset, uncompressedSize):
 	srcPos = offset
