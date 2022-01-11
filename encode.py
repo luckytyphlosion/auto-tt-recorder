@@ -110,80 +110,6 @@ class Encoder:
 
         return DynamicFilterArgs(adelay_frame_value, fade_start_frame, trim_start_frame, input_display_start_frame)
 
-    def encode_from_top_10_leaderboard(self):
-        dolphin_resolution = self.dolphin_resolution
-        music_option = self.music_option
-        timeline_settings = self.timeline_settings
-
-        encode_settings = timeline_settings.encode_settings
-        fade_frame_duration = encode_settings.fade_frame_duration
-
-        dynamic_filter_args = self.gen_dynamic_filter_args(fade_frame_duration)
-
-        top_10_video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/top10.avi")
-        top_10_audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/top10.wav")
-        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
-        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
-
-        if music_option.option == MUSIC_CUSTOM_MUSIC:
-            music_in_file = ffmpeg.input(music_option.music_filename).audio
-            if encode_settings.music_volume == 1.0:
-                music_volume_stream = music_in_file
-            else:
-                music_volume_stream = ffmpeg.filter(music_in_file, "volume", volume=encode_settings.music_volume)
-            game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
-            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")            
-        else:
-            audio_combined_stream = audio_in_file
-
-        if timeline_settings.input_display.type == INPUT_DISPLAY_CLASSIC:
-            video_with_input_display = self.add_input_display_to_video(video_in_file, dynamic_filter_args)
-        elif timeline_settings.input_display.type == INPUT_DISPLAY_NONE:
-            video_with_input_display = video_in_file
-        else:
-            assert False
-
-        video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
-    
-        audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
-    
-        all_streams = [
-            top_10_video_in_file,
-            top_10_audio_in_file,
-            video_faded_stream,
-            audio_combined_faded_stream
-        ]
-
-        almost_final_streams = ffmpeg.filter_multi_output(all_streams, "concat", n=2, v=1, a=1)
-        if encode_settings.output_width is not None:
-            final_video_stream = ffmpeg.filter(almost_final_streams[0], "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
-        else:
-            final_video_stream = almost_final_streams[0]
-
-        final_audio_stream = almost_final_streams[1]
-
-        return final_video_stream, final_audio_stream, dynamic_filter_args
-
-    def encode_ffmpeg_weird_behaviour(self, dynamic_filter_args):
-        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
-        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
-        input_display_frame_duration = 1991
-
-        input_display_start_frame = dynamic_filter_args.input_display_start_frame
-        input_display_end_frame = input_display_start_frame + input_display_frame_duration - 1
-        input_display_in_file = ffmpeg.input("temp/input_display.mov")
-        input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
-
-        scaled_input_display_shifted = input_display_in_file.setpts(f"PTS-STARTPTS+{input_display_start_frame}")
-        video_with_input_display = ffmpeg.filter(
-            (video_in_file, scaled_input_display_shifted),
-            "overlay",
-            enable=f"between(t,{input_display_start_frame/FPS},{input_display_end_frame/FPS})",
-            x=input_display_gfx_info.inputs_x, y=input_display_gfx_info.inputs_y,
-            eof_action="pass", eval="init"
-        )
-
-        return video_with_input_display, audio_in_file, dynamic_filter_args
 
     def add_input_display_to_video(self, video_in_file, dynamic_filter_args):
         video_generator = PyRKG.VideoGenerator.VideoGenerator("classic", self.timeline_settings.input_display.rkg_file_or_data)
@@ -227,7 +153,7 @@ class Encoder:
 
         return video_with_input_display
 
-    def encode_from_tt_ghost_select(self):
+    def encode_complex_common(self, secondary_video_in_file, secondary_audio_in_file):
         dolphin_resolution = self.dolphin_resolution
         music_option = self.music_option
         timeline_settings = self.timeline_settings
@@ -237,31 +163,19 @@ class Encoder:
 
         dynamic_filter_args = self.gen_dynamic_filter_args(fade_frame_duration)
 
-        if False:
-            return self.encode_ffmpeg_weird_behaviour(dynamic_filter_args)
-
         video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
         audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
+
         if music_option.option == MUSIC_CUSTOM_MUSIC:
             music_in_file = ffmpeg.input(music_option.music_filename).audio
-            adelay_value = dynamic_filter_args.adelay_frame_value*1000/FPS
-            adelay_stream = ffmpeg.filter(music_in_file, "adelay", f"{adelay_value}|{adelay_value}")
             if encode_settings.music_volume == 1.0:
-                music_volume_stream = adelay_stream
+                music_volume_stream = music_in_file
             else:
-                music_volume_stream = ffmpeg.filter(adelay_stream, "volume", volume=encode_settings.music_volume)
-
+                music_volume_stream = ffmpeg.filter(music_in_file, "volume", volume=encode_settings.music_volume)
             game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
-            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")                   
+            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")            
         else:
             audio_combined_stream = audio_in_file
-
-# ffmpeg -i tt_2k.png -i input_box_2k.png -i input_display_bottom.png -filter_complex \
-#     "[2]scale=810:506:flags=bicubic[input_display_scaled];
-#     [0][1]overlay=x=129:y=1471:eval=init[tt_and_box];
-#      [tt_and_box][input_display_scaled]overlay=x=88:y=1447:eval=init[tt_box_input];
-#      [tt_box_input]scale=2560:trunc(ow/a/2)*2:flags=bicubic[tt_box_input_scaled]" \
-# -map "[tt_box_input_scaled]" tt_2k_with_input_display.png
 
         if timeline_settings.input_display.type == INPUT_DISPLAY_CLASSIC:
             video_with_input_display = self.add_input_display_to_video(video_in_file, dynamic_filter_args)
@@ -270,18 +184,18 @@ class Encoder:
         else:
             assert False
 
-        video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS).split()
+        video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
     
-        audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS).asplit()
+        audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
     
-        all_streams_trimmed = [
-            ffmpeg.trim(video_faded_stream[0], end=FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP).setpts("PTS-STARTPTS"),
-            ffmpeg.filter(audio_combined_faded_stream[0], "atrim", end=FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP).filter("asetpts", "PTS-STARTPTS"),
-            ffmpeg.trim(video_faded_stream[1], start=dynamic_filter_args.trim_start_frame/FPS).setpts("PTS-STARTPTS"),
-            ffmpeg.filter(audio_combined_faded_stream[1], "atrim", start=dynamic_filter_args.trim_start_frame/FPS).filter("asetpts", "PTS-STARTPTS")
+        all_streams = [
+            secondary_video_in_file,
+            secondary_audio_in_file,
+            video_faded_stream,
+            audio_combined_faded_stream
         ]
 
-        almost_final_streams = ffmpeg.filter_multi_output(all_streams_trimmed, "concat", n=2, v=1, a=1)
+        almost_final_streams = ffmpeg.filter_multi_output(all_streams, "concat", n=2, v=1, a=1)
         if encode_settings.output_width is not None:
             final_video_stream = ffmpeg.filter(almost_final_streams[0], "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
         else:
@@ -290,6 +204,18 @@ class Encoder:
         final_audio_stream = almost_final_streams[1]
 
         return final_video_stream, final_audio_stream, dynamic_filter_args
+
+    def encode_from_top_10_leaderboard(self):
+        top_10_video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/top10.avi")
+        top_10_audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/top10.wav")
+
+        return self.encode_complex_common(top_10_video_in_file, top_10_audio_in_file)
+
+    def encode_from_tt_ghost_select(self):
+        tt_ghost_select_video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/tt_ghost_select.avi")
+        tt_ghost_select_audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/tt_ghost_select.wav")
+
+        return self.encode_complex_common(tt_ghost_select_video_in_file, tt_ghost_select_audio_in_file)
 
     def encode_complex(self, output_video_filename):
         dolphin_resolution = self.dolphin_resolution

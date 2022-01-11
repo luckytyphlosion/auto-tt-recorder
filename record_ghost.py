@@ -41,6 +41,12 @@ resolution_string_to_dolphin_enum = {
     "4k": "9"
 }
 
+timeline_setting_to_lua_mode = {
+    TIMELINE_NO_ENCODE: LUA_MODE_RECORD_GHOST_NO_ENCODE,
+    TIMELINE_FROM_TT_GHOST_SELECTION: LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT,
+    TIMELINE_FROM_TOP_10_LEADERBOARD: LUA_MODE_RECORD_GHOST_FOR_TOP_10
+}
+
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, timeline_settings=None):
 
     iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
@@ -98,7 +104,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings)
     gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
-    lua_mode = LUA_MODE_RECORD_GHOST_STANDARD if timeline_settings.type in (TIMELINE_NO_ENCODE, TIMELINE_FROM_TT_GHOST_SELECTION) else LUA_MODE_RECORD_GHOST_FOR_TOP_10
+    lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt", lua_mode)
     mkw_filesys.replace_track(szs_filename, rkg)
@@ -110,7 +116,13 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     
         framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
         framedump_path.unlink(missing_ok=True)
-    
+        if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
+            tt_ghost_select_framedump_path = pathlib.Path("dolphin/User/Dump/Frames/tt_ghost_select.avi")
+            tt_ghost_select_framedump_path.unlink(missing_ok=True)
+
+            tt_ghost_select_audiodump_path = pathlib.Path("dolphin/User/Dump/Audio/tt_ghost_select.wav")
+            tt_ghost_select_audiodump_path.unlink(missing_ok=True)
+
         create_dolphin_configs_if_not_exist()
         modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
     

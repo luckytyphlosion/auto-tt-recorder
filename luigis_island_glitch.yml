@@ -1,0 +1,25 @@
+output-video-filename: luigis_island_glitch_from_tt.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+main-ghost-filename: 01m34s1377096 Kasey.rkg
+comparison-ghost-filename: 01m34s2074415 β.sωαlοcκs.rkg
+szs-filename: luigis_island_v4.5.1.szs
+timeline: ghostselect
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: sum 41 makes no difference-Q3Z5GkZmlJQ.mkv
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+#h26x-preset: ultrafast
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/1A/98EE96A85864DDE612B6CD3D5946693996FCD4B0/01.html"
+top-10-location: ww
+top-10-title: "Luigi's Island (v4.5.1) Glitch Top 10"
+top-10-course-name: Luigi's Island
+top-10-ghost-description: World Champion

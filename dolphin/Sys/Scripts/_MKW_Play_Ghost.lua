@@ -24,9 +24,10 @@ end
 
 local helper_isScriptEnabled = true
 
-local LUA_MODE_RECORD_GHOST_STANDARD = 0
-local LUA_MODE_RECORD_TOP_10 = 1
-local LUA_MODE_RECORD_GHOST_FOR_TOP_10 = 2
+local LUA_MODE_RECORD_GHOST_NO_ENCODE = 0
+local LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 1
+local LUA_MODE_RECORD_TOP_10 = 2
+local LUA_MODE_RECORD_GHOST_FOR_TOP_10 = 3
 
 local ADVANCE_TO_TRACK_SELECT = 1
 local CHOOSE_MUSHROOM_CUP = 2
@@ -182,19 +183,40 @@ function startDumpFrames(curSegmentIndex, curActionIndex, curState)
 end
 
 function startDumpFramesForRace(curSegmentIndex, curActionIndex, curState)
-	if params["mode"] == LUA_MODE_RECORD_GHOST_STANDARD then
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT or params["mode"] == LUA_MODE_RECORD_GHOST_NO_ENCODE then
 		SetFrameAndAudioDump(true)
-		outputParams["frameRecordingStarts"] = GetFrameCount()		
+		outputParams["frameRecordingStarts"] = GetFrameCount()
 	end
 
 	curActionIndex = curActionIndex + 1
 	curState = EXIT_LOOP_NO_DELAY
 
-	return curSegmentIndex, curActionIndex, curState	
+	return curSegmentIndex, curActionIndex, curState
 end
 
-function startDumpFramesForTop10WorldChamp(curSegmentIndex, curActionIndex, curState)
-	if params["mode"] == LUA_MODE_RECORD_GHOST_FOR_TOP_10 then
+function stopDumpFramesIfRecordFromTTGhostSelect(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
+		SetFrameAndAudioDump(false)
+	end
+
+	curActionIndex = curActionIndex + 1
+	curState = EXIT_LOOP_NO_DELAY
+
+	return curSegmentIndex, curActionIndex, curState
+end
+
+function renameTTGhostSelectDumpFiles(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
+		os.rename("User/Dump/Frames/framedump0.avi", "User/Dump/Frames/tt_ghost_select.avi")
+		os.rename("User/Dump/Audio/dspdump.wav", "User/Dump/Audio/tt_ghost_select.wav")
+	end
+	curActionIndex = curActionIndex + 1
+	curState = IN_DELAY
+	return curSegmentIndex, curActionIndex, curState
+end
+
+function startDumpFramesForEncodeLuaModes(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FOR_TOP_10 or params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
 		SetFrameAndAudioDump(true)
 		outputParams["frameRecordingStarts"] = GetFrameCount()		
 	end
@@ -400,9 +422,12 @@ local advLiveReplayRaceGhostSegment = {
 	{startDumpFramesForRace, 0},
 	{"none", 60},
 	{"A", 30},
-	{"A", 10},
+	{"A", 96},
+	{stopDumpFramesIfRecordFromTTGhostSelect, 0},
+	{"none", 3},
+	{renameTTGhostSelectDumpFiles, 3},
 	{waitFrameOfInput0, 0},
-	{startDumpFramesForTop10WorldChamp, 0},
+	{startDumpFramesForEncodeLuaModes, 0},
 	{setFrameReplayStarts, 0},
 	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
 	{waitRaceCompletion, 60 * 10},
@@ -447,9 +472,12 @@ local advLiveReplaySoloTimeTrialSegment = {
 	{startDumpFramesForRace, 0},
 	{"none", 60},
 	{"A", 30},
-	{"A", 10},
+	{"A", 96},
+	{stopDumpFramesIfRecordFromTTGhostSelect, 0},
+	{"none", 3},
+	{renameTTGhostSelectDumpFiles, 3},
 	{waitFrameOfInput0, 0},
-	{startDumpFramesForTop10WorldChamp, 0},
+	{startDumpFramesForEncodeLuaModes, 0},
 	{setFrameReplayStarts, 0},
 	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
 	{waitRaceCompletion, 60 * 10},
