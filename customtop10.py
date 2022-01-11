@@ -27,11 +27,13 @@ import chadsoft
 import util
 import import_ghost_to_save
 from import_ghost_to_save import Rkg
+import wbz
 
 from constants.customtop10 import *
 from stateclasses.gecko_code_line import *
 from stateclasses.split_classes import *
 
+import sys
 
 CONTROLLER_WII_WHEEL = 0
 
@@ -92,28 +94,21 @@ def get_top_10_entries_from_filelist(*rkg_filenames):
 
     return top_10_entries
 
-    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports (except flaps), i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
-    ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Valid options are ww/worldwide, the name of a region, or the name of a country. For region/country, valid options are the same as on https://www.tt-rec.com/customtop10/. If -ttg/--top-10-gecko-code-filename is specified, then valid options are ww/worldwide and regional (so that the program knows whether to show the Regional or Worldwide Top 10 screen).")
-    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
-    ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
-    ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
-    ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
-    ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
-
 empty_tuple = tuple()
 
 class CustomTop10AndGhostDescription:
-    __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "rkg_file_main")
+    __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "rkg_file_main", "szs_filename")
 
-    def __init__(self, globe_location, course_name, ghost_description, top_10_code, rkg_file_main=None):
+    def __init__(self, globe_location, course_name, ghost_description, top_10_code, rkg_file_main=None, szs_filename=None):
         self.globe_location = simplify_globe_location(globe_location)
         self.course_name = course_name
         self.ghost_description = ghost_description
         self.top_10_code = top_10_code
         self.rkg_file_main = rkg_file_main
+        self.szs_filename = szs_filename
 
     @classmethod
-    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False):
+    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False, download_szs=False, iso_filename=None):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
@@ -131,6 +126,27 @@ class CustomTop10AndGhostDescription:
         else:
             censored_players_as_set = empty_tuple
 
+        if download_szs:
+            if sys.platform == "Linux":
+                wit_filename = "bin/wiimm/linux/wit"
+                wszst_filename = "bin/wiimm/linux/wszst"
+            elif sys.platform == "Windows":
+                wit_filename = "bin/wiimm/cygwin64/wit.exe"
+                wszst_filename = "bin/wiimm/cygwin64/wszst.exe"
+            else:
+                raise RuntimeError("Unsupported operating system!")
+
+            wbz_converter = WbzConverter(
+                iso_filename=iso_filename,
+                original_track_files_dirname="storage/original-race-course",
+                wit_filename=wit_filename,
+                wszst_filename=wszst_filename,
+                auto_add_containing_dirname="storage",
+                config_filename="storage/wbz_converter_config.ini"
+            )
+
+            wbz_converter.convert_wbz_to_szs("Jungle Cliff v1.5 (Wine+Keiichi1996) [r73,Jasperr,Hollend,Rachy].wbz", dest_dirname="storage/szs")
+            wbz_converter.convert_wbz_to_szs("ASDF Course RC2 (Guilmon) [r24,5laps,maczkopeti].wbz", dest_dirname="storage/szs")
         for i, lb_entry in enumerate(top_10_leaderboard["ghosts"], 1):
             rkg_data, status_code = chadsoft.get(lb_entry["href"], is_binary=True)
 

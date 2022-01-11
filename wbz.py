@@ -101,6 +101,16 @@ class WbzConverter:
             #print(f"self.auto_add_dirname: {self.auto_add_dirname}")
             subprocess.run((self.wszst_filename, "normalize", input_wbz_filename, "--autoadd-path", self.auto_add_dirname, "--DEST", output_szs_filepath, "--szs", "--overwrite"))
 
+    def download_wbz_and_convert(self, track_id):
+        url = f"https://ct.wiimm.de/d/{track_id}"
+        r = requests.get(url, allow_redirects=True)
+
+        if r.headers["content-type"] != "application/octet-stream":
+            raise RuntimeError("Wiimm's archive does not have track ID!")
+
+        with open(f"{auto_add_containing_dirname}/wbz/{track_id}.wbz", 'wb+') as f:
+            f.write(r.content)
+
 def main():
     wbz_converter = WbzConverter(
         iso_filename="../../RMCE01/RMCE01.iso",

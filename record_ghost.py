@@ -240,6 +240,8 @@ def main():
     ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", type=int, default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
     ap.add_argument("-eo", "--encode-only", dest="encode_only", action="store_true", default=False, help="Assume that all necessary frame dumps already exist, instead of running Dolphin to dump out frames. Useful for testing in case an error occurs through the encoding stage.")
     ap.add_argument("-dv", "--dolphin-volume", dest="dolphin_volume", type=int, default=0, help="Volume of the Dolphin executable. Only relevant for debugging, has no impact on audiodump volume.")
+    #ap.add_argument("-l", "--chadsoft-leaderboard", dest="chadsoft_leaderboard", default=None, help="Leaderboard of the ghost to record. Specifying this will fill in the options for -i/--main-ghost-filename and -s/--szs-filename if they are not set (and the ghost to record is a custom track for szs filename). This will also fill in the -ttc/--top-10-chadsoft option if it is not specified, otherwise, -ttc/--top-10-chadsoft takes priority.")
+
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
 
@@ -355,7 +357,8 @@ def main():
                     args.top_10_course_name,
                     args.top_10_ghost_description,
                     args.top_10_censors,
-                    rkg_file_main is None
+                    rkg_file_main is None,
+                    szs_filename is None
                 )
                 rkg_file_main = custom_top_10_and_ghost_description.rkg_file_main
             elif args.top_10_gecko_code_filename is not None:
@@ -372,6 +375,8 @@ def main():
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 
+    #if args.chadsoft_leaderboard is not None and not (timeline == TIMELINE_FROM_TOP_10_LEADERBOARD and args.top_10_chadsoft is not None):
+        
     dolphin_resolution = args.dolphin_resolution
     use_ffv1 = args.use_ffv1
     speedometer = SpeedometerOption(args.speedometer, args.speedometer_metric, args.speedometer_decimal_places)

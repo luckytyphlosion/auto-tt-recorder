@@ -78,6 +78,9 @@ local outputParams = {}
 
 local cupDebugText = ""
 local triggeredFlowerCupText = ""
+local frameOfInputText = ""
+local recordingStartedText = ""
+local lastPtsText = ""
 
 function setChooseCupState(curSegmentIndex, curActionIndex, curState)
 	cup = tonumber(params["cup"])
@@ -596,7 +599,6 @@ function onScriptUpdate()
 	text = text .. string.format("\n\n\n\n\n\nFrame: %d, entryCount: %d\n", frame, entryCount)
 	text = text .. string.format("cursorSetManually: %s\n", cursorSetManually)
 	text = text .. string.format("\nRunning Play Ghost!\n")
-	
 
 	if curState == IN_DELAY then
 		if frame >= delayEndFrameCount then
@@ -613,6 +615,7 @@ function onScriptUpdate()
 				end
 			end
 			curState = EXECUTING_ACTION
+			text = text .. "\n"
 		else
 			text = text .. "Waiting until frame " .. delayEndFrameCount .. "!\n"
 		end
@@ -634,6 +637,7 @@ function onScriptUpdate()
 			elseif curAction.command == "right" then
 				SetMainStickX(255)
 			elseif curAction.command == "done" then
+				outputParams["frameEnded"] = GetFrameCount()
 				writeOutputParams()
 				--file = io.open("kill.txt", "w")
 				--file:close()
@@ -681,7 +685,16 @@ function onScriptUpdate()
 	delayEndFrameCountForNextFrame = delayEndFrameCount
 	cursorSetManuallyForNextFrame = cursorSetManually
 
-	text = text .. cupDebugText .. triggeredFlowerCupText
+	frameOfInputText = "frameOfInput: " .. core.getFrameOfInput() .. "\n"
+	if outputParams["frameRecordingStarts"] ~= nil then
+		recordingStartedText = "Recording started at " .. outputParams["frameRecordingStarts"] .. "\n"
+	else
+		recordingStartedText = "\n"
+	end
+
+	lastPtsText = "lastPts: " .. GetAVIDumpLastPts() .. ", refreshRate: " .. GetTargetRefreshRate() .. ", aviDumpLastFrame: " .. GetAVIDumpLastFrame() .. "\n"
+
+	text = text .. cupDebugText .. triggeredFlowerCupText .. frameOfInputText .. recordingStartedText .. lastPtsText
 	SetScreenText(text)
 end
 

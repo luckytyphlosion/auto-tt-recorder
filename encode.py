@@ -15,7 +15,7 @@ nb_frames_regex = re.compile(r"^nb_frames=([0-9]+)", flags=re.MULTILINE)
 
 dev_null = "/dev/null" if os.name == "posix" else "NUL"
 
-FPS = 60
+FPS = 59.94005994006
 
 class DynamicFilterArgs:
     __slots__ = ("adelay_frame_value", "fade_start_frame", "trim_start_frame", "input_display_start_frame")
@@ -27,7 +27,7 @@ class DynamicFilterArgs:
         self.input_display_start_frame = input_display_start_frame
 
 FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_FRAME_TIMESTAMP = 186
-FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP = 3.1
+FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_TIMESTAMP = FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_FRAME_TIMESTAMP/59.94005994006
 
 class InputDisplayGfxInfo:
     __slots__ = ("input_box_filename", "box_x", "box_y", "inputs_x", "inputs_y", "inputs_width", "inputs_height")
@@ -106,7 +106,7 @@ class Encoder:
 
         frame_input_starts = int(output_params["frameInputStarts"])
 
-        input_display_start_frame = frame_input_starts - frame_recording_starts + 1
+        input_display_start_frame = frame_input_starts - frame_recording_starts
 
         return DynamicFilterArgs(adelay_frame_value, fade_start_frame, trim_start_frame, input_display_start_frame)
 
@@ -216,7 +216,7 @@ class Encoder:
         # +{input_display_start_frame/60}/TB
         # {input_display_start_frame}
         print(f"input_display_start_frame: {input_display_start_frame}")
-        scaled_input_display_shifted = scaled_input_display.setpts(f"PTS-STARTPTS+{input_display_start_frame/60}/TB")
+        scaled_input_display_shifted = scaled_input_display.setpts(f"PTS-STARTPTS+{input_display_start_frame/FPS}/TB")
         video_with_input_display = ffmpeg.filter(
             (box_on_video, scaled_input_display_shifted),
             "overlay",
@@ -305,6 +305,7 @@ class Encoder:
         else:
             raise RuntimeError(f"Unknown timeline type \"{timeline_settings.type}\"!")
 
+        #final_video_stream = 
         if encode_settings.type == ENCODE_TYPE_CRF:
             ffmpeg_output_kwargs = {
                 "vcodec": encode_settings.video_codec,
@@ -356,7 +357,7 @@ class Encoder:
             ffmpeg_output_kwargs = {
                 "vcodec": encode_settings.video_codec,
                 "video_bitrate": avg_video_bitrate,
-                "pix_fmt": encode_settings.pix_fmt,                
+                "pix_fmt": encode_settings.pix_fmt
             }
 
             if encode_settings.video_codec == "libvpx-vp9":

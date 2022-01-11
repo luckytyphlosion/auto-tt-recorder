@@ -1,0 +1,24 @@
+output-video-filename: yoshi_woolly_raceway_glitch_top10.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#main-ghost-filename: 00m29s2066304 Flαg En.rkg
+szs-filename: Yoshis_Woolly_Raceway_v1.1.1.szs
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: Oliverse - Don't Trip-i7MjAQzUUF0.webm
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+#h26x-preset: ultrafast
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/14/BE22349F60643A04345908C22EB5241AFB8AB889/01.html"
+top-10-location: ww
+top-10-title: "Yoshi's Woolly Raceway (v1.1.1) Glitch Top 10"
+top-10-course-name: Yoshi's Woolly Raceway
+top-10-ghost-description: World Champion
