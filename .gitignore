@@ -165,3 +165,4 @@ storage/
 !data/Race_U.szs
 !layouts/**/*
 !data/*.png
+!dolphin/portable.txt
