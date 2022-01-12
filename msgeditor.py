@@ -7,34 +7,6 @@ msgeditor_region_dependent_codes = {
     "NTSC-K": "C25BBD88"
 }
 
-# function generate_single_code() {
-#     code = [ISO_CODES[ISO_REG], "XXXXXXXX",
-#     "7D6802A6", "YYYYYYYY"];
-# 
-#     const [ret, error] = utf_16_hex(document.getElementById(`msg_input_0`).value);
-#     if (ret == null) return `Wrong format for ${error}`;
-#     var hex_string = ret + "0000";
-#     hex_string += "0".repeat(hex_string.length % 8)
-# 
-#     for (var i = 0; i < hex_string.length; i += 8) {
-#         code.push(hex_string.slice(i, i + 8));
-#     }
-# 
-#     code[3] = "48" + pad((hex_string.length / 2) + 5, 6);
-# 
-#     var msg_id = get_msd_id(0);
-#     if (msg_id == null) return "No ID filled in!";
-#     code = code.concat([`2C0E${msg_id}`, "40820008",
-#                         "7C6802A6", "90610020",
-#                         "7D6803A6"])
-# 
-#     if (code.length % 2 == 0) code.push("60000000");
-#     code.push("00000000");
-#     code[1] = pad(code.length / 2 - 1, 8);
-# 
-#     return code;
-# }
-
 class MsgSubst:
     __slots__ = ("msg_id", "msg_text")
 
@@ -51,8 +23,37 @@ class MsgEditor:
         self.iso_region = iso_region
 
     def generate(self):
-        self.generate_multiple_msg_replacements()
+        if len(self.msg_substs) == 1:
+            self.generate_single_code()
+        elif len(self.msg_substs) > 1:
+            self.generate_multiple_msg_replacements()
+        else:
+            return "\n"
+
         return self.place_code()
+
+    def generate_single_code(self):
+        self.code = [msgeditor_region_dependent_codes[self.iso_region], "XXXXXXXX", "7D6802A6", "YYYYYYYY"]
+        msg_subst = self.msg_substs[0]
+
+        msg_value_as_utf_16_hex = util.utf_16_hex(msg_subst.msg_text);
+        msg_value_as_utf_16_hex_plus_pad = f"{msg_value_as_utf_16_hex}0000"
+        data = msg_value_as_utf_16_hex_plus_pad + "0" * (len(msg_value_as_utf_16_hex_plus_pad) % 8)
+
+        self.code.extend("".join(eight_digit_chunk) for eight_digit_chunk in util.grouper(data, 8))
+
+        self.code[3] = f"48{(len(data) // 2) + 5:06x}"
+    
+        msg_id = msg_subst.msg_id
+        self.code.extend((f"2C0E{msg_id:04x}", "40820008",
+                            "7C6802A6", "90610020",
+                            "7D6803A6"))
+
+        if len(self.code) % 2 == 0:
+            self.code.append("60000000")
+
+        self.code.append("00000000");
+        self.code[1] = f"{(len(self.code) // 2) - 1:08x}"
 
     def generate_multiple_msg_replacements(self):
         self.code = [msgeditor_region_dependent_codes[self.iso_region], "XXXXXXXX", "7D6802A6", "YYYYYYYY"]
@@ -105,6 +106,16 @@ def main():
 
     with open("msgeditor_out.dump", "w+") as f:
         f.write(msg_editor_code)
+
+    msg_substs = (
+        MsgSubst(0x045B, "Video recorded by Auto-TT-Recorder."),
+    )
+
+    msg_editor_2 = MsgEditor(msg_substs, "NTSC-U")
+    msg_editor_2_code = msg_editor_2.generate()
+
+    with open("msgeditor2_out.dump", "w+") as f:
+        f.write(msg_editor_2_code)
 
 if __name__ == "__main__":
     main()
