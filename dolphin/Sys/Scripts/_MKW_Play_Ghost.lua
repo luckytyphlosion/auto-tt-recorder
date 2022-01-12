@@ -493,7 +493,8 @@ local advLiveReplaySoloTimeTrialSegment = {
 -- ###################################################
 
 local doCustomTop10Segment = {
-	{"none", 519},--520},
+	{"none", 500},
+	{"A", 44},
 	{startDumpFrames, 0},
 	{"none", 240},
 	{"B", 90},
@@ -504,8 +505,8 @@ local doCustomTop10Segment = {
 }
 
 local doMkChannelGhostScreenSegment = {
-	{"none", 519},--520},
-	{"none", 60},
+	{"none", 400},
+	{"A", 80},
 	{"B", 31},
 	{startDumpFrames, 0},
 	{"none", 60},
