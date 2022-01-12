@@ -97,15 +97,15 @@ def get_top_10_entries_from_filelist(*rkg_filenames):
 empty_tuple = tuple()
 
 class CustomTop10AndGhostDescription:
-    __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "rkg_file_main", "szs_filename")
+    __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "leaderboard", "highlight_index")
 
-    def __init__(self, globe_location, course_name, ghost_description, top_10_code, rkg_file_main=None, szs_filename=None):
+    def __init__(self, globe_location, course_name, ghost_description, top_10_code, leaderboard=None, highlight_index=None):
         self.globe_location = simplify_globe_location(globe_location)
         self.course_name = course_name
         self.ghost_description = ghost_description
         self.top_10_code = top_10_code
-        self.rkg_file_main = rkg_file_main
-        self.szs_filename = szs_filename
+        self.leaderboard = leaderboard
+        self.highlight_index = highlight_index
 
     @classmethod
     def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False, download_szs=False, iso_filename=None):
@@ -115,66 +115,35 @@ class CustomTop10AndGhostDescription:
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
 
-        if highlight_index == -1 and download_rkg_main:
-            raise RuntimeError("Unknown main ghost to download!")
+        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10)
+        leaderboard.download_info_and_ghosts()
 
-        top_10_leaderboard = chadsoft.get_top_10_lb_from_lb_link(chadsoft_lb)
-        rkg_file_main = None
         top_10_entries = []
         if censored_players is not None:
             censored_players_as_set = set(censored_players.split())
         else:
             censored_players_as_set = empty_tuple
 
-        if download_szs:
-            if sys.platform == "Linux":
-                wit_filename = "bin/wiimm/linux/wit"
-                wszst_filename = "bin/wiimm/linux/wszst"
-            elif sys.platform == "Windows":
-                wit_filename = "bin/wiimm/cygwin64/wit.exe"
-                wszst_filename = "bin/wiimm/cygwin64/wszst.exe"
-            else:
-                raise RuntimeError("Unsupported operating system!")
-
-            wbz_converter = WbzConverter(
-                iso_filename=iso_filename,
-                original_track_files_dirname="storage/original-race-course",
-                wit_filename=wit_filename,
-                wszst_filename=wszst_filename,
-                auto_add_containing_dirname="storage",
-                config_filename="storage/wbz_converter_config.ini"
-            )
-
-            wbz_converter.convert_wbz_to_szs("Jungle Cliff v1.5 (Wine+Keiichi1996) [r73,Jasperr,Hollend,Rachy].wbz", dest_dirname="storage/szs")
-            wbz_converter.convert_wbz_to_szs("ASDF Course RC2 (Guilmon) [r24,5laps,maczkopeti].wbz", dest_dirname="storage/szs")
-        for i, lb_entry in enumerate(top_10_leaderboard["ghosts"], 1):
-            rkg_data, status_code = chadsoft.get(lb_entry["href"], is_binary=True)
-
-            if status_code != 404:
+        for lb_entry in leaderboard.lb_info_and_entries["ghosts"]:
+            rkg_data = lb_entry["rkg_data"]
+            if rkg_data is not None:                
                 rkg = Rkg(rkg_data)
                 if lb_entry["playerId"] in censored_players_as_set:
                     top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)                    
                 else:
                     top_10_entry = Top10Entry.from_rkg(rkg)
 
-                if i == highlight_index:
-                    rkg_file_main = rkg_data
             else:
                 top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)
-                if i == highlight_index:
-                    raise RuntimeError("Requested placement to download from leaderboard has missing ghost!")
 
             top_10_entries.append(top_10_entry)
-
-        if rkg_file_main is None and download_rkg_main:
-            raise RuntimeError(f"Highlight index specified is out of bounds of top 10 leaderboard entries! (Leaderboard only has entry count {len(top_10_leaderboard['ghosts'])})")
 
         globe_location = simplify_globe_location(globe_location)
 
         custom_top_10 = CustomTop10("NTSC-U", globe_location, top_10_title, top_10_entries, highlight_index)
         top_10_code = custom_top_10.generate()
 
-        return cls(globe_location, course_name, ghost_description, top_10_code, rkg_file_main=rkg_file_main)
+        return cls(globe_location, course_name, ghost_description, top_10_code, leaderboard=leaderboard, highlight_index=highlight_index)
 
     @classmethod
     def from_gecko_code_filename(cls, gecko_code_filename, globe_location, course_name, ghost_description):
@@ -182,6 +151,22 @@ class CustomTop10AndGhostDescription:
             top_10_code = f.read()
 
         return cls(globe_location, course_name, ghost_description, top_10_code)
+
+    def get_rkg_file_main(self):
+        if self.highlight_index == -1:
+            raise RuntimeError("Unknown main ghost to download! (highlight index is -1)")
+        elif self.highlight_index > len(self.leaderboard.lb_info_and_entries):
+            raise RuntimeError(f"Highlight index specified is out of bounds of top 10 leaderboard entries! (Leaderboard only has entry count {len(self.leaderboard.lb_info_and_entries)})")
+
+        rkg_data = self.leaderboard.lb_info_and_entries["ghosts"][self.highlight_index - 1]["rkg_data"]
+        
+        if rkg_data is None:
+            raise RuntimeError("Requested placement to download from leaderboard has missing ghost!")
+
+        return rkg_data
+
+    def get_szs(self, iso_filename):
+        return self.leaderboard.get_szs_if_not_default_track(iso_filename)
 
 oMII_SYSTEM_ID = 0x1c
 oMII_SYSTEM_ID_END = 0x20

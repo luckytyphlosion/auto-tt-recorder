@@ -3,48 +3,24 @@ import shutil
 import pathlib
 import subprocess
 import os
+import requests
 
 #ISO_FILE 
 #ORIGINAL_TRACK_FILES_DIR = "original-race-course"
 
 class WbzConverter:
-    __slots__ = ("iso_filename", "original_track_files_dirname", "wit_filename", "wszst_filename", "auto_add_dirname", "config_filename", "config")
+    __slots__ = ("iso_filename", "original_track_files_dirname", "wit_filename", "wszst_filename", "auto_add_dirname", "auto_add_containing_dirname")
 
-    def __init__(self, iso_filename, original_track_files_dirname, wit_filename, wszst_filename, auto_add_containing_dirname, config_filename):
+    def __init__(self, iso_filename, original_track_files_dirname, wit_filename, wszst_filename, auto_add_containing_dirname):
         self.iso_filename = iso_filename
         self.original_track_files_dirname = original_track_files_dirname
         self.wit_filename = wit_filename
         self.wszst_filename = wszst_filename
         self.auto_add_dirname = f"{auto_add_containing_dirname}/auto-add"
-        #self.config_filename = config_filename
-        #self.read_config()
-
-    #def read_config(self):
-    #    config_filepath = pathlib.Path(self.config_filename)
-    #    config_filepath.parent.mkdir(parents=True, exist_ok=True)
-    #    if config_filepath.is_file():
-    #        with open(config_filepath, "r") as f:
-    #            self.config = configparser.ConfigParser(allow_no_value=True)
-    #            self.config.read_file(f)
-    #    else:
-    #        self.config = configparser.ConfigParser(allow_no_value=True)
-    #        self.config["Main"] = {
-    #            "AutoAddFilesExtracted": False,
-    #        }
-    #
-    #        self.serialize_config()
-    #
-    #def serialize_config(self):
-    #    with open(self.config_filename, "w+") as f:
-    #        self.config.write(f)
+        self.auto_add_containing_dirname = auto_add_containing_dirname
 
     def are_auto_add_files_extracted(self):
         return self.calc_num_files_dirs_in_auto_add_dir() >= 288
-        #return self.config["Main"]["AutoAddFilesExtracted"]
-
-    #def set_auto_add_files_extracted(self):
-    #    #self.config["Main"]["AutoAddFilesExtracted"] = True
-    #    #self.serialize_config()
 
     def calc_num_szs_files_in_orig_track_files_dir(self):
         original_track_files_dirpath = pathlib.Path(self.original_track_files_dirname)
@@ -88,28 +64,61 @@ class WbzConverter:
 
         shutil.rmtree(original_track_files_dirpath)
 
-    def convert_wbz_to_szs(self, input_wbz_filename, dest_dirname=None):
-        self.extract_auto_add_files()
+    def get_wbz_filepath_from_track_id(self, track_id):
+        return pathlib.Path(f"{self.auto_add_containing_dirname}/wbz/{track_id}.wbz")
 
-        input_wbz_filepath = pathlib.Path(input_wbz_filename)
+    @staticmethod
+    def get_output_szs_filepath(input_wbz_filepath, dest_dirname=None):
         if dest_dirname is None:
             output_szs_filepath = input_wbz_filepath.with_suffix(".szs")
         else:
             output_szs_filepath = pathlib.Path(f"{dest_dirname}/{input_wbz_filepath.with_suffix('.szs').name}")
-        
-        if not output_szs_filepath.is_file():
-            #print(f"self.auto_add_dirname: {self.auto_add_dirname}")
-            subprocess.run((self.wszst_filename, "normalize", input_wbz_filename, "--autoadd-path", self.auto_add_dirname, "--DEST", output_szs_filepath, "--szs", "--overwrite"))
 
-    def download_wbz_and_convert(self, track_id):
+        return output_szs_filepath
+
+    # necessary when manually adding tracks
+    def get_output_szs_filepath_from_track_id(self, track_id, dest_dirname=None):
+        wbz_filepath = self.get_wbz_filepath_from_track_id(track_id)
+        output_szs_filepath = WbzConverter.get_output_szs_filepath(wbz_filepath, dest_dirname)
+
+        return output_szs_filepath
+
+    def download_wbz_get_filepath(self, track_id):
+        wbz_filepath = self.get_wbz_filepath_from_track_id(track_id)
+        if wbz_filepath.is_file():
+            return wbz_filepath
+
         url = f"https://ct.wiimm.de/d/{track_id}"
+        print(f"Downloading track {track_id}!")
         r = requests.get(url, allow_redirects=True)
 
         if r.headers["content-type"] != "application/octet-stream":
             raise RuntimeError("Wiimm's archive does not have track ID!")
 
-        with open(f"{auto_add_containing_dirname}/wbz/{track_id}.wbz", 'wb+') as f:
+        wbz_filepath.parent.mkdir(parents=True, exist_ok=True)
+        with open(wbz_filepath, 'wb+') as f:
             f.write(r.content)
+
+        return wbz_filepath
+
+    def convert_wbz_to_szs(self, input_wbz_filename, dest_dirname=None):
+        self.extract_auto_add_files()
+
+        input_wbz_filepath = pathlib.Path(input_wbz_filename)
+        output_szs_filepath = WbzConverter.get_output_szs_filepath(input_wbz_filepath, dest_dirname)
+
+        if not output_szs_filepath.is_file():
+            subprocess.run((self.wszst_filename, "normalize", input_wbz_filename, "--autoadd-path", self.auto_add_dirname, "--DEST", output_szs_filepath, "--szs", "--overwrite"))
+
+        return output_szs_filepath
+
+    def download_wbz_convert_to_szs_get_szs_filename(self, track_id):
+        output_szs_filepath = self.get_output_szs_filepath_from_track_id(track_id)
+        if not output_szs_filepath.is_file():
+            wbz_filepath = self.download_wbz_get_filepath(track_id)
+            output_szs_filepath = self.convert_wbz_to_szs(wbz_filepath)
+
+        return str(output_szs_filepath)
 
 def main():
     wbz_converter = WbzConverter(
@@ -117,8 +126,7 @@ def main():
         original_track_files_dirname="storage/original-race-course",
         wit_filename="bin/wiimm/cygwin64/wit.exe",
         wszst_filename="bin/wiimm/cygwin64/wszst.exe",
-        auto_add_containing_dirname="storage",
-        config_filename="storage/wbz_converter_config.ini"
+        auto_add_containing_dirname="storage"
     )
 
     wbz_converter.convert_wbz_to_szs("Jungle Cliff v1.5 (Wine+Keiichi1996) [r73,Jasperr,Hollend,Rachy].wbz", dest_dirname="storage/szs")

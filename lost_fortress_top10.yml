@@ -1,0 +1,24 @@
+output-video-filename: lost_fortress_top10.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/5B/39/490DAB2D8D479863D1E1D756741D48B7FF1B.html
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: 黒魔 - Dark Sheep-bYCbm469Zq0.webm
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+#h26x-preset: ultrafast
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/0C/FF549609C10759FC2B7036F05EB71FBE422C74BC/00.html"
+top-10-location: ww
+top-10-title: "Lost Fortress (v3.0) Top 10"
+top-10-course-name: "Lost Fortress"
+top-10-ghost-description: World Champion

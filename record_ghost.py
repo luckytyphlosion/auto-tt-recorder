@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import re
 import configargparse
 
+import chadsoft
 import customtop10
 import enumarg
 import util
@@ -239,7 +240,7 @@ def main():
     ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record. Can be omitted if -ttc/--top-10-chadsoft is specified, if so then the ghost to record will be the one specified by -tth/--top-10-highlight", default=None)
     ap.add_argument("-o", "--output-video-filename", dest="output_video_filename", help="Filename of the output recorded ghost. All possible allowed formats are mkv, webm, and mp4, but further restrictions apply. See the note on output formats.", required=True)
     ap.add_argument("-r", "--iso-filename", dest="iso_filename", help="Filename of the Mario Kart Wii ISO.", required=True)
-    ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost.")
+    ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost. This cannot be specified with -ccg/--chadsoft-comparison-ghost-page.")
     ap.add_argument("-s", "--szs-filename", dest="szs_filename", default=None, help="Filename of the szs file corresponding to the ghost file. Omit this for a regular track (or if the track was already replaced in the ISO)")
     ap.add_argument("-kw", "--keep-window", dest="keep_window", action="store_true", default=False, help="By default, the Dolphin executable used to record the ghost is hidden to prevent accidental interaction with the window. Enabling this option will keep the window open, e.g. for debugging.")
     ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Default is noencode (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
@@ -252,7 +253,8 @@ def main():
     ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", type=int, default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
     ap.add_argument("-eo", "--encode-only", dest="encode_only", action="store_true", default=False, help="Assume that all necessary frame dumps already exist, instead of running Dolphin to dump out frames. Useful for testing in case an error occurs through the encoding stage.")
     ap.add_argument("-dv", "--dolphin-volume", dest="dolphin_volume", type=int, default=0, help="Volume of the Dolphin executable. Only relevant for debugging, has no impact on audiodump volume.")
-    #ap.add_argument("-l", "--chadsoft-leaderboard", dest="chadsoft_leaderboard", default=None, help="Leaderboard of the ghost to record. Specifying this will fill in the options for -i/--main-ghost-filename and -s/--szs-filename if they are not set (and the ghost to record is a custom track for szs filename). This will also fill in the -ttc/--top-10-chadsoft option if it is not specified, otherwise, -ttc/--top-10-chadsoft takes priority.")
+    ap.add_argument("-cg", "--chadsoft-ghost-page", dest="chadsoft_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to record. Specifying this will fill in the options for -i/--main-ghost-filename and -s/--szs-filename if they are not set (and the track to record is a custom track for szs filename). This option is not valid if the chosen timeline is top10 and -ttg/--top-10-gecko-code-filename is not specified.")
+    ap.add_argument("-ccg", "--chadsoft-comparison-ghost-page", dest="chadsoft_comparison_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to compare against. This cannot be specified with -c/--comparison-ghost-filename.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
@@ -279,12 +281,12 @@ def main():
     ap.add_argument("-id", "--input-display", dest="input_display", default="none", help="Whether to include the input display in the output video. Currently supported options are classic, gcn, and none (for no input display). The rest of the controllers may be supported in the future.")
     ap.add_argument("-idd", "--input-display-dont-create", dest="input_display_dont_create", action="store_true", default=False, help="If enabled, assumes that the video file for the input display has already been created. Only relevant for debugging.")
     # specific to custom top 10
-    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This cannot be specified with -ttg/--top-10-gecko-code-filename.")
+    ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This will also use the ghost specified by -tth/--top-10-highlight as the ghost to record if it is not already specified by -i/--main-ghost-filename, and the szs file to use if it is not already specified by -s/--szs-filename. This cannot be specified with -ttg/--top-10-gecko-code-filename or -cg/--chadsoft-ghost-page.")
     ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Possible options are ww/worldwide for the 3d globe, or a location option from the allowed options at https://www.tt-rec.com/customtop10/. If -ttg/--top-10-gecko-code-filename is specified instead, then the possible options are ww/worldwide for the 3d globe, and anything else to show the regional globe.")
     ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
-    ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
+    ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The filename of the file containing the gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
     ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
     ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the course which will appear on the Top 10 Ghost Entry screen. Default is Ghost Data.")
 
@@ -292,10 +294,25 @@ def main():
 
     #error_occurred = False
 
-    if args.input_ghost_filename is None and args.top_10_chadsoft is None:
-        raise RuntimeError("Ghost file or chadsoft leaderboard not specified!")
+    if args.input_ghost_filename is None and args.top_10_chadsoft is None and args.chadsoft_ghost_page is None:
+        raise RuntimeError("Ghost file, chadsoft leaderboard, or chadsoft ghost page not specified!")
 
-    rkg_file_main = args.input_ghost_filename
+    if args.top_10_chadsoft is not None and args.chadsoft_ghost_page is not None:
+        raise RuntimeError("Only one of -ttc/--top-10-chadsoft and -cg/--chadsoft-ghost-page can be specified!")
+
+    if args.chadsoft_ghost_page is not None:
+        ghost_page = chadsoft.GhostPage(args.chadsoft_ghost_page)
+    else:
+        ghost_page = None
+
+    if ghost_page is not None:
+        if args.input_ghost_filename is not None:
+            raise RuntimeError("Only one of -i/--main-ghost-filename and -cg/--chadsoft-ghost-page can be specified!")
+
+        rkg_file_main = ghost_page.get_rkg()
+    else:
+        rkg_file_main = args.input_ghost_filename
+
     output_video_filename = args.output_video_filename
     output_format_maybe_dot = pathlib.Path(output_video_filename).suffix
     if output_format_maybe_dot not in (".mp4", ".mkv", ".webm"):    
@@ -303,13 +320,31 @@ def main():
     output_format = output_format_maybe_dot[1:]
     
     iso_filename = args.iso_filename
-    rkg_file_comparison = args.comparison_ghost_filename
+    if args.comparison_ghost_filename is not None and args.chadsoft_comparison_ghost_page is not None:
+        raise RuntimeError("Only one of -c/--comparison-ghost-filename and -ccg/--chadsoft-comparison-ghost-page is allowed!")
+    elif args.comparison_ghost_filename is not None:
+        rkg_file_comparison = args.comparison_ghost_filename
+    elif args.chadsoft_comparison_ghost_page is not None:
+        rkg_file_comparison = chadsoft.GhostPage(args.chadsoft_comparison_ghost_page).get_rkg()
+    else:
+        rkg_file_comparison = None
+
     ffmpeg_filename = args.ffmpeg_filename
     ffprobe_filename = args.ffprobe_filename
-    szs_filename = args.szs_filename
+    if args.szs_filename is not None:
+        szs_filename = args.szs_filename
+    elif ghost_page is not None:
+        szs_filename = ghost_page.get_szs(iso_filename)
+    else:
+        szs_filename = None
+
     hide_window = not args.keep_window
     timeline = timeline_enum_arg_table.parse_enum_arg(args.timeline, "Unknown timeline \"{}\"!")
-
+    
+    if timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
+        if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
+            raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
+                
     if timeline == TIMELINE_NO_ENCODE:
         if output_format != "mkv":
             raise RuntimeError("Output file must be an .mkv file!")
@@ -368,11 +403,14 @@ def main():
                     args.top_10_highlight,
                     args.top_10_course_name,
                     args.top_10_ghost_description,
-                    args.top_10_censors,
-                    rkg_file_main is None,
-                    szs_filename is None
+                    args.top_10_censors
                 )
-                rkg_file_main = custom_top_10_and_ghost_description.rkg_file_main
+
+                if rkg_file_main is None:
+                    rkg_file_main = custom_top_10_and_ghost_description.get_rkg_file_main()
+                if szs_filename is None:
+                    szs_filename = custom_top_10_and_ghost_description.get_szs(iso_filename)
+
             elif args.top_10_gecko_code_filename is not None:
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
                     args.top_10_gecko_code_filename,
@@ -387,8 +425,6 @@ def main():
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 
-    #if args.chadsoft_leaderboard is not None and not (timeline == TIMELINE_FROM_TOP_10_LEADERBOARD and args.top_10_chadsoft is not None):
-        
     dolphin_resolution = args.dolphin_resolution
     use_ffv1 = args.use_ffv1
     speedometer = SpeedometerOption(args.speedometer, args.speedometer_metric, args.speedometer_decimal_places)
