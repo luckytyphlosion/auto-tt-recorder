@@ -1,20 +1,21 @@
-output-video-filename: ejay_forest_creek.mp4
+output-video-filename: citros_wedding_altar_glitch.mp4
 iso-filename: "../../RMCE 01/RMCE01.iso"
-chadsoft-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/5A/76/0257FE59738EF598173F614C95597350A0B5.html
-chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/2F/FF/5568D9C90819F9487A27A4F233EA089AD61A.html
+chadsoft-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/53/F1/7DAA8B14D57CC6B647B3787C87B804FCDF56.html
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/02/39/50CD8C0E96C67D6BBD4BBCAF3BAC0B27EE9E.html
 timeline: ghostselect
 dolphin-resolution: 480p
 speedometer: regular
 speedometer-metric: engine
 speedometer-decimal-places: 2
+track-name: Citro's Wedding Altar
 
 input-display: gcn
 #input-display-dont-create: false
-music-filename: "'Atəş' klipi. İfa edirlər - Nur qrupu, Nərmin Kərimbəyova, Ceyhun Zeynalov (Cin)-bSh5tm2Hmn0.webm"
+music-filename: Lil B - Flex 36 _MUSIC VIDEO_ SUPER BASED MUSIC WOWWWW ONLY MOST BASED WATCH-h6sZ3TZc8Io.webm
 encode-type: size
 video-codec: libx264
 audio-codec: libopus
-#h26x-preset: ultrafast
+h26x-preset: ultrafast
 #youtube-settings: true
 
 #top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/1A/98EE96A85864DDE612B6CD3D5946693996FCD4B0/01.html"

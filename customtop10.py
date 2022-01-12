@@ -97,18 +97,17 @@ def get_top_10_entries_from_filelist(*rkg_filenames):
 empty_tuple = tuple()
 
 class CustomTop10AndGhostDescription:
-    __slots__ = ("globe_location", "course_name", "ghost_description", "top_10_code", "leaderboard", "highlight_index")
+    __slots__ = ("globe_location", "ghost_description", "top_10_code", "leaderboard", "highlight_index")
 
-    def __init__(self, globe_location, course_name, ghost_description, top_10_code, leaderboard=None, highlight_index=None):
+    def __init__(self, globe_location, ghost_description, top_10_code, leaderboard=None, highlight_index=None):
         self.globe_location = simplify_globe_location(globe_location)
-        self.course_name = course_name
         self.ghost_description = ghost_description
         self.top_10_code = top_10_code
         self.leaderboard = leaderboard
         self.highlight_index = highlight_index
 
     @classmethod
-    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, course_name, ghost_description, censored_players, download_rkg_main=False, download_szs=False, iso_filename=None):
+    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, download_rkg_main=False, download_szs=False, iso_filename=None):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
@@ -143,14 +142,21 @@ class CustomTop10AndGhostDescription:
         custom_top_10 = CustomTop10("NTSC-U", globe_location, top_10_title, top_10_entries, highlight_index)
         top_10_code = custom_top_10.generate()
 
-        return cls(globe_location, course_name, ghost_description, top_10_code, leaderboard=leaderboard, highlight_index=highlight_index)
+        return cls(globe_location, ghost_description, top_10_code, leaderboard=leaderboard, highlight_index=highlight_index)
 
     @classmethod
-    def from_gecko_code_filename(cls, gecko_code_filename, globe_location, course_name, ghost_description):
+    def from_gecko_code_filename(cls, gecko_code_filename, globe_location, ghost_description):
         with open(gecko_code_filename, "r") as f:
             top_10_code = f.read()
 
-        return cls(globe_location, course_name, ghost_description, top_10_code)
+        return cls(globe_location, ghost_description, top_10_code)
+
+    @classmethod
+    def from_mk_channel_ghost_select_only(cls, globe_location, ghost_description):
+        dummy_top_10_entry = Top10Entry.dummy_entry()
+        custom_top_10 = CustomTop10("NTSC-U", globe_location, "Dummy", [dummy_top_10_entry], 1)
+        top_10_code = custom_top_10.generate()
+        return cls(globe_location, ghost_description, top_10_code)
 
     def get_rkg_file_main(self):
         if self.highlight_index == -1:
@@ -200,11 +206,19 @@ class Top10Entry:
 
         match_obj = finish_time_regex.match(lb_entry["finishTimeSimple"])
         finish_time = Split(int(match_obj.group(1)), int(match_obj.group(2)), int(match_obj.group(3)))
-
+        controller = lb_entry["controller"]
         wheel = (controller == CONTROLLER_WII_WHEEL)
         # todo replace player name
         partial_mii = list(DEFAULT_MII)
 
+        return cls(country, finish_time, wheel, partial_mii)
+
+    @classmethod
+    def dummy_entry(cls):
+        country = countries_by_name["NO FLAG"]
+        finish_time = Split(0, 0, 1)
+        wheel = False
+        partial_mii = list(DEFAULT_MII)
         return cls(country, finish_time, wheel, partial_mii)
 
 class CustomTop10:

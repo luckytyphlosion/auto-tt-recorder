@@ -1,4 +1,5 @@
 import util
+import identifiers
 
 msgeditor_region_dependent_codes = {
     "PAL": "C25CDDC8",
@@ -17,10 +18,19 @@ class MsgSubst:
 class MsgEditor:
     __slots__ = ("msg_substs", "iso_region", "code")
 
-    def __init__(self, msg_substs, iso_region):
+    def __init__(self, iso_region):
         self.code = []
-        self.msg_substs = msg_substs
+        self.msg_substs = []
         self.iso_region = iso_region
+
+    def add_subst(self, msg_id, msg_text):
+        if msg_text is not None:
+            self.msg_substs.append(MsgSubst(msg_id, msg_text))
+
+    def add_track_name_subst(self, track_id, track_name):
+        if track_name is not None:
+            track_msg_id = identifiers.MARIO_CIRCUIT_MSG_ID + track_id
+            self.msg_substs.append(MsgSubst(track_msg_id, track_name))
 
     def generate(self):
         if len(self.msg_substs) == 1:
@@ -96,22 +106,18 @@ class MsgEditor:
         return "".join(f"{code_part[0]} {code_part[1]}\n" for code_part in util.grouper(self.code, 2)).upper()
 
 def main():
-    msg_substs = (
-        MsgSubst(0x1398, "World Champion"),
-        MsgSubst(0x2458, "Sakura Sanctuary")
-    )
 
-    msg_editor = MsgEditor(msg_substs, "NTSC-U")
+    msg_editor = MsgEditor("NTSC-U")
+    msg_editor.add_subst(0x1398, "World Champion")
+    msg_editor.add_subst(0x2458, "Sakura Sanctuary")
+
     msg_editor_code = msg_editor.generate()
 
     with open("msgeditor_out.dump", "w+") as f:
         f.write(msg_editor_code)
 
-    msg_substs = (
-        MsgSubst(0x045B, "Video recorded by Auto-TT-Recorder."),
-    )
-
-    msg_editor_2 = MsgEditor(msg_substs, "NTSC-U")
+    msg_editor_2 = MsgEditor("NTSC-U")
+    msg_editor_2.add_subst(0x045B, "Video recorded by Auto-TT-Recorder.")
     msg_editor_2_code = msg_editor_2.generate()
 
     with open("msgeditor2_out.dump", "w+") as f:

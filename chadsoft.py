@@ -50,7 +50,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_C
                     return bytes(), 404
 
             if not is_binary:
-                with open(endpoint_as_path, "r") as f:
+                with open(endpoint_as_path, "r", encoding="utf-8-sig") as f:
                     data = json.load(f)
             else:
                 with open(endpoint_as_path, "rb") as f:
@@ -241,12 +241,12 @@ class GhostPage:
         if status_code != 404:
             return rkg_data
         else:
-            raise RuntimeError("Chadsoft ghost page doesn't exist or does exist but has no ghost!")
+            raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist or does exist but has no ghost!")
 
     def get_szs(self, iso_filename):
         ghost_info, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.json")
         if status_code == 404:
-            raise RuntimeError("Chadsoft ghost page doesn't exist!")
+            raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist!")
 
         track_id = ghost_info["trackId"]
         return get_szs_common(iso_filename, track_id)

@@ -1,0 +1,25 @@
+output-video-filename: snes_bc1_wr_emil.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#chadsoft-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/12/7D/47000EA210BAA43BF37B08F428B3B161B9A9.html
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/FD/36/550773D057A77BDF7E52A78E638B87EBD75B.html
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+track-name: SNES Bowser Castle 1
+ending-message: Video recorded by Auto PP Recorder.
+
+input-display: gcn
+#input-display-dont-create: false
+#music-filename: 
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+h26x-preset: ultrafast
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/1E/6C5FC47BF7F25EB953D3E22C442B9C71EB4D81BF/00.html"
+top-10-location: ww
+top-10-title: "SNES Bowser Castle 1 (v1.0) Worldwide Top 10"
+top-10-ghost-description: World Champion

@@ -81,7 +81,7 @@ regular_km_h_som_num_decimal_places_to_xpos = {
     2: "c3ed"
 }
 
-def create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm):
+def create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message):
     params = GeckoParams()
 
     params.add_subst("default_character", default_character)
@@ -119,16 +119,23 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
         else:
             params.enable_optional_code("$Pretty Speedometer (XYZ version)")
 
+    msg_editor = msgeditor.MsgEditor("NTSC-U")
+    msg_editor.add_subst(identifiers.GHOST_CREATED_FOR_PLAYER_MSG_ID, ending_message)
+    msg_editor.add_track_name_subst(track_id, track_name)
+    msg_editor_code = msg_editor.generate()
+
+    params.add_dynamic_code("$Msg Editor", msg_editor_code)
+
     return params
 
-def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings):
+def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message):
     default_character = rkg.character_id
     default_vehicle = rkg.vehicle_id
     default_drift = 2 if rkg.drift_type else 1
 
-    return create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm)
+    return create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message)
 
-def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings):
+def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name):
     custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description
 
     params = GeckoParams()
@@ -139,22 +146,13 @@ def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings):
     else:
         params.add_subst("custom_top_10_area", 1)
 
-    track_msg_id = identifiers.MARIO_CIRCUIT_MSG_ID + rkg.track_id
-    course_name = custom_top_10_and_ghost_description.course_name
-    if course_name is None:
-        # lazy
-        course_name = identifiers.track_names[rkg.track_by_human_id]
-
     ghost_description = custom_top_10_and_ghost_description.ghost_description
     if ghost_description is None:
         ghost_description = "Ghost Data"
 
-    msg_substs = (
-        msgeditor.MsgSubst(identifiers.MY_GHOST_MSG_ID, ghost_description),
-        msgeditor.MsgSubst(track_msg_id, course_name)
-    )
-
-    msg_editor = msgeditor.MsgEditor(msg_substs, "NTSC-U")
+    msg_editor = msgeditor.MsgEditor("NTSC-U")
+    msg_editor.add_subst(identifiers.MY_GHOST_MSG_ID, ghost_description)
+    msg_editor.add_track_name_subst(rkg.track_id, track_name)
     msg_editor_code = msg_editor.generate()
 
     params.add_dynamic_code("$Custom Top 10", custom_top_10_and_ghost_description.top_10_code)

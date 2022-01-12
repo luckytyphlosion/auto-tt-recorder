@@ -121,6 +121,7 @@ track_names = [
 
 MARIO_CIRCUIT_MSG_ID = 0x2454
 MY_GHOST_MSG_ID = 0x1398
+GHOST_CREATED_FOR_PLAYER_MSG_ID = 0x045B
 
 track_filenames = [
     "beginner_course.szs",
