@@ -24,10 +24,11 @@ end
 
 local helper_isScriptEnabled = true
 
-local LUA_MODE_RECORD_GHOST_NO_ENCODE = 0
-local LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 1
-local LUA_MODE_RECORD_TOP_10 = 2
-local LUA_MODE_RECORD_GHOST_FOR_TOP_10 = 3
+LUA_MODE_RECORD_GHOST_NO_ENCODE = 0
+LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 1
+LUA_MODE_RECORD_TOP_10 = 2
+LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN = 3
+LUA_MODE_RECORD_GHOST_FOR_TOP_10 = 4
 
 local ADVANCE_TO_TRACK_SELECT = 1
 local CHOOSE_MUSHROOM_CUP = 2
@@ -56,6 +57,8 @@ local NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2 = 24
 local ADV_LIVE_REPLAY_SOLO_TIME_TRIAL = 25
 
 local DO_CUSTOM_TOP_10 = 1
+
+local DO_MK_CHANNEL_GHOST_SCREEN = 1
 
 local EXECUTING_ACTION = 1
 local IN_DELAY = 2
@@ -500,6 +503,18 @@ local doCustomTop10Segment = {
 	{"done", 0}
 }
 
+local doMkChannelGhostScreenSegment = {
+	{"none", 519},--520},
+	{"none", 60},
+	{"B", 31},
+	{startDumpFrames, 0},
+	{"none", 60},
+	{"down", 27},
+	{"A", 55},
+	{stopDumpFrames, 0},
+	{"done", 0}
+}
+
 local segments = {}
 
 local recordGhostStandardSegments = {
@@ -535,9 +550,15 @@ local recordTop10Segments = {
 	[DO_CUSTOM_TOP_10] = doCustomTop10Segment
 }
 
+local recordMkChannelGhostScreenSegments = {
+	[DO_MK_CHANNEL_GHOST_SCREEN] = doMkChannelGhostScreenSegment
+}
+
 function initializeSegmentTable(mode)
 	if mode == LUA_MODE_RECORD_TOP_10 then
 		segments = recordTop10Segments
+	elseif mode == LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN then
+		segments = recordMkChannelGhostScreenSegments
 	else
 		segments = recordGhostStandardSegments
 	end

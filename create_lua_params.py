@@ -79,9 +79,9 @@ def create_lua_params(rkg, rkg_comparison, output_file, mode):
     with open(output_file, "w+") as f:
         f.write(output)
 
-def create_lua_params_for_custom_top_10(output_file):
+def create_lua_params_for_custom_top_10_or_mk_channel(output_file, mode):
     with open(output_file, "w+") as f:
-        f.write(f"mode: {LUA_MODE_RECORD_TOP_10}\n")
+        f.write(f"mode: {mode}\n")
 
 def main():
     pass

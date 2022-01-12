@@ -1,0 +1,18 @@
+output-video-filename: daisy_hillside_mkchannel.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+chadsoft-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/00/0C/FA50938712B41A2949EEAF33B25BA4255DF9.html
+timeline: mkchannel
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+track-name: Daisy Hillside
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: bgm
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+h26x-preset: ultrafast
+#youtube-settings: true

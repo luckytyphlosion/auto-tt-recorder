@@ -226,7 +226,7 @@ class Encoder:
 
         if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
             final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_from_tt_ghost_select()
-        elif timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
+        elif timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
             final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_from_top_10_leaderboard()
         else:
             raise RuntimeError(f"Unknown timeline type \"{timeline_settings.type}\"!")
@@ -266,8 +266,8 @@ class Encoder:
         elif encode_settings.type == ENCODE_TYPE_SIZE_BASED:
             encode_size_bits = encode_settings.encode_size * 8
             if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
-                run_frame_len = self.get_video_frame_duration() - (dynamic_filter_args.trim_start_frame - FROM_TT_GHOST_SELECT_TRACK_LOADING_BLACK_SCREEN_FRAME_TIMESTAMP)
-            elif timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
+                run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration("dolphin/User/Dump/Frames/tt_ghost_select.avi")
+            elif timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
                 run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration("dolphin/User/Dump/Frames/top10.avi")
             else:
                 assert False
@@ -353,7 +353,7 @@ class Encoder:
 
         if self.timeline_settings.type == TIMELINE_NO_ENCODE:
             self.encode_stream_copy(output_video_filename)
-        elif self.timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD):
+        elif self.timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
             self.encode_complex(output_video_filename)
         else:
             raise RuntimeError("Unimplemented timeline settings type!")

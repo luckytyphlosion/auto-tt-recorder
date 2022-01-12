@@ -46,7 +46,8 @@ resolution_string_to_dolphin_enum = {
 timeline_setting_to_lua_mode = {
     TIMELINE_NO_ENCODE: LUA_MODE_RECORD_GHOST_NO_ENCODE,
     TIMELINE_FROM_TT_GHOST_SELECTION: LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT,
-    TIMELINE_FROM_TOP_10_LEADERBOARD: LUA_MODE_RECORD_GHOST_FOR_TOP_10
+    TIMELINE_FROM_TOP_10_LEADERBOARD: LUA_MODE_RECORD_GHOST_FOR_TOP_10,
+    TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN: LUA_MODE_RECORD_GHOST_FOR_TOP_10
 }
 
 def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", timeline_settings=None):
@@ -65,10 +66,10 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     if dolphin_resolution_as_enum is None:
         raise RuntimeError(f"Unknown Dolphin resolution \"{dolphin_resolution}\"!")
 
-    if timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD):
+    if timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
         timeline_settings.input_display.set_rkg_file_or_data(rkg_file_main)
 
-    if timeline_settings.type == TIMELINE_FROM_TOP_10_LEADERBOARD:
+    if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
             "data/rksys.dat", rkg_file_main,
             "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -78,7 +79,8 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         
         params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name)
         gen_gecko_codes.create_gecko_code_file("data/RMCE01_custom_top_10_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
-        create_lua_params.create_lua_params_for_custom_top_10("dolphin/lua_config.txt")
+        top_10_or_mk_channel_lua_mode = LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN if timeline_settings.type == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN else LUA_MODE_RECORD_TOP_10
+        create_lua_params.create_lua_params_for_custom_top_10_or_mk_channel("dolphin/lua_config.txt", top_10_or_mk_channel_lua_mode)
 
         if not encode_only:
             output_params_path = pathlib.Path("dolphin/output_params.txt")
@@ -211,7 +213,7 @@ valid_dolphin_resolution_scaling_factors = {
 timeline_enum_arg_table = enumarg.EnumArgTable({
     "noencode": TIMELINE_NO_ENCODE,
     "ghostselect": TIMELINE_FROM_TT_GHOST_SELECTION,
-    "worldchamp": TIMELINE_FROM_WORLD_CHAMPION_SCREEN,
+    "mkchannel": TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN,
     "top10": TIMELINE_FROM_TOP_10_LEADERBOARD
 })
 
@@ -244,7 +246,7 @@ def main():
     ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost. This cannot be specified with -ccg/--chadsoft-comparison-ghost-page.")
     ap.add_argument("-s", "--szs-filename", dest="szs_filename", default=None, help="Filename of the szs file corresponding to the ghost file. Omit this for a regular track (or if the track was already replaced in the ISO)")
     ap.add_argument("-kw", "--keep-window", dest="keep_window", action="store_true", default=False, help="By default, the Dolphin executable used to record the ghost is hidden to prevent accidental interaction with the window. Enabling this option will keep the window open, e.g. for debugging.")
-    ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Default is noencode (stream copy, i.e. package the raw frame and audio dump into an mkv file).")
+    ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Possible options are \"noencode\" (fastest to dump, just packages the raw frame and audio dump into an mkv file, no support for editing), \"ghostselect\" (records starting from the Time Trial Ghost Select Screen), \"mkchannel\" (records from the Mario Kart Channel Race Ghost Screen), and \"top10\" (records a Custom Top 10 into the Mario Kart Channel Race Ghost Screen. Default is noencode.")
     ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
     ap.add_argument("-fp", "--ffprobe-filename", dest="ffprobe_filename", default="ffprobe", help="Path to the ffprobe executable to use. Default is ffprobe (use system ffprobe).")
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
@@ -291,7 +293,7 @@ def main():
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The filename of the file containing the gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
     #ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
-    ap.add_argument("-ttd", "--top-10-ghost-description", dest="top_10_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Top 10 Ghost entry name of the track which will appear on the Top 10 Ghost Entry screen. Default is Ghost Data.")
+    ap.add_argument("-mkd", "--mk-channel-ghost-description", dest="mk_channel_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines mkchannel and top10.Default is Ghost Data.")
 
     args = ap.parse_args()
 
@@ -406,7 +408,7 @@ def main():
                     args.top_10_location,
                     args.top_10_title,
                     args.top_10_highlight,
-                    args.top_10_ghost_description,
+                    args.mk_channel_ghost_description,
                     args.top_10_censors
                 )
 
@@ -419,12 +421,18 @@ def main():
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
                     args.top_10_gecko_code_filename,
                     args.top_10_location,
-                    args.top_10_ghost_description
+                    args.mk_channel_ghost_description
                 )
             else:
                 raise RuntimeError("One of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename must be specified!")
 
             timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
+        elif timeline == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN:
+            custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_mk_channel_ghost_select_only(
+                args.top_10_location,
+                args.mk_channel_ghost_description
+            )
+            timeline_settings = FromMKChannelGhostScreenTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 
