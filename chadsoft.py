@@ -8,7 +8,7 @@ import identifiers
 import chadsoft
 import chadsoft_config
 import wbz
-import sys
+import platform
 
 wit_filename = None
 wszst_filename = None
@@ -18,15 +18,15 @@ def get_wit_wszst_filename():
     global wszst_filename
 
     if wit_filename is None and wszst_filename is None:
-        sys_platform_lower = sys.platform.lower()
-        if sys_platform_lower == "linux":
+        platform_system_lower = platform.system().lower()
+        if platform_system_lower == "linux":
             wit_filename = "bin/wiimm/linux/wit"
             wszst_filename = "bin/wiimm/linux/wszst"
-        elif sys_platform_lower == "windows":
+        elif platform_system_lower == "windows":
             wit_filename = "bin/wiimm/cygwin64/wit.exe"
             wszst_filename = "bin/wiimm/cygwin64/wszst.exe"
         else:
-            raise RuntimeError(f"Unsupported operating system {sys.platform}!")
+            raise RuntimeError(f"Unsupported operating system {platform.system()}!")
 
     return wit_filename, wszst_filename
 
@@ -84,7 +84,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_C
     if try_cached:
         endpoint_as_path.parent.mkdir(parents=True, exist_ok=True)
         if not is_binary:
-            with open(endpoint_as_path, "w+") as f:
+            with open(endpoint_as_path, "w+", encoding="utf-8-sig") as f:
                 f.write(r.text)
         else:
             with open(endpoint_as_path, "wb+") as f:

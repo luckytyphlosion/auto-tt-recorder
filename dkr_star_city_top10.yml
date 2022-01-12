@@ -1,0 +1,27 @@
+output-video-filename: dkr_star_city_top10.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+
+ffmpeg-filename: "bin/ffmpeg.exe"
+ffprobe-filename: "bin/ffprobe.exe"
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/3B/DC/FD61CA4BBA214B38B049795342659FA8DEAF.html
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: engine
+speedometer-decimal-places: 2
+track-name: "DKR Star City"
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: Leotrix - Can't Sleep Alone At Night-83QxWfA6gFk.webm
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+h26x-preset: ultrafast
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/0A/94B7DBA38E008F85A7FB6F2567C9C73E45FE969F/00.html"
+top-10-location: ww
+top-10-title: "DKR Star City (v1.1) Worldwide Top 10"
+mk-channel-ghost-description: World Champion
+
