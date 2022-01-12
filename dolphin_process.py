@@ -44,7 +44,7 @@ def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
     os.chdir("..")
 
 def run_dolphin_non_wsl(iso_filename_resolved, hide_window):
-    args = ["./DolphinR.exe", "-b", "-e", iso_filename_resolved]
+    args = ["./Dolphin.exe", "-b", "-e", iso_filename_resolved]
     if hide_window:
         args.extend(("-hm", "-dr"))
 
