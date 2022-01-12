@@ -32,33 +32,34 @@ def get_wit_wszst_filename():
 
 API_URL = "https://tt.chadsoft.co.uk"
 
-def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_CACHED, rate_limit=chadsoft_config.RATE_LIMIT):
+def get_cached_endpoint_filepath(endpoint, params, is_binary):
+    if not is_binary:
+        endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.json"
+    else:
+        endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.rkg"
+
+    return pathlib.Path(endpoint_as_pathname)
+
+def get(endpoint, params=None, is_binary=False, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
     if params is None:
         params = {}
 
-    if try_cached:
-        if not is_binary:
-            endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.json"
-        else:
-            endpoint_as_pathname = f"chadsoft_cached/{urllib.parse.quote(endpoint, safe='')}_q_{urllib.parse.urlencode(params, doseq=True)}.rkg"
-        endpoint_as_path = pathlib.Path(endpoint_as_pathname)
-        if endpoint_as_path.is_file():
-            if endpoint_as_path.stat().st_size == 0:
-                if not is_binary:
-                    return {}, 404
-                else:
-                    return bytes(), 404
-
+    endpoint_as_path = get_cached_endpoint_filepath(endpoint, params, is_binary)
+    if read_cache and endpoint_as_path.is_file():
+        if endpoint_as_path.stat().st_size == 0:
             if not is_binary:
-                with open(endpoint_as_path, "r", encoding="utf-8-sig") as f:
-                    data = json.load(f)
+                return {}, 404
             else:
-                with open(endpoint_as_path, "rb") as f:
-                    data = f.read()
+                return bytes(), 404
 
-            return data, 200
-    else:
-        endpoint_as_path = None
+        if not is_binary:
+            with open(endpoint_as_path, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+        else:
+            with open(endpoint_as_path, "rb") as f:
+                data = f.read()
+
+        return data, 200
 
     url = f"{API_URL}{endpoint}"
     print(f"url: {url}?{urllib.parse.urlencode(params, doseq=True)}")
@@ -67,11 +68,11 @@ def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_C
     end_time = time.time()
     print(f"Request took {end_time - start_time}.")
 
-    if try_cached:
+    if write_cache:
         endpoint_as_path.parent.mkdir(parents=True, exist_ok=True)
 
     if r.status_code != 200:
-        if try_cached:
+        if write_cache:
             endpoint_as_path.touch()
         return r.reason, r.status_code
         #raise RuntimeError(f"API returned {r.status_code}: {r.reason}")
@@ -81,7 +82,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_C
     else:
         data = r.content
 
-    if try_cached:
+    if write_cache:
         endpoint_as_path.parent.mkdir(parents=True, exist_ok=True)
         if not is_binary:
             with open(endpoint_as_path, "w+", encoding="utf-8-sig") as f:
@@ -95,7 +96,7 @@ def get(endpoint, params=None, is_binary=False, try_cached=chadsoft_config.TRY_C
 
     return data, r.status_code
 
-def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, try_cached=chadsoft_config.TRY_CACHED, rate_limit=chadsoft_config.RATE_LIMIT):
+def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
     params = {}
     if start is not None:
         params["start"] = start
@@ -110,7 +111,7 @@ def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, t
     if override_cache is not None:
         params["_"] = override_cache
 
-    return get(endpoint, params, try_cached=try_cached, rate_limit=rate_limit)[0]
+    return get(endpoint, params, read_cache=read_cache, write_cache=write_cache, rate_limit=rate_limit)[0]
 
 # #filter-region-all
 # #filter-region-asia
@@ -146,7 +147,7 @@ time_measure_to_id = {
     "all": None
 }
 
-def get_lb_from_lb_link(lb_link, num_entries):
+def get_lb_from_lb_link(lb_link, num_entries, read_cache=False, write_cache=True):
     match_obj = leaderboard_regex.match(lb_link)
     if not match_obj:
         raise RuntimeError("Invalid chadsoft leaderboard link!")
@@ -196,7 +197,7 @@ def get_lb_from_lb_link(lb_link, num_entries):
 
     slot_id_track_sha1 = match_obj.group(1)
 
-    top_n_leaderboard = get_lb_from_href(f"/leaderboard/{slot_id_track_sha1}.json", start=0, limit=num_entries, continent=continent, vehicle=vehicle, times=times)
+    top_n_leaderboard = get_lb_from_href(f"/leaderboard/{slot_id_track_sha1}.json", start=0, limit=num_entries, continent=continent, vehicle=vehicle, times=times, read_cache=read_cache, write_cache=write_cache)
 
     if len(top_n_leaderboard["ghosts"]) == 0:
         raise RuntimeError("Leaderboard is empty!")
@@ -225,18 +226,20 @@ def get_szs_common(iso_filename, track_id):
     return szs_filename
 
 class GhostPage:
-    __slots__ = ("ghost_page_link", "ghost_id")
+    __slots__ = ("ghost_page_link", "ghost_id", "read_cache", "write_cache")
 
-    def __init__(self, ghost_page_link):
+    def __init__(self, ghost_page_link, read_cache=False, write_cache=True):
         self.ghost_page_link = ghost_page_link
         match_obj = ghost_page_link_regex.match(ghost_page_link)
         if not match_obj:
             raise RuntimeError("Invalid chadsoft ghost page link!")
 
         self.ghost_id = match_obj.group(1)
+        self.read_cache = read_cache
+        self.write_cache = write_cache
 
     def get_rkg(self):
-        rkg_data, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.rkg", is_binary=True)
+        rkg_data, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.rkg", is_binary=True, read_cache=self.read_cache, write_cache=self.write_cache)
     
         if status_code != 404:
             return rkg_data
@@ -244,7 +247,7 @@ class GhostPage:
             raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist or does exist but has no ghost!")
 
     def get_szs(self, iso_filename):
-        ghost_info, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.json")
+        ghost_info, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.json", read_cache=self.read_cache, write_cache=self.write_cache)
         if status_code == 404:
             raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist!")
 
@@ -252,18 +255,20 @@ class GhostPage:
         return get_szs_common(iso_filename, track_id)
 
 class Leaderboard:
-    __slots__ = ("lb_link", "num_entries", "lb_info_and_entries")
+    __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "read_cache", "write_cache")
 
-    def __init__(self, lb_link, num_entries):
+    def __init__(self, lb_link, num_entries, read_cache=False, write_cache=True):
         self.lb_link = lb_link
         self.num_entries = num_entries
         self.lb_info_and_entries = {}
+        self.read_cache = read_cache
+        self.write_cache = write_cache
 
     def download_info_and_ghosts(self):
-        self.lb_info_and_entries = get_lb_from_lb_link(self.lb_link, self.num_entries)
+        self.lb_info_and_entries = get_lb_from_lb_link(self.lb_link, self.num_entries, read_cache=self.read_cache, write_cache=self.write_cache)
 
         for lb_entry in self.lb_info_and_entries["ghosts"]:
-            rkg_data, status_code = chadsoft.get(lb_entry["href"], is_binary=True)
+            rkg_data, status_code = chadsoft.get(lb_entry["href"], is_binary=True, read_cache=self.read_cache, write_cache=self.write_cache)
 
             if status_code == 404:
                 rkg_data = None

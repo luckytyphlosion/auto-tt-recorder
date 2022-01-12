@@ -260,6 +260,8 @@ def main():
     ap.add_argument("-ccg", "--chadsoft-comparison-ghost-page", dest="chadsoft_comparison_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to compare against. This cannot be specified with -c/--comparison-ghost-filename.")
     ap.add_argument("-tn", "--track-name", dest="track_name", default=None, help="The name of the track. This will affect the track name shown on the Ghost description page, seen in all timelines. Default is to use the track name of the Rkg track slot.")
     ap.add_argument("-em", "--ending-message", dest="ending_message", default="Video recorded by Auto TT Recorder", help="The ending message that shows on the bottom left after completing a time trial. Default is \"Video recorded by Auto TT Recorder\" (without quotes).")
+    ap.add_argument("-crc", "--chadsoft-read-cache", dest="chadsoft_read_cache", action="store_true", default=False, help="Whether to read any data downloaded from Chadsoft and saved to a local cache folder.")
+    ap.add_argument("-cwc", "--chadsoft-write-cache", dest="chadsoft_write_cache", action="store_true", default=False, help="Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
@@ -306,7 +308,7 @@ def main():
         raise RuntimeError("Only one of -ttc/--top-10-chadsoft and -cg/--chadsoft-ghost-page can be specified!")
 
     if args.chadsoft_ghost_page is not None:
-        ghost_page = chadsoft.GhostPage(args.chadsoft_ghost_page)
+        ghost_page = chadsoft.GhostPage(args.chadsoft_ghost_page, args.chadsoft_read_cache, args.chadsoft_write_cache)
     else:
         ghost_page = None
 
@@ -330,7 +332,7 @@ def main():
     elif args.comparison_ghost_filename is not None:
         rkg_file_comparison = args.comparison_ghost_filename
     elif args.chadsoft_comparison_ghost_page is not None:
-        rkg_file_comparison = chadsoft.GhostPage(args.chadsoft_comparison_ghost_page).get_rkg()
+        rkg_file_comparison = chadsoft.GhostPage(args.chadsoft_comparison_ghost_page, args.chadsoft_read_cache, args.chadsoft_write_cache).get_rkg()
     else:
         rkg_file_comparison = None
 
@@ -409,7 +411,9 @@ def main():
                     args.top_10_title,
                     args.top_10_highlight,
                     args.mk_channel_ghost_description,
-                    args.top_10_censors
+                    args.top_10_censors,
+                    args.chadsoft_read_cache,
+                    args.chadsoft_write_cache,
                 )
 
                 if rkg_file_main is None:

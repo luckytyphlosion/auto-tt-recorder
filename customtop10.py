@@ -107,14 +107,14 @@ class CustomTop10AndGhostDescription:
         self.highlight_index = highlight_index
 
     @classmethod
-    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, download_rkg_main=False, download_szs=False, iso_filename=None):
+    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, read_cache, write_cache):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
 
-        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10)
+        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10, read_cache, write_cache)
         leaderboard.download_info_and_ghosts()
 
         top_10_entries = []

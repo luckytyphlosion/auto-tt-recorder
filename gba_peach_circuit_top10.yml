@@ -1,0 +1,34 @@
+output-video-filename: gba_peach_circuit_top10.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#ffmpeg-filename: bin/ffmpeg.exe
+#ffprobe-filename: bin/ffprobe.exe
+
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/1C/A7/2D4E76364B1326ADD9E68A3B1992EB46CC36.html
+timeline: top10
+dolphin-resolution: 480p
+speedometer: fancy
+speedometer-metric: engine
+speedometer-decimal-places: 1
+track-name: "GBA Peach Circuit"
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: F-777 - -FREE MEGA-ALBUM- 30 Tracks - 02 Ludicrous Speed.mp3
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+h26x-preset: ultrafast
+game-volume: 1.0
+music-volume: 0.8
+encode-only: true
+input-display-dont-create: true
+
+#youtube-settings: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/09/5792D381E487546CD5096BBB9F4FAA318C9B3455/00.html"
+top-10-location: ww
+top-10-title: "GBA Peach Circuit (v1.1) Worldwide Top 10"
+mk-channel-ghost-description: World Champion
+
