@@ -83,6 +83,9 @@ input-display: gcn
 # Specify none to use no music (but with SFX).
 music-filename: Megalovania (Undertale; 2nd cover) - A Philosopher's Covers HARMONY-8qvdq68tlOE.webm
 
+# Whether to use HQ textures. Current supported textures are HQ Mushrooms. Looks bad at 480p.
+hq-textures: true
+
 # The filename which contains a gecko code which creates a Custom Top 10.
 # This setting is useful for if Chadsoft doesn't have the filters or ghost data for the top 10 you want 
 # Basically, to use this setting, make a Custom Top 10 code using https://www.tt-rec.com/customtop10/

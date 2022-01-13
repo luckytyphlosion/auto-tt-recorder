@@ -83,6 +83,9 @@ input-display: gcn
 # Specify none to use no music (but with SFX).
 music-filename: <FILLME your music filename>
 
+# Whether to use HQ textures. Current supported textures are HQ Mushrooms. Looks bad at 480p.
+hq-textures: true
+
 # The background of the Mario Kart Channel Race Ghost Screen. Allowed values are:
 # ww: The background is the 3D globe.
 # <Continent or country>: The location of that continent or country on the 2D globe.

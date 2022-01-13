@@ -66,6 +66,9 @@ input-display: gcn
 # Specify none to use no music (but with SFX).
 music-filename: F-777 - -FREE MEGA-ALBUM- 30 Tracks - 01 Dark Angel.mp3
 
+# Whether to use HQ textures. Current supported textures are HQ Mushrooms. Looks bad at 480p.
+hq-textures: true
+
 # The link to the chadsoft leaderboard.
 # This can also have the filters on the chadsoft leaderboard page.
 # e.g. Setting Region to Asia
