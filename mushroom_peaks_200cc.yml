@@ -1,0 +1,36 @@
+output-video-filename: mushroom_peaks_200cc_wr.mp4
+iso-filename: "../../RMCE 01/RMCE01.iso"
+#main-ghost-filename: 00m29s2066304 Flαg En.rkg
+timeline: top10
+dolphin-resolution: 480p
+speedometer: regular
+speedometer-metric: xyz
+speedometer-decimal-places: 2
+
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/78/41/1B98CC2877B44D4A5F296E9B93014CDCA421.html
+
+input-display: gcn
+#input-display-dont-create: false
+music-filename: Super_Mario_RPG_Bobble_Head_Inspiration_OC_ReMix.mp3
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+h26x-preset: ultrafast
+#youtube-settings: true
+
+game-volume: 1.0
+music-volume: 1.0
+
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+input-display-dont-create: true
+encode-only: true
+
+top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/02/D914742ACC4DF2EA09F070BA225BF979C09F2AA2/04.html"
+top-10-location: ww
+top-10-title: "Mushroom Peaks 200cc Top 10"
+track-name: Mushroom Peaks
+mk-channel-ghost-description: 200cc World Champion
+
+#ending-message: "Video recorded by Auto Time Trial Recorder."
+

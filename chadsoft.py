@@ -24,27 +24,7 @@ import identifiers
 import chadsoft
 import chadsoft_config
 import wbz
-import platform
-
-wit_filename = None
-wszst_filename = None
-
-def get_wit_wszst_filename():
-    global wit_filename
-    global wszst_filename
-
-    if wit_filename is None and wszst_filename is None:
-        platform_system_lower = platform.system().lower()
-        if platform_system_lower == "linux":
-            wit_filename = "bin/wiimm/linux/wit"
-            wszst_filename = "bin/wiimm/linux/wszst"
-        elif platform_system_lower == "windows":
-            wit_filename = "bin/wiimm/cygwin64/wit.exe"
-            wszst_filename = "bin/wiimm/cygwin64/wszst.exe"
-        else:
-            raise RuntimeError(f"Unsupported operating system {platform.system()}!")
-
-    return wit_filename, wszst_filename
+import wiimm
 
 API_URL = "https://tt.chadsoft.co.uk"
 
@@ -228,7 +208,7 @@ def get_szs_common(iso_filename, track_id):
     if track_id in default_track_sha1s:
         return None
 
-    wit_filename, wszst_filename = get_wit_wszst_filename()
+    wit_filename, wszst_filename = wiimm.get_wit_wszst_filename()
 
     wbz_converter = wbz.WbzConverter(
         iso_filename=iso_filename,
@@ -242,7 +222,7 @@ def get_szs_common(iso_filename, track_id):
     return szs_filename
 
 class GhostPage:
-    __slots__ = ("ghost_page_link", "ghost_id", "read_cache", "write_cache")
+    __slots__ = ("ghost_page_link", "ghost_id", "read_cache", "write_cache", "ghost_info")
 
     def __init__(self, ghost_page_link, read_cache=False, write_cache=True):
         self.ghost_page_link = ghost_page_link
@@ -253,6 +233,7 @@ class GhostPage:
         self.ghost_id = match_obj.group(1)
         self.read_cache = read_cache
         self.write_cache = write_cache
+        self.ghost_info = None
 
     def get_rkg(self):
         rkg_data, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.rkg", is_binary=True, read_cache=self.read_cache, write_cache=self.write_cache)
@@ -263,12 +244,23 @@ class GhostPage:
             raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist or does exist but has no ghost!")
 
     def get_szs(self, iso_filename):
-        ghost_info, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.json", read_cache=self.read_cache, write_cache=self.write_cache)
-        if status_code == 404:
-            raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist!")
-
+        ghost_info = self.get_ghost_info()
         track_id = ghost_info["trackId"]
         return get_szs_common(iso_filename, track_id)
+
+    def is_200cc(self):
+        ghost_info = self.get_ghost_info()
+        return ghost_info["200cc"]
+
+    def get_ghost_info(self):
+        if self.ghost_info is None:
+            ghost_info, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.json", read_cache=self.read_cache, write_cache=self.write_cache)
+            if status_code == 404:
+                raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist!")
+
+            self.ghost_info = ghost_info
+
+        return self.ghost_info
 
 class Leaderboard:
     __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "read_cache", "write_cache")
@@ -297,3 +289,5 @@ class Leaderboard:
 
         return get_szs_common(iso_filename, self.lb_info_and_entries["trackId"])
 
+    def is_200cc(self):
+        return self.lb_info_and_entries["200cc"]

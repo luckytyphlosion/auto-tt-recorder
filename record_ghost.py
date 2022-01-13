@@ -36,6 +36,7 @@ import gen_gecko_codes
 import create_lua_params
 import mkw_filesys
 import msgeditor
+import wiimm
 
 from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
@@ -65,7 +66,20 @@ timeline_setting_to_lua_mode = {
     TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN: LUA_MODE_RECORD_GHOST_FOR_TOP_10
 }
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, timeline_settings=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None):
+
+    if szs_filename is not None:
+        szs_filepath = pathlib.Path(szs_filename)
+        if not szs_filepath.is_file():
+            raise RuntimeError(f"Szs file \"{szs_filename}\" does not exist!")
+
+        if wiimm.check_track_has_speedmod(szs_filename):
+            if track_name is not None:
+                track_name_in_error_msg = f" \"{track_name}\" "
+            else:
+                track_name_in_error_msg = ""
+
+            raise RuntimeError(f"Track{track_name_in_error_msg}has speed modifier! (speed modified tracks are unsupported currently)")
 
     iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
 
@@ -121,7 +135,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
-    params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message)
+    params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc)
     gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
@@ -249,6 +263,10 @@ encode_type_enum_arg_table = enumarg.EnumArgTable({
 
 empty_tuple = tuple()
 
+CC_UNKNOWN = 0
+CC_150 = 1
+CC_200 = 2
+
 def main():
     ap = configargparse.ArgumentParser(
         allow_abbrev=False,
@@ -282,6 +300,8 @@ def main():
     ap.add_argument("-crc", "--chadsoft-read-cache", dest="chadsoft_read_cache", action="store_true", default=False, help="Whether to read any data downloaded from Chadsoft and saved to a local cache folder.")
     ap.add_argument("-cwc", "--chadsoft-write-cache", dest="chadsoft_write_cache", action="store_true", default=False, help="Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.")
     ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
+    ap.add_argument("-o2", "--on-200cc", dest="on_200cc", action="store_true", default=False, help="Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
+    ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
@@ -321,6 +341,15 @@ def main():
 
     #error_occurred = False
 
+    if args.on_200cc and args.no_200cc:
+        raise RuntimeError("Only one of -o2/--on-200cc and -n2/--no-200cc can be specified!")
+    elif args.on_200cc:
+        cc_option = CC_200
+    elif args.no_200cc:
+        cc_option = CC_150
+    else:
+        cc_option = CC_UNKNOWN
+
     if args.input_ghost_filename is None and args.top_10_chadsoft is None and args.chadsoft_ghost_page is None:
         raise RuntimeError("Ghost file, chadsoft leaderboard, or chadsoft ghost page not specified!")
 
@@ -337,6 +366,9 @@ def main():
             raise RuntimeError("Only one of -i/--main-ghost-filename and -cg/--chadsoft-ghost-page can be specified!")
 
         rkg_file_main = ghost_page.get_rkg()
+
+        if cc_option == CC_UNKNOWN:
+            cc_option = CC_200 if ghost_page.is_200cc() else CC_150
     else:
         rkg_file_main = args.input_ghost_filename
 
@@ -440,6 +472,8 @@ def main():
                     rkg_file_main = custom_top_10_and_ghost_description.get_rkg_file_main()
                 if szs_filename is None:
                     szs_filename = custom_top_10_and_ghost_description.get_szs(iso_filename)
+                if cc_option == CC_UNKNOWN:
+                    cc_option = CC_200 if custom_top_10_and_ghost_description.is_200cc() else CC_150
 
             elif args.top_10_gecko_code_filename is not None:
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
@@ -468,7 +502,12 @@ def main():
     dolphin_volume = args.dolphin_volume
     hq_textures = args.hq_textures
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, timeline_settings=timeline_settings)
+    if cc_option in (CC_150, CC_UNKNOWN):
+        on_200cc = False
+    else:
+        on_200cc = True
+
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))

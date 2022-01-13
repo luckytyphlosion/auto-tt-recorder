@@ -97,7 +97,7 @@ regular_km_h_som_num_decimal_places_to_xpos = {
     2: "c3ed"
 }
 
-def create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message):
+def create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message, on_200cc):
     params = GeckoParams()
 
     params.add_subst("default_character", default_character)
@@ -142,14 +142,17 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
 
     params.add_dynamic_code("$Msg Editor", msg_editor_code)
 
+    if on_200cc:
+        params.enable_optional_code("$CTGP 200cc")
+
     return params
 
-def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message):
+def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc):
     default_character = rkg.character_id
     default_vehicle = rkg.vehicle_id
     default_drift = 2 if rkg.drift_type else 1
 
-    return create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message)
+    return create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc)
 
 def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name):
     custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description

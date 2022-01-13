@@ -319,7 +319,7 @@ local advanceToCharacterSelectSegment = {
 	{"A", 230},
 	{"A", 50},
 	{"A", 75},
-	{"A", 275},
+	{"A", 400},
 	{"down", 25},
 	{"A", 90},
 	{"A", 180},

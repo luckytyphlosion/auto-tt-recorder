@@ -193,6 +193,9 @@ class CustomTop10AndGhostDescription:
     def get_szs(self, iso_filename):
         return self.leaderboard.get_szs_if_not_default_track(iso_filename)
 
+    def is_200cc(self):
+        return self.leaderboard.is_200cc()
+
 oMII_SYSTEM_ID = 0x1c
 oMII_SYSTEM_ID_END = 0x20
 oMII_CREATOR_NAME = 0x36
