@@ -104,7 +104,7 @@ youtube-settings: true
 
 # Whether to keep the Dolphin window as an interactable window.
 # This setting might be useful to see recording progress.
-keep-window: false
+keep-window: true
 
 ##############################
 # A GUIDE ON AUDIO BALANCING #
