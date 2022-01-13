@@ -1,0 +1,5 @@
+Usage:
+Create a file called config.yml with all your options. Some example config files have been provided.
+Run the file called record_ghost.bat to record your ghost.
+
+If you don't have a fancy text editor installed, then you should install one. Notepad++ works for this purpose (download here https://notepad-plus-plus.org/downloads/ )
