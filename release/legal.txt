@@ -1,0 +1,38 @@
+Sources:
+== FFmpeg source ==
+https://github.com/FFmpeg/FFmpeg/commit/f37e66b393
+
+== wit ==
+WIT (Wiimms ISO Tools) is licensed under GPL 2.0:
+  http://www.gnu.org/licenses/gpl-2.0.txt
+
+The source code for releases and beta versions is available in a
+SVN repository. For browsing the source use the ViewVC interface:
+
+Release:
+  SVN repos: http://opensvn.wiimm.de/wii/trunk/wiimms-iso-tools/
+  Browsing:  http://opensvn.wiimm.de/viewvc/wii/trunk/wiimms-iso-tools/
+Latest beta:
+  SVN repos: http://opensvn.wiimm.de/wii/branches/public/wiimms-iso-tools/
+  Browsing:  http://opensvn.wiimm.de/viewvc/wii/branches/public/wiimms-iso-tools/
+
+Infos, binaries and source code can be found at the WIT homepage:
+  https://wit.wiimm.de/
+
+2021-04-18, Wiimm
+
+== wszst ==
+Wiimms SZS Tools (SZS) is a command line tool set for linux and for other
+unix like operating systems including Cygwin. The tools manage SZS files.
+
+The software is developed under the GPL 2.0 license. See file gpl-2.0.txt
+or http://www.gnu.org/licenses/gpl-2.0.txt for details.
+
+The most current source is available under:
+  https://download.wiimm.de/source/wiimms-szs-tools//
+
+== Cygwin ==
+The Cygwin(tm) API library found in the winsup subdirectory of the source code is covered by the GNU Lesser General Public License (LGPL) version 3 or later. 
+
+== Other stuff ==
+Almost certainly other stuff but this should cover all the (L)GPL programs.
