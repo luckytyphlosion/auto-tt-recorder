@@ -166,3 +166,5 @@ storage/
 !layouts/**/*
 !data/*.png
 !dolphin/portable.txt
+
+release_working/
