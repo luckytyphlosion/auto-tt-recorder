@@ -1,6 +1,22 @@
 Sources:
+== Auto-TT-Recorder ==
+https://github.com/luckytyphlosion/auto-tt-recorder
+License: GPLv2+
+
+== Dolphin-Lua-Core ==
+https://github.com/luckytyphlosion/Dolphin-Lua-Core
+License: Almost GPLv2+ except the following 6 files:
+
+Source/Core/Core/LUA/Lua.cpp:// Licensed under GPLv2
+Source/Core/Core/LUA/Lua.h:// Licensed under GPLv2
+Source/Core/DolphinWX/LaunchLuaScript.cpp:// Licensed under GPLv2
+Source/Core/DolphinWX/LaunchLuaScript.h:// Licensed under GPLv2
+Source/Core/DolphinWX/TAStudioFrame.cpp:// Licensed under GPLv2
+Source/Core/DolphinWX/TAStudioFrame.h:// Licensed under GPLv2
+
 == FFmpeg source ==
 https://github.com/FFmpeg/FFmpeg/commit/f37e66b393
+The FFmpeg executables included are licensed under GPLv2
 
 == wit ==
 WIT (Wiimms ISO Tools) is licensed under GPL 2.0:
@@ -34,5 +50,13 @@ The most current source is available under:
 == Cygwin ==
 The Cygwin(tm) API library found in the winsup subdirectory of the source code is covered by the GNU Lesser General Public License (LGPL) version 3 or later. 
 
+== PyRKG ==
+https://github.com/AtishaRibeiro/PyRKG
+License: MIT
+
+== TT-Rec ==
+https://github.com/AtishaRibeiro/TT-Rec-Tools
+License: MIT
+
 == Other stuff ==
-Almost certainly other stuff but this should cover all the (L)GPL programs.
+Almost certainly other stuff (e.g. pip modules) but this should cover all the (L)GPL programs.
