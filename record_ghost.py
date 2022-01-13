@@ -50,7 +50,7 @@ timeline_setting_to_lua_mode = {
     TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN: LUA_MODE_RECORD_GHOST_FOR_TOP_10
 }
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", timeline_settings=None):
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, timeline_settings=None):
 
     iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
 
@@ -90,7 +90,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
             framedump_path.unlink(missing_ok=True)
 
             create_dolphin_configs_if_not_exist()
-            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
+            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, False)
 
             dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
@@ -128,8 +128,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
             tt_ghost_select_audiodump_path.unlink(missing_ok=True)
 
         create_dolphin_configs_if_not_exist()
-        modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
-    
+        modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
+        mkw_filesys.copy_hq_textures_if_necessary(hq_textures)
+
         dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
     encode.encode_video(output_video_filename, ffmpeg_filename, ffprobe_filename, dolphin_resolution, music_option, timeline_settings)
@@ -160,7 +161,7 @@ def open_config_for_modification(config_filename):
         with open(config_filename, "w+") as f:
             config.write(f)
 
-def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume):
+def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures):
     dolphin_config_filename = "dolphin/User/Config/Dolphin.ini"
     dolphin_gfx_config_filename = "dolphin/User/Config/GFX.ini"
     dolphin_wiimote_config_filename = "dolphin/User/Config/WiimoteNew.ini"
@@ -168,7 +169,7 @@ def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
     with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config, open_config_for_modification(dolphin_wiimote_config_filename) as dolphin_wiimote_config:
         turn_off_dump_frames_audio(dolphin_config)
         disable_wiimotes(dolphin_wiimote_config)
-        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume)
+        set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
 
 def turn_off_dump_frames_audio(dolphin_config):
     dolphin_config["Movie"]["DumpFrames"] = "False"
@@ -178,11 +179,11 @@ def disable_wiimotes(dolphin_wiimote_config):
     for section in ("Wiimote1", "Wiimote2", "Wiimote3", "Wiimote4"):
         dolphin_wiimote_config[section]["Source"] = "0"
 
-# just use fixed values for now
-def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume):
+def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures):
     dolphin_config["DSP"]["Volume"] = str(dolphin_volume)
     dolphin_gfx_config["Settings"]["EFBScale"] = dolphin_resolution_as_enum
     dolphin_gfx_config["Settings"]["UseFFV1"] = str(use_ffv1)
+    dolphin_gfx_config["Settings"]["HiresTextures"] = str(hq_textures)
     
 #auto (window size) = 0
 #auto (multiple of 640x528) = 1
@@ -265,6 +266,7 @@ def main():
     ap.add_argument("-em", "--ending-message", dest="ending_message", default="Video recorded by Auto TT Recorder", help="The ending message that shows on the bottom left after completing a time trial. Default is \"Video recorded by Auto TT Recorder\" (without quotes).")
     ap.add_argument("-crc", "--chadsoft-read-cache", dest="chadsoft_read_cache", action="store_true", default=False, help="Whether to read any data downloaded from Chadsoft and saved to a local cache folder.")
     ap.add_argument("-cwc", "--chadsoft-write-cache", dest="chadsoft_write_cache", action="store_true", default=False, help="Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.")
+    ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
@@ -449,8 +451,9 @@ def main():
 
     encode_only = args.encode_only
     dolphin_volume = args.dolphin_volume
+    hq_textures = args.hq_textures
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, timeline_settings=timeline_settings)
+    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))

@@ -35,3 +35,27 @@ def add_fancy_km_h_race_szs_if_necessary(speedometer):
         shutil.copy("data/Race_U.szs", dolphin_nand_race_szs_filepath)
     else:
         dolphin_nand_race_szs_filepath.unlink(missing_ok=True)
+
+hq_textures_src_filenames = (
+    "data/tex1_64x64_8b7aa8aaa750b196_5.png",
+    "data/tex1_64x64_a23e5f789681e0b3_5.png",
+    "data/tex1_64x64_9f365352984ccbe6_5.png",
+    "data/tex1_64x64_54f9b0512c515f6e_5.png",
+    "data/tex1_64x64_48711ec1fc700501_5.png",
+    "data/tex1_64x64_475472d0a71a5ddb_5.png"
+)
+
+# not technically mkw filesys
+def copy_hq_textures_if_necessary(hq_textures):
+    if not hq_textures:
+        return
+
+    dolphin_hq_textures_dest_dir = pathlib.Path("dolphin/User/Load/Textures/RMCE01")
+    dolphin_hq_textures_dest_dir.mkdir(parents=True, exist_ok=True)
+
+    for hq_texture_src_filename in hq_textures_src_filenames:
+        hq_texture_src_filepath = pathlib.Path(hq_texture_src_filename)
+        hq_texture_dest_filepath = pathlib.Path(f"dolphin/User/Load/Textures/RMCE01/{hq_texture_src_filepath.name}")
+
+        if not hq_texture_dest_filepath.is_file():
+            shutil.copy(hq_texture_src_filepath, hq_texture_dest_filepath)
