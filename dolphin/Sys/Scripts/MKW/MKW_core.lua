@@ -1,3 +1,6 @@
+-- Let's pretend that this is GPLv2+
+-- It was released in Dolphin-Lua-Core anyway, which is GPLv2+ minus the old GPLv2 only Dolphin files
+
 local core = {}
 
 package.path = GetScriptsDir() .. "MKW/MKW_Pointers.lua"
