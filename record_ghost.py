@@ -94,8 +94,8 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
             dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
-            pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").rename(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
-            pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").rename(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
+            pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").replace(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
+            pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").replace(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
 
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
@@ -236,7 +236,10 @@ empty_tuple = tuple()
 def main():
     ap = configargparse.ArgumentParser(
         allow_abbrev=False,
-        config_file_parser_class=configargparse.YAMLConfigFileParser
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        config_file_open_func=lambda filename: open(
+            filename, "r", encoding="utf-8"
+        )
     )
     # global args
     ap.add_argument("-cfg", "--config", dest="config", default=None, is_config_file=True, help="Alternative config file to put in command line arguments. Arguments provided on the command line will override arguments provided in the config file, if specified.")

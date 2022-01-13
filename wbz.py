@@ -42,20 +42,29 @@ class WbzConverter:
             return
 
         # check if ISO is valid
-        subprocess.run((self.wit_filename, "imgfiles", self.iso_filename, "-1", "--include", "RMC.01"), check=True)
+        completed_process = subprocess.run((self.wit_filename, "imgfiles", self.iso_filename, "-1", "--include", "RMC.01"), capture_output=True, encoding="utf-8")
+        print(completed_process.stdout)
+        if completed_process.returncode != 0:
+            raise RuntimeError(f"wit error occurred while checking for a valid ISO! error:\n\n{completed_process.stderr}")
 
         original_track_files_dirpath = pathlib.Path(self.original_track_files_dirname)
         if original_track_files_dirpath.is_dir():
             shutil.rmtree(original_track_files_dirpath)
 
-        subprocess.run((self.wit_filename, "extract", self.iso_filename, "-q", "--DEST", self.original_track_files_dirname, "--flat", "--files", "+/files/Race/Course/*.szs"), check=True)
+        completed_process = subprocess.run((self.wit_filename, "extract", self.iso_filename, "-q", "--DEST", self.original_track_files_dirname, "--flat", "--files", "+/files/Race/Course/*.szs"), capture_output=True, encoding="utf-8")
+        print(completed_process.stdout)
+        if completed_process.returncode != 0:
+            raise RuntimeError(f"wit error occurred during ISO file extraction! error:\n\n{completed_process.stderr}")
 
         num_szs_files_in_orig_track_files_dir = self.calc_num_szs_files_in_orig_track_files_dir()
 
         if num_szs_files_in_orig_track_files_dir < 99:
             raise RuntimeError(f"Expected at least 99 szs files from original track files extracted from ISO, but found only {num_szs_files_in_orig_track_files_dir} instead! ISO possibly damaged?")
 
-        subprocess.run((self.wszst_filename, "autoadd", self.original_track_files_dirname, "-q", "--DEST", self.auto_add_dirname, "--remove-dest", "--preserve"), check=True)
+        completed_process = subprocess.run((self.wszst_filename, "autoadd", self.original_track_files_dirname, "-q", "--DEST", self.auto_add_dirname, "--remove-dest", "--preserve"), capture_output=True, encoding="utf-8")
+        print(completed_process.stdout)
+        if completed_process.returncode != 0:
+            raise RuntimeError(f"wit error occurred during autoadd! error:\n\n{completed_process.stderr}")
 
         num_files_dirs_in_auto_add_dir = self.calc_num_files_dirs_in_auto_add_dir()
 
@@ -108,7 +117,10 @@ class WbzConverter:
         output_szs_filepath = WbzConverter.get_output_szs_filepath(input_wbz_filepath, dest_dirname)
 
         if not output_szs_filepath.is_file():
-            subprocess.run((self.wszst_filename, "normalize", input_wbz_filename, "--autoadd-path", self.auto_add_dirname, "--DEST", output_szs_filepath, "--szs", "--overwrite"))
+            completed_process = subprocess.run((self.wszst_filename, "normalize", input_wbz_filename, "--autoadd-path", self.auto_add_dirname, "--DEST", output_szs_filepath, "--szs", "--overwrite"), capture_output=True, encoding="utf-8")
+            print(completed_process.stdout)
+            if completed_process.returncode != 0:
+                raise RuntimeError(f"wszst error occurred during conversion from wbz to szs! error:\n\n{completed_process.stderr}")
 
         return output_szs_filepath
 

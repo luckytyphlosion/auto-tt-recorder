@@ -331,3 +331,23 @@ def create_countries_by_x_table(countries, key):
 countries_by_name = create_countries_by_x_table(COUNTRIES, "name")
 countries_by_code = create_countries_by_x_table(COUNTRIES, "code")
 countries_by_flag_id = create_countries_by_x_table(COUNTRIES, "flag_id")
+
+def create_location_file():
+    output = """\
+Europe (EU)
+North America (NA)
+Americas (AME)
+Latin America (LA)
+Asia
+Oceania (OC)
+"""
+    bad_country_flags = {"NA", "LA", ""}
+
+    for country in COUNTRIES:
+        output += f"{country.name}{(' (' + country.flag_id + ')') if country.flag_id not in bad_country_flags else ''}\n"
+
+    with open("locations.txt", "w+") as f:
+        f.write(output)
+
+if __name__ == "__main__":
+    create_location_file()

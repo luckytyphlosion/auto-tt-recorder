@@ -9,7 +9,7 @@ import random
 import time
 
 on_wsl = "microsoft" in platform.uname()[3].lower()
-good_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-/.\\")
+good_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-/.\\:")
 dolphin_filename_regex = re.compile(r"Dolphin_[0-9]+_[0-9]+.exe")
 
 def sanitize_and_check_iso_exists(iso_filename):
@@ -17,8 +17,15 @@ def sanitize_and_check_iso_exists(iso_filename):
     # if the filename ends with spaces
     iso_filename = iso_filename.strip()
 
-    if not all(c in good_chars for c in iso_filename):
-        raise RuntimeError("Found illegal characters in ISO path to file (safeguard against shell injection)!")
+    #if not all(c in good_chars for c in iso_filename):
+    #    bad_chars = set()
+    #    for c in iso_filename:
+    #        if c not in good_chars:
+    #            bad_chars.add(c)
+    #
+    #    bad_chars_msg = ", ".join(f'"{c}"' for c in bad_chars)
+    #
+    #    raise RuntimeError(f"Found illegal characters in ISO path \"{iso_filename}\" to file (safeguard against shell injection)! Remove the following characters from your ISO filename: {bad_chars_msg}")
 
     iso_filepath = pathlib.Path(iso_filename)
     if not iso_filepath.exists():
@@ -48,20 +55,26 @@ def run_dolphin_non_wsl(iso_filename_resolved, hide_window):
     if hide_window:
         args.extend(("-hm", "-dr"))
 
-    popen = subprocess.Popen(args)
+    try:
+        popen = subprocess.Popen(args)
 
-    while True:
-        returncode = popen.poll()
-        # dolphin exited normally
-        if returncode is not None:
-            break
+        while True:
+            returncode = popen.poll()
+            # dolphin exited normally
+            if returncode is not None:
+                break
 
-        # some abnormal condition, implement later
-        if False:
-            popen.terminate()
-            break
+            # some abnormal condition, implement later
+            if False:
+                popen.terminate()
+                break
 
-        time.sleep(1)
+            time.sleep(1)
+
+    except KeyboardInterrupt as e:
+        popen.terminate()
+        #subprocess.run(("taskkill.exe", "/f", "/im", new_dolphin_filename))
+        raise RuntimeError(e)
 
 # dumbest hack ever
 # goal: run Dolphin through WSL while maintaining the following goals
