@@ -641,6 +641,15 @@ function onScriptUpdate()
 		return
 	end
 
+	if LuaNotEnoughGeckoCodeSpace() then
+		file = io.open("status.txt", "w")
+		file:write("Not enough space for all loaded gecko codes! Try changing some settings around.")
+		file:close()
+		CancelScript()
+		ExitDolphin()
+		return
+	end
+
 	local text = ""
 	local frame = GetFrameCount()
 	local isDifferentFrame = false
@@ -705,8 +714,8 @@ function onScriptUpdate()
 			elseif curAction.command == "done" then
 				outputParams["frameEnded"] = GetFrameCount()
 				writeOutputParams()
-				--file = io.open("kill.txt", "w")
-				--file:close()
+				file = io.open("status.txt", "w")
+				file:close()
 				CancelScript()
 				ExitDolphin()
 				return

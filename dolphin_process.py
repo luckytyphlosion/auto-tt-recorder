@@ -57,6 +57,9 @@ def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
     iso_filename = sanitize_and_check_iso_exists(iso_filename)
     iso_filename_resolved = str(pathlib.Path(iso_filename).resolve())
 
+    dolphin_status_path = pathlib.Path("dolphin/status.txt")
+    dolphin_status_path.unlink(missing_ok=True)
+
     os.chdir("dolphin/")
 
     if on_wsl:
@@ -65,6 +68,15 @@ def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
         run_dolphin_non_wsl(iso_filename_resolved, hide_window)
 
     os.chdir("..")
+
+    if not dolphin_status_path.is_file():
+        raise RuntimeError("User terminated Dolphin before completion!")
+
+    with open(dolphin_status_path, "r") as f:
+        dolphin_status = f.read()
+
+    if dolphin_status.strip() != "":
+        raise RuntimeError(f"Error occurred while running Dolphin: {dolphin_status}")
 
 def run_dolphin_non_wsl(iso_filename_resolved, hide_window):
     args = ["./Dolphin.exe", "-b", "-e", iso_filename_resolved]
