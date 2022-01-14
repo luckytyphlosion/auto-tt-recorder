@@ -9,6 +9,7 @@ SOM_NONE = 3
 
 SOM_METRIC_ENGINE = 0
 SOM_METRIC_XYZ = 1
+SOM_METRIC_XZ = 2
 
 som_enum_arg_table = enumarg.EnumArgTable({
     "fancy": SOM_FANCY_KM_H,
@@ -19,7 +20,8 @@ som_enum_arg_table = enumarg.EnumArgTable({
 
 som_metric_enum_arg_table = enumarg.EnumArgTable({
     "engine": SOM_METRIC_ENGINE,
-    "xyz": SOM_METRIC_XYZ
+    "xyz": SOM_METRIC_XYZ,
+    "xz": SOM_METRIC_XZ
 })
 
 class SpeedometerOption:

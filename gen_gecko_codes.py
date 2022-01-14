@@ -113,7 +113,7 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
         if speedometer.metric == SOM_METRIC_ENGINE:
             params.enable_optional_code("$Customizable Pretty Speedometer (Left Side)")
             params.add_subst("fancy_km_h_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
-        elif speedometer.metric == SOM_METRIC_XYZ:
+        elif speedometer.metric in (SOM_METRIC_XYZ, SOM_METRIC_XZ):
             params.enable_optional_code("$Customizable Pretty XYZ Speedometer (Left Side)")
             params.add_subst("fancy_km_h_xyz_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
         else:
@@ -123,7 +123,7 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
             params.enable_optional_code("$Customizable Pretty Speedometer with km/h text")
             params.add_subst("regular_km_h_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
             params.add_subst("regular_km_h_som_xpos", regular_km_h_som_num_decimal_places_to_xpos[speedometer.decimal_places])
-        elif speedometer.metric == SOM_METRIC_XYZ:
+        elif speedometer.metric in (SOM_METRIC_XYZ, SOM_METRIC_XZ):
             params.enable_optional_code("$Customizable Pretty XYZ Speedometer with km/h text")
             params.add_subst("regular_km_h_xyz_som_num_decimal_places", speedometer.decimal_places, num_digits=1)
             params.add_subst("regular_km_h_xyz_som_xpos", regular_km_h_som_num_decimal_places_to_xpos[speedometer.decimal_places])
@@ -134,6 +134,15 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
             params.enable_optional_code("$Pretty Speedometer 2.0")
         else:
             params.enable_optional_code("$Pretty Speedometer (XYZ version)")
+
+    if speedometer.metric in (SOM_METRIC_XYZ, SOM_METRIC_XZ):
+        if speedometer.metric == SOM_METRIC_XYZ:
+            xyz_or_xz_code = "ec21102a"
+        elif speedometer.metric == SOM_METRIC_XZ:
+            xyz_or_xz_code = "60000000"
+        else:
+            assert False
+        params.add_subst("xyz_or_xz_metric", xyz_or_xz_code)
 
     msg_editor = msgeditor.MsgEditor("NTSC-U")
     msg_editor.add_subst(identifiers.GHOST_CREATED_FOR_PLAYER_MSG_ID, ending_message)

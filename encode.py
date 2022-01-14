@@ -272,7 +272,9 @@ class Encoder:
                     ffmpeg_output_kwargs["x265-params"] = "no-open-gop=1:keyint=30:bframes=2"
                 else:
                     assert False
-                    
+
+                ffmpeg_output_kwargs["profile:v"] = "high"
+
             output_stream = ffmpeg.output(final_video_stream, final_audio_stream, output_video_filename, **ffmpeg_output_kwargs)
             if self.print_cmd:
                 command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
