@@ -168,3 +168,4 @@ storage/
 !dolphin/portable.txt
 
 release_working/
+release_config.yml
