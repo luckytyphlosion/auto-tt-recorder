@@ -169,3 +169,4 @@ storage/
 
 release_working/
 release_config.yml
+legacy_records_cached/

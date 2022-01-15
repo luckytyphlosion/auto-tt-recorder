@@ -49,8 +49,10 @@ def get(endpoint, params=None, is_binary=False, read_cache=False, write_cache=Tr
                 return bytes(), 404
 
         if not is_binary:
+            print(f"endpoint_as_path: {endpoint_as_path}")
             with open(endpoint_as_path, "r", encoding="utf-8-sig") as f:
-                data = json.load(f)
+                content = f.read().encode("utf-8")
+                data = json.loads(content)
         else:
             with open(endpoint_as_path, "rb") as f:
                 data = f.read()

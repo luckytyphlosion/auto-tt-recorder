@@ -1,0 +1,110 @@
+# 1.03.1096
+Coin Heaven,v1.01
+Big Nature City,v2.5
+GCN Luigi Circuit,v1.5
+Honeybee Hideout,v1.3.1
+Volcanic Valley,v2.6
+Daisy's Palace,v1.3.alt
+GBA Cheese Land,v3.1
+Rock Rock Ridge,v2.0
+Rosalina's Snow World,v1.1
+
+# 1.03.1098
+GCN Luigi Circuit,v1.6
+Rosalina's Snow World,v1.2
+Big Nature City,v2.6
+
+# 1.03.1100
+Athletic Raceway,v1.02.ctgp
+Sky High Island,v1.03
+Celestial Ruins,v2.4.1
+Quaking Mad Cliffs,v1.0
+Sakura Sanctuary,v1.01
+Siberian Chateau,v1.0
+Desert Fort,v3.0a
+Garden of Dreams,v1.1
+Fishdom Island,v1.01
+
+# 1.03.1102
+DS Luigi's Mansion (Tock),v1.2
+N64 Luigi Raceway,v2.01
+Summer Starville,v2.1
+Lava Lake,v2.3
+Spectral Station,v1.1
+Windy Whirl,v1.3.1c
+SNES Koopa Beach 2 (Noia),v1.2
+Luncheon Tour,v1.16
+Melting Magma Melee,v1.6
+
+# 1.03.1104
+CTR N. Gin Labs,v1.5.2
+Wuhu Island,v1.2
+GCN Wario Colosseum (Tock),v1.5.ctgp
+Haunted Gardens,v1.6
+Colour Circuit,v1.2c
+Fungal Jungle,v1.21
+Medieval Castlegrounds,v1.1b
+GCN Yoshi Circuit (Tock),v1.0
+SNES Donut Plains 2 (Noia),v1.2
+
+# 1.03.1106
+GCN Wario Colosseum,v1.7
+Wuhu Island,v1.2.2
+SNES Koopa Beach 2,v1.3
+GCN Luigi Circuit,v1.7
+CTR N. Gin Labs,v1.5.3
+
+# 1.03.1108
+Dark Matter Fortress,v1.7.2
+Water Village,v3.71
+DS DK Pass (ZPL),v2.2b
+SNES Choco Island 2,v1.21
+Haunted Gardens,v1.7
+Pinewood Path,v1.6
+Saltwater Lake,v1.11
+SNES Rainbow Road (ZPL|Bear),v2.8
+Sky High Island,v1.04
+
+# 1.03.1112
+SNES Mario Circuit 1 (ZPL|Jasperr),v2.51
+Castle of Darkness,v2.23
+Jungle Cliff,v1.5
+Pipe Underworld,v2.09
+Kinoko Cave,v1.1
+Mushroom Valley,v1.61
+Pianta Shore,v1.2.5
+Alpine Peak,v1.4
+GBA Snow Land,v1.2
+
+# 1.03.1114
+Jungle Glade,v1.4.1
+Sarasa Kingdom,v1.8
+SNES Donut Plains 3,v2.11
+GCN Yoshi Circuit (Tock),v1.1
+Yoshi Lagoon,v1.4.2
+Magmatic Sanctuary,v1.43
+N64 Choco Mountain,v1.11
+SNES Ghost Valley 1,v2.0
+Final Grounds,v2.41
+
+# 1.03.1116
+Final Grounds,v2.43
+GBA Riverside Park,v2.2
+Jiyuu Village,v1.2.1
+Luigi's Island,v4.51
+Pinewood Path,v1.7.1
+Sakura Sanctuary,v1.02
+SNES Mario Circuit 1 (ZPL),v1.0
+Volcanic Valley,v2.6.1
+Yoshi Lagoon,v1.4.3
+
+# 1.03.1118
+Musical Cliff,v1.3
+N64 Royal Raceway (ZPL),v1.2
+Melody Sanctum,v1.3
+Wolf Castlegrounds,v1.12
+Mario Castle Raceway,v1.01
+Volcano Canyon,v2.2
+DS Wario Stadium (ZPL),v1.02
+GCN Mushroom City,v1.3
+Lunar Spaceway,v1.11
