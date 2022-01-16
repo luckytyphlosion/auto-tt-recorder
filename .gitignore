@@ -170,3 +170,5 @@ storage/
 release_working/
 release_config.yml
 legacy_records_cached/
+legacy_records.yml
+music_cached/

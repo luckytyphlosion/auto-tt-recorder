@@ -185,7 +185,8 @@ def read_in_recorder_config():
             "state": SETTING_NUM_REMAINING_GHOSTS,
             "base_schedule_index": 0,
             "start_datetime": gen_start_datetime().isoformat(),
-            "num_remaining_ghosts": 0
+            "num_remaining_ghosts": 0,
+            "music_index": 0
         }
     else:
         with open(yt_recorder_config_path, "r") as f:
@@ -232,6 +233,7 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
             upload_title = f"api{downloaded_ghost_path.stem}"
             #pathlib.Path(OUTPUT_VIDEO_DIRECTORY).mkdir(parents=True, exist_ok=True)
             output_video_filename = f"{OUTPUT_VIDEO_DIRECTORY}/{upload_title}.mkv"
+            music_filename = "bgm"
 
             schedule_datetime_str = gen_schedule_datetime_str(start_datetime, schedule_index)
             yt_update_infos[upload_title] = {
@@ -257,6 +259,8 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
 
             yt_recorder_config["base_schedule_index"] += 1
             yt_recorder_config["num_remaining_ghosts"] -= 1
+            if music_filename != "bgm":
+                yt_recorder_config["music_index"] += 1
 
             sorted_vehicle_wrs_as_list = list(sorted_legacy_wrs)
 
@@ -300,7 +304,6 @@ def record_and_update_uploads(num_ghosts):
         yt_recorder_config = youtube.update_title_description_and_schedule(yt_recorder_config)
 
 def record_vehicle_wr_ghosts_outer():
-    legacyrecords_staticconfig.load()
     while True:
         record_and_update_uploads(6)
 
