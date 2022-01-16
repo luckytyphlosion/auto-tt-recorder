@@ -59,6 +59,9 @@ def main():
             version = leaderboard.get("version")
             is_200cc = leaderboard["200cc"]
             track_name = leaderboard["name"]
+            slot_id = leaderboard["slotId"]
+            correct_slot_id = leaderboard["correctSlotId"]
+            authors = leaderboard.get("authors", [])
 
             if is_200cc and not check_200cc and track_id != "E15503BB76C3B7A2165026D76C3DC7D97B980BBB":
                 print(f"Removing 200cc leaderboard on track before 200cc: {track_name}")
@@ -80,7 +83,7 @@ def main():
                 lb_entry_builder.add_track_category_vehicle_modifier_extra_info(
                     track_id, category_id, None, is_200cc,
                     all_leaderboards_for_track_id_plus_check_200cc,
-                    track_name
+                    track_name, slot_id, correct_slot_id, version, authors
                 )
                 lb_entry_builder.add_lb_href(lb_href)
                 lb_entry_builder.gen_has_wr_lb_info()
@@ -100,7 +103,7 @@ def main():
                 lb_entry_builder_redundant.add_track_category_vehicle_modifier_extra_info(
                     track_id, category_id, primary_vehicle_modifier, is_200cc,
                     all_leaderboards_for_track_id_plus_check_200cc,
-                    track_name
+                    track_name, slot_id, correct_slot_id, version, authors
                 )
                 lb_entry_builder_redundant.add_lb_href(lb_href)
                 lb_entry_builder_redundant.gen_redundant_wr_lb_info()
@@ -123,7 +126,7 @@ def main():
                     lb_entry_builder_alt_vehicle_modifier.add_track_category_vehicle_modifier_extra_info(
                         track_id, category_id, alt_vehicle_modifier, is_200cc,
                         all_leaderboards_for_track_id_plus_check_200cc,
-                        track_name
+                        track_name, slot_id, correct_slot_id, version, authors
                     )
                     lb_entry_builder_alt_vehicle_modifier.add_ghost_href_last_checked_date_set_timestamp(
                         None, datetime.now(tz=timezone.utc), None
@@ -137,7 +140,7 @@ def main():
                     lb_entry_builder_alt_vehicle_modifier.add_track_category_vehicle_modifier_extra_info(
                         track_id, category_id, alt_vehicle_modifier, is_200cc,
                         all_leaderboards_for_track_id_plus_check_200cc,
-                        track_name
+                        track_name, slot_id, correct_slot_id, version, authors
                     )
                     lb_entry_builder_alt_vehicle_modifier.add_lb_href(lb_href)
                     lb_entry_builder_alt_vehicle_modifier.gen_has_wr_lb_info()

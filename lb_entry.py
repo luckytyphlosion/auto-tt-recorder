@@ -29,6 +29,7 @@ class LbEntryBuilder:
         "lb_href", "lb_entry", "ghost_href",
         "date_set_timestamp", "last_checked", "lb_info",
         "track_name_full", "missing_from_archive", "wiimm_version",
+        "version", "slot_id", "correct_slot_id", "authors",
         "version_with_brackets", "str_200cc", "is_redundant"
     )
 
@@ -48,6 +49,10 @@ class LbEntryBuilder:
         self.track_name_full = None
         self.missing_from_archive = None
         self.wiimm_version = None
+        self.version = None
+        self.slot_id = None
+        self.correct_slot_id = None
+        self.authors = []
         self.version_with_brackets = None
         self.is_200cc = None
         self.str_200cc = None
@@ -57,7 +62,7 @@ class LbEntryBuilder:
     # - lb with no ghosts, from initial parse
     # - lb with ghosts, from initial parse
     # - lb with ghosts, from periodic parse
-    def add_track_category_vehicle_modifier_extra_info(self, track_id, category_id, vehicle_modifier, is_200cc, all_leaderboards_for_track_id_plus_check_200cc, track_name):
+    def add_track_category_vehicle_modifier_extra_info(self, track_id, category_id, vehicle_modifier, is_200cc, all_leaderboards_for_track_id_plus_check_200cc, track_name, slot_id, correct_slot_id, version, authors):
         self.track_id = track_id
         self.category_id = category_id
         self.vehicle_modifier = vehicle_modifier
@@ -70,6 +75,15 @@ class LbEntryBuilder:
         self.wiimm_version = all_leaderboards_for_track_id_plus_check_200cc["wiimm_version"]
         self.is_200cc = is_200cc
         self.str_200cc = "200cc" if is_200cc else None
+        self.slot_id = slot_id
+        self.correct_slot_id = correct_slot_id
+
+        if version is None:
+            self.version_with_brackets = None
+        else:
+            self.version_with_brackets = f"({version})"
+        self.version = version
+        self.authors = authors
 
     def add_track_category_vehicle_modifier_extra_info_from_prev_lb_entry(self, prev_lb_entry):
         self.add_track_category_vehicle_id(
@@ -82,7 +96,11 @@ class LbEntryBuilder:
                 prev_lb_entry["missingFromArchive"],
                 prev_lb_entry["wiimmVersion"],
             },
-            prev_lb_entry["trackName"]
+            prev_lb_entry["trackName"],
+            prev_lb_entry["slotId"],
+            prev_lb_entry["correctSlotId"],
+            prev_lb_entry["version"],
+            prev_lb_entry["authors"],
         )
 
     def add_ghost_href_last_checked_date_set_timestamp(self, ghost_href, last_checked, date_set_timestamp):
@@ -99,11 +117,6 @@ class LbEntryBuilder:
         date_set = dateutil.parser.isoparse(lb_entry["dateSet"])
         self.date_set_timestamp = date_set.timestamp()
         self.last_checked = date_set
-        version = lb_entry.get("version")
-        if version is None:
-            self.version_with_brackets = None
-        else:
-            self.version_with_brackets = f"({version})"
 
     @staticmethod
     def join_conditional_modifier(*modifiers):
@@ -147,6 +160,12 @@ class LbEntryBuilder:
         if self.missing_from_archive is None:
             raise RuntimeError("Missing missing_from_archive!")
 
+        if self.slot_id is None:
+            raise RuntimeError("Missing slot_id!")
+
+        if self.correct_slot_id is None:
+            raise RuntimeError("Missing correct_slot_id!")
+            
         #if self.wiimm_version is None:
         #    raise RuntimeError("Missing wiimm_version!")
 
@@ -165,7 +184,12 @@ class LbEntryBuilder:
             "trackNameFull": self.track_name_full,
             "missingFromArchive": self.missing_from_archive,
             "wiimmVersion": self.wiimm_version,
-            "isRedundant": self.is_redundant
+            "isRedundant": self.is_redundant,
+            "200cc": self.is_200cc,
+            "version": self.version,
+            "authors": self.authors,
+            "slotId": self.slot_id,
+            "correctSlotId": self.correct_slot_id
         }
 
         self.lb_entry.update(lb_entry_additional_info)
