@@ -3,13 +3,14 @@ import requests
 import csv
 import pathlib
 
-music_info_fieldnames = ("link", "source", "artist", "name")
+music_info_fieldnames = ("link", "suggestor", "source", "artist", "name")
 
 class MusicInfo:
     __slots__ = music_info_fieldnames + ("music_filename",)
 
-    def __init__(self, link, source, artist, name):
+    def __init__(self, link, suggestor, source, artist, name):
         self.link = link
+        self.suggestor = suggestor
         self.source = source
         self.artist = artist
         self.name = name
@@ -19,7 +20,7 @@ class MusicInfo:
         self.music_filename = music_filename
 
     def __repr__(self):
-        return f"link: {self.link}, source: {self.source}, artist: {self.artist}, name: {self.name}, music_filename: {music_filename}"
+        return f"link: {self.link}, suggestor: {self.suggestor}, source: {self.source}, artist: {self.artist}, name: {self.name}, music_filename: {self.music_filename}"
 
 def get_music(yt_recorder_config, mock_music_list_text=None):
     music_list_link = legacyrecords_staticconfig.music_list_link
@@ -43,7 +44,7 @@ def get_music(yt_recorder_config, mock_music_list_text=None):
 
     reader = csv.DictReader(music_info_str_iter, fieldnames=music_info_fieldnames, delimiter=",", quotechar='"')
     for row in reader:
-        music_info = MusicInfo(row["link"], row["source"], row["artist"], row["name"])
+        music_info = MusicInfo(row["link"], row["suggestor"], row["source"], row["artist"], row["name"])
         break
 
     downloaded_music_filename = pathlib.Path(music_info.link).name
@@ -63,8 +64,8 @@ def get_music(yt_recorder_config, mock_music_list_text=None):
 
 def test_get_music():
     mock_music_list_text ="""\
-https://cdn.discordapp.com/attachments/528745839708078093/932354387983097927/undertale_last_breath_phase_3.opus,https://www.youtube.com/watch?v=dIWNltBsq10,Benlab,Undertale Last Breath: An Enigmatic Encounter (Phase 3)
-https://cdn.discordapp.com/attachments/528745839708078093/932356305929240706/-_Dark_Sheep-bYCbm469Zq0.webm,https://youtu.be/bYCbm469Zq0,Chroma,Dark Sheep
+https://cdn.discordapp.com/attachments/528745839708078093/932354387983097927/undertale_last_breath_phase_3.opus,luckytyphlosion,https://www.youtube.com/watch?v=dIWNltBsq10,Benlab,Undertale Last Breath: An Enigmatic Encounter (Phase 3)
+https://cdn.discordapp.com/attachments/528745839708078093/932356305929240706/-_Dark_Sheep-bYCbm469Zq0.webm,luckytyphlosion,https://youtu.be/bYCbm469Zq0,Chroma,Dark Sheep
 """
 
     music_info = get_music({"music_index": 0}, mock_music_list_text)

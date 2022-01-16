@@ -313,7 +313,7 @@ class Rkg(BitManipulator):
 
         splits = []
 
-        for i in range(3):
+        for i in range(self.lap_count):
             split_minutes = self.read_plus_byte_offset(Rkg.oLAP_1_SPLIT_MINUTES, i * 3)
             split_seconds = self.read_plus_byte_offset(Rkg.oLAP_1_SPLIT_SECONDS, i * 3)
             split_milliseconds = self.read_plus_byte_offset(Rkg.oLAP_1_SPLIT_MILLISECONDS, i * 3)

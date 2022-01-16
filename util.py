@@ -55,3 +55,7 @@ def arg_default_or_validate_from_choices(arg, *choices_and_error_message):
 
 def arg_default_select(arg, default):
     return arg if arg is not None else default
+
+def join_conditional_modifier(*modifiers):
+    return " ".join(modifier for modifier in modifiers if modifier is not None)
+

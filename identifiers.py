@@ -235,6 +235,11 @@ category_names_no_200cc = {
     16: "Shortcut"
 }
 
+vehicle_modifier_to_str = {
+    "karts": "Kart",
+    "bikes": "Bike"
+}
+
 location_names = {
     1: "Japan",
     8: "Anguilla",

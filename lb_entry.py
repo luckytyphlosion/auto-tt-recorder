@@ -17,11 +17,7 @@
 import dateutil.parser
 from datetime import datetime, timezone
 import identifiers
-
-vehicle_modifier_to_str = {
-    "karts": "Kart",
-    "bikes": "Bike"
-}
+import util
 
 class LbEntryBuilder:
     __slots__ = ("track_id", "category_id", "vehicle_modifier", "vehicle_modifier_str",
@@ -66,7 +62,7 @@ class LbEntryBuilder:
         self.track_id = track_id
         self.category_id = category_id
         self.vehicle_modifier = vehicle_modifier
-        self.vehicle_modifier_str = vehicle_modifier_to_str.get(vehicle_modifier)
+        self.vehicle_modifier_str = identifiers.vehicle_modifier_to_str.get(vehicle_modifier)
 
         self.category_name = identifiers.category_names_no_200cc[category_id]
         self.track_name = track_name
@@ -118,19 +114,15 @@ class LbEntryBuilder:
         self.date_set_timestamp = date_set.timestamp()
         self.last_checked = date_set
 
-    @staticmethod
-    def join_conditional_modifier(*modifiers):
-        return " ".join(modifier for modifier in modifiers if modifier is not None)
-
     def gen_no_wr_lb_info(self):
-        self.lb_info = f"No wr exists for {LbEntryBuilder.join_conditional_modifier(self.str_200cc, self.vehicle_modifier_str, self.track_name, self.version_with_brackets)} - {self.category_name}!"
+        self.lb_info = f"No wr exists for {util.join_conditional_modifier(self.str_200cc, self.vehicle_modifier_str, self.track_name, self.version_with_brackets)} - {self.category_name}!"
 
     def gen_redundant_wr_lb_info(self):
-        self.lb_info = f"{LbEntryBuilder.join_conditional_modifier(self.str_200cc, self.vehicle_modifier_str, self.track_name, self.version_with_brackets)} - {self.category_name} is a redundant WR!"
+        self.lb_info = f"{util.join_conditional_modifier(self.str_200cc, self.vehicle_modifier_str, self.track_name, self.version_with_brackets)} - {self.category_name} is a redundant WR!"
         self.is_redundant = True
 
     def gen_has_wr_lb_info(self):
-        self.lb_info = f"{self.lb_entry['player']} beat {LbEntryBuilder.join_conditional_modifier(self.str_200cc, self.vehicle_modifier_str, self.track_name, self.version_with_brackets)} - {self.category_name} in {self.lb_entry['finishTimeSimple']} on {self.lb_entry['dateSet']}."
+        self.lb_info = f"{self.lb_entry['player']} beat {util.join_conditional_modifier(self.str_200cc, self.vehicle_modifier_str, self.track_name, self.version_with_brackets)} - {self.category_name} in {self.lb_entry['finishTimeSimple']} on {self.lb_entry['dateSet']}."
 
     def get_lb_entry_with_additional_info(self):
         if self.lb_href is None:

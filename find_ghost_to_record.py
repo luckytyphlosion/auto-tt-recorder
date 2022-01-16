@@ -30,6 +30,7 @@ import math
 import pytz
 import youtube
 import legacyrecords_staticconfig
+import legacyrecords_music
 
 CHADSOFT_READ_CACHE = True
 CHADSOFT_WRITE_CACHE = True
@@ -132,7 +133,9 @@ def find_ghost_to_record(sorted_legacy_wrs):
 
         if result.rkg_data is not None:
             print(f"Found suitable ghost to record! info: {legacy_wr_entry['lbInfo']}")
-            downloaded_ghost_pathname = pathlib.Path(legacy_wr_entry["href"]).name
+            downloaded_ghost_pathname = f"legacy_ghosts/{pathlib.Path(legacy_wr_entry['href']).name}"
+            downloaded_ghost_path = pathlib.Path(downloaded_ghost_pathname)
+            downloaded_ghost_path.parent.mkdir(parents=True, exist_ok=True)
             legacy_wr_lb = result.legacy_wr_lb
             with open(downloaded_ghost_pathname, "wb+") as f:
                 f.write(result.rkg_data)
@@ -226,11 +229,15 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
 
         if legacy_wr_entry_to_record is not None:
             schedule_index = i + base_schedule_index
-            yt_title = description.gen_title(legacy_wr_entry_to_record)
-            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname)
 
+            music_info = legacyrecords_music.get_music(yt_recorder_config)
+
+            yt_title = description.gen_title(legacy_wr_entry_to_record)
+            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info)
+            
             downloaded_ghost_path = pathlib.PurePosixPath(downloaded_ghost_pathname)
-            upload_title = f"api{downloaded_ghost_path.stem}"
+            downloaded_ghost_filepath = pathlib.PurePosixPath(downloaded_ghost_path.name)
+            upload_title = f"api{downloaded_ghost_filepath.stem}"
             #pathlib.Path(OUTPUT_VIDEO_DIRECTORY).mkdir(parents=True, exist_ok=True)
             output_video_filename = f"{OUTPUT_VIDEO_DIRECTORY}/{upload_title}.mkv"
             music_filename = "bgm"
