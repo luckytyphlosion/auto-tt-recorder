@@ -108,10 +108,17 @@ def gen_title(legacy_wr_entry):
     title, truncated = gen_title_loopcode(legacy_wr_entry, skip_version_str=True)
     return title
 
-def gen_title_loopcode(legacy_wr_entry, skip_version_str=False, skip_category_name=False):
+def create_lb_modifiers_str(legacy_wr_entry):
     str_200cc = "200cc" if legacy_wr_entry["200cc"] else None
     vehicle_modifier_str = identifiers.vehicle_modifier_to_str.get(legacy_wr_entry["vehicleModifier"])
 
+    lb_modifiers = util.join_conditional_modifier(str_200cc, vehicle_modifier_str)
+    if lb_modifiers != "":
+        lb_modifiers += " "
+
+    return lb_modifiers
+
+def gen_title_loopcode(legacy_wr_entry, skip_version_str=False, skip_category_name=False):
     track_name = legacy_wr_entry["trackName"]
 
     if skip_category_name:
@@ -124,9 +131,7 @@ def gen_title_loopcode(legacy_wr_entry, skip_version_str=False, skip_category_na
     else:
         version_str = get_version_str_from_legacy_wr_entry(legacy_wr_entry)
 
-    lb_modifiers = util.join_conditional_modifier(str_200cc, vehicle_modifier_str)
-    if lb_modifiers != "":
-        lb_modifiers += " "
+    lb_modifiers = create_lb_modifiers_str(legacy_wr_entry)
 
     title_intermediate = TITLE_TEMPLATE.format(
         lb_modifiers=lb_modifiers,
@@ -146,6 +151,20 @@ def gen_title_loopcode(legacy_wr_entry, skip_version_str=False, skip_category_na
 def create_chadsoft_link(endpoint_link):
     return f"{CHADSOFT_TIME_TRIALS}{pathlib.PurePosixPath(endpoint_link).with_suffix('.html')}"
 
+def create_chadsoft_link_with_vehicle_modifier(legacy_wr_entry):
+    lb_link = create_chadsoft_link(legacy_wr_entry["lbHref"]):
+    if legacy_wr_entry["vehicleModifier"] is not None:
+        lb_link += f"#filter-vehicle-{legacy_wr_entry['vehicleModifier']}"
+
+    return lb_link
+
+def create_track_name_and_version(legacy_wr_entry):
+    version_str = get_version_str_from_legacy_wr_entry(legacy_wr_entry)
+
+    track_name_and_version = util.join_conditional_modifier(legacy_wr_entry["trackName"], version_str)
+
+    return track_name_and_version
+
 def format_date_utc(date_obj):
     return date_obj.strftime("%Y-%m-%d (UTC)")
 
@@ -159,7 +178,7 @@ def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info):
     player_page_link = create_chadsoft_link(player_page_endpoint_link)
 
     run_link = create_chadsoft_link(legacy_wr_entry["ghostHref"])
-    lb_link = create_chadsoft_link(legacy_wr_entry["lbHref"])
+    lb_link = create_chadsoft_link_with_vehicle_modifier(legacy_wr_entry)
     if legacy_wr_entry["vehicleModifier"] is not None:
         lb_link += f"#filter-vehicle-{legacy_wr_entry['vehicleModifier']}"
     country_id = legacy_wr_entry.get("country")
@@ -183,9 +202,7 @@ def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info):
     run_time = legacy_wr_entry["finishTimeSimple"]
     laps_and_splits = "\n".join(f"Lap {lap_num} | {split.pretty()}" for lap_num, split in enumerate(rkg.splits, 1))
 
-    version_str = get_version_str_from_legacy_wr_entry(legacy_wr_entry)
-
-    track_name_and_version = util.join_conditional_modifier(legacy_wr_entry["trackName"], version_str)
+    track_name_and_version = create_track_name_and_version(legacy_wr_entry)
     if legacy_wr_entry["missingFromArchive"]:
         track_name_full = "N/A"
         wiimms_archive_link = "N/A"

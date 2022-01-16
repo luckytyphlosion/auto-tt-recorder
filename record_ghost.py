@@ -46,7 +46,6 @@ from stateclasses.input_display import *
 
 from constants.lua_params import *
 
-music_option_bgm = MusicOption(MUSIC_GAME_BGM)
 speedometer_option_none = SpeedometerOption(SOM_NONE)
 
 resolution_string_to_dolphin_enum = {

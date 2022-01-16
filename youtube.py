@@ -32,7 +32,7 @@ import time
 import identifiers
 import inspect
 
-CTGP_TAGS = ["Mario Kart Wii","mkw","mkwii","mario kart","mario kart wii world records","mkw records","mkw world records","mkw bkt","mkw wr","ctgp records","wr","bkt","best known time","world record","CTGP","Wii"]
+CTGP_TAGS = ["Mario Kart Wii","mkw","mkwii","mario kart","mario kart wii world records","mkw records","mkw world records","mkw bkt","mkw wr","ctgp records","wr","bkt","best known time","world record","CTGP","Wii","CTs","CT","Custom Track","Custom Tracks"]
 
 EU_TYPE_NONE = 0
 EU_TYPE_TRACK = 1

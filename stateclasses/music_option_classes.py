@@ -9,3 +9,5 @@ class MusicOption:
     def __init__(self, option, music_filename=None):
         self.option = option
         self.music_filename = music_filename
+
+music_option_bgm = MusicOption(MUSIC_GAME_BGM)

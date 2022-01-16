@@ -138,7 +138,10 @@ class CustomTop10AndGhostDescription:
 
         top_10_entries = []
         if censored_players is not None:
-            censored_players_as_set = set(censored_players.split())
+            if isinstance(censored_players, (tuple, set, list)):
+                censored_players_as_set = set(censored_players)
+            else:
+                censored_players_as_set = set(censored_players.split())
         else:
             censored_players_as_set = empty_tuple
 
