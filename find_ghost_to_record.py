@@ -29,9 +29,13 @@ import sys
 import math
 import pytz
 import youtube
+import legacyrecords_staticconfig
 
-# input: vehicle_wr_entry
-# returns: new last checked timestamp, new vehicle_wr_entry, rkg_data if ghost chosen
+CHADSOFT_READ_CACHE = True
+CHADSOFT_WRITE_CACHE = True
+
+# input: legacy_wr_entry
+# returns: new last checked timestamp, new legacy_wr_entry, rkg_data if ghost chosen
 
 #UPDATE_USING_CUR_TIME = 0
 #UPDATE_USING_LAST_CHECKED = 1
@@ -40,119 +44,102 @@ import youtube
 OUTPUT_VIDEO_DIRECTORY = "yt_recorded_runs"
 
 class CheckSuitableGhostResult:
-    __slots__ = ("last_checked_timestamp", "vehicle_wr_entry", "rkg_data", "vehicle_wr_lb")
+    __slots__ = ("last_checked_timestamp", "legacy_wr_entry", "rkg_data", "legacy_wr_lb")
 
-    def __init__(self, last_checked_timestamp, vehicle_wr_entry, rkg_data=None, vehicle_wr_lb=None):
+    def __init__(self, last_checked_timestamp, legacy_wr_entry, rkg_data=None, legacy_wr_lb=None):
         self.last_checked_timestamp = last_checked_timestamp
-        self.vehicle_wr_entry = vehicle_wr_entry
+        self.legacy_wr_entry = legacy_wr_entry
         self.rkg_data = rkg_data
-        self.vehicle_wr_lb = vehicle_wr_lb
+        self.legacy_wr_lb = legacy_wr_lb
 
-def check_suitable_ghost(vehicle_wr_entry):
-    lb_href = vehicle_wr_entry["lbHref"]
-    vehicle = vehicle_wr_entry["vehicleId"]
-    date_set_timestamp = vehicle_wr_entry["dateSetTimestamp"]
+def check_suitable_ghost(legacy_wr_entry):
+    vehicle_modifier = legacy_wr_entry["vehicleModifier"]
+    lb_href = legacy_wr_entry["lbHref"]
+    date_set_timestamp = legacy_wr_entry["dateSetTimestamp"]
+    updated_legacy_wr_lb_ignoring_vehicle_modifier = chadsoft.get_lb_from_href(lb_href, start=0, limit=2, times="wr", read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
+    updated_legacy_wr_entry_data_ignoring_vehicle_modifier = updated_legacy_wr_lb_ignoring_vehicle_modifier["ghosts"]
 
-    #excluded_vehicles = wr_and_kart_wr_vehicles.get(lb_href)
-    #if excluded_vehicles is None:
-    #    wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=1, override_cache=1, times="wr")
-    #    wr_entry = wr_lb["ghosts"]
-    #    wr_vehicle = wr_entry["vehicleId"]
-    #    
-    #    if vehicle == wr_vehicle:
-    #        del sorted_vehicle_wrs[vehicle_wr_timestamp]
-    #        sorted_vehicle_wrs[time.time()] = vehicle_wr_entry
-    #        continue
-    #
-    #    
-    #    kart_wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=1, vehicle="karts", times="wr", override_cache=1)
-    #    kart_wr_entry = kart_wr_lb["ghosts"]
-    #    kart_wr_vehicle = kart_wr_entry["vehicleId"]
-    #        
-    #else:
-
-    wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=1, times="wr", override_cache=1)
-    wr_entry_data = wr_lb["ghosts"]
-    wr_vehicle = wr_entry_data[0]["vehicleId"]
-
-    kart_wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=1, vehicle="karts", times="wr", override_cache=1)
-    kart_wr_entry_data = kart_wr_lb["ghosts"]
-    kart_wr_vehicle = kart_wr_entry_data[0]["vehicleId"]
-
-    excluded_vehicles = {wr_vehicle, kart_wr_vehicle}
-
-    if vehicle in excluded_vehicles:
-        return CheckSuitableGhostResult(time.time(), vehicle_wr_entry)
-
-    updated_vehicle_wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=2, vehicle=vehicle, times="wr", override_cache=1)
-    updated_vehicle_wr_entry_data = updated_vehicle_wr_lb["ghosts"]
-    if len(updated_vehicle_wr_entry_data) == 0:
+    if len(updated_legacy_wr_entry_data_ignoring_vehicle_modifier) == 0:
         lb_entry_builder = LbEntryBuilder()
-        lb_entry_builder.add_track_category_vehicle_id_from_prev_lb_entry(vehicle_wr_entry)
+        lb_entry_builder.add_track_category_vehicle_modifier_extra_info_from_prev_lb_entry(legacy_wr_entry)
         lb_entry_builder.gen_no_wr_lb_info()
         print(lb_entry_builder.lb_info)
-        return CheckSuitableGhostResult(time.time(), vehicle_wr_entry)
+        return CheckSuitableGhostResult(time.time(), legacy_wr_entry)
 
-    updated_vehicle_wr_entry = updated_vehicle_wr_entry_data[0]
-    updated_vehicle_wr_timestamp = dateutil.parser.isoparse(updated_vehicle_wr_entry["dateSet"])
-    if updated_vehicle_wr_timestamp.timestamp() > date_set_timestamp:
+    if vehicle_modifier is not None:
+        if vehicle_modifier == "bikes":
+            check_kart = False
+        else:
+            check_kart = True
+
+        updated_legacy_wr_entry_ignoring_vehicle_modifier = updated_legacy_wr_entry_data_ignoring_vehicle_modifier[0]
+        if identifiers.vehicle_id_to_is_kart[updated_legacy_wr_entry_ignoring_vehicle_modifier["vehicleId"]] == check_kart:
+            print(f"Ghost is redundant! info: {legacy_wr_entry['lbInfo']}")
+            return CheckSuitableGhostResult(time.time(), legacy_wr_entry)
+
+        updated_legacy_wr_lb = chadsoft.get_lb_from_href(lb_href, start=0, limit=2, vehicle=vehicle_modifier, times="wr", read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
+    else:
+        updated_legacy_wr_lb = updated_legacy_wr_lb_ignoring_vehicle_modifier
+
+    updated_legacy_wr_entry_data = updated_legacy_wr_lb["ghosts"]
+    updated_legacy_wr_entry = updated_legacy_wr_entry_data[0]
+    updated_legacy_wr_timestamp = dateutil.parser.isoparse(updated_legacy_wr_entry["dateSet"])
+
+    if updated_legacy_wr_timestamp.timestamp() > date_set_timestamp:
         lb_entry_builder = LbEntryBuilder()
-        lb_entry_builder.add_lb_entry(updated_vehicle_wr_entry)
+        lb_entry_builder.add_lb_entry(updated_legacy_wr_entry)
         lb_entry_builder.add_lb_href(lb_href)
-        lb_entry_builder.add_track_category_vehicle_id_from_prev_lb_entry(vehicle_wr_entry)
+        lb_entry_builder.add_track_category_vehicle_modifier_extra_info_from_prev_lb_entry(legacy_wr_entry)
 
         lb_entry_builder.gen_has_wr_lb_info()
 
-        updated_vehicle_wr_entry = lb_entry_builder.get_lb_entry_with_additional_info()
-        print(f"Found new wr set on {updated_vehicle_wr_entry['dateSet']}! info: {updated_vehicle_wr_entry['lbInfo']}")
-        return CheckSuitableGhostResult(None, updated_vehicle_wr_entry)
+        updated_legacy_wr_entry = lb_entry_builder.get_lb_entry_with_additional_info()
+        print(f"Found new wr set on {updated_legacy_wr_entry['dateSet']}! info: {updated_legacy_wr_entry['lbInfo']}")
+        return CheckSuitableGhostResult(None, updated_legacy_wr_entry)
 
-    if vehicle_wr_entry["recorded"]:
-        print(f"Ghost already recorded! info: {vehicle_wr_entry['lbInfo']}")
-        return CheckSuitableGhostResult(time.time(), vehicle_wr_entry)
+    if legacy_wr_entry["recorded"]:
+        print(f"Ghost already recorded! info: {legacy_wr_entry['lbInfo']}")
+        return CheckSuitableGhostResult(time.time(), legacy_wr_entry)
 
-    rkg_link = updated_vehicle_wr_entry["href"]
-    #del sorted_vehicle_wrs[vehicle_wr_timestamp]
-    #sorted_vehicle_wrs[updated_vehicle_wr_timestamp] = vehicle_wr_entry
-    # something "recorded" = true?
+    rkg_link = updated_legacy_wr_entry["href"]
     rkg_data, status_code = chadsoft.get(rkg_link, is_binary=True)
     if status_code == 404:
-        print(f"Rkg file does not exist! info: {vehicle_wr_entry['lbInfo']}")
-        return CheckSuitableGhostResult(time.time(), vehicle_wr_entry)
+        print(f"Rkg file does not exist! info: {legacy_wr_entry['lbInfo']}")
+        return CheckSuitableGhostResult(time.time(), legacy_wr_entry)
 
     # todo
-    if vehicle_wr_entry["playerId"] == "EE91F250E359EC6E":
+    if legacy_wr_entry["playerId"] == "EE91F250E359EC6E":
         print("TODO!")
         sys.exit(1)
 
-    return CheckSuitableGhostResult(time.time(), vehicle_wr_entry, rkg_data, updated_vehicle_wr_lb)
+    return CheckSuitableGhostResult(time.time(), legacy_wr_entry, rkg_data, updated_legacy_wr_lb)
 
-def find_ghost_to_record(sorted_vehicle_wrs):
+def find_ghost_to_record(sorted_legacy_wrs):
     num_tries = 0
-    num_wrs = len(sorted_vehicle_wrs)
-    vehicle_wr_entry_to_record = None
+    num_wrs = len(sorted_legacy_wrs)
+    legacy_wr_entry_to_record = None
     downloaded_ghost_pathname = None
-    vehicle_wr_lb = None
+    legacy_wr_lb = None
 
     while True:
-        vehicle_wr_entry = sorted_vehicle_wrs.pop(0)
+        legacy_wr_entry = sorted_legacy_wrs.pop(0)
 
-        result = check_suitable_ghost(vehicle_wr_entry)
-        vehicle_wr_entry = result.vehicle_wr_entry
+        result = check_suitable_ghost(legacy_wr_entry)
+        legacy_wr_entry = result.legacy_wr_entry
 
         if result.last_checked_timestamp is not None:
-            vehicle_wr_entry["lastCheckedTimestamp"] = result.last_checked_timestamp
+            legacy_wr_entry["lastCheckedTimestamp"] = result.last_checked_timestamp
 
         if result.rkg_data is not None:
-            print(f"Found suitable ghost to record! info: {vehicle_wr_entry['lbInfo']}")
-            downloaded_ghost_pathname = pathlib.Path(vehicle_wr_entry["href"]).name
-            vehicle_wr_lb = result.vehicle_wr_lb
+            print(f"Found suitable ghost to record! info: {legacy_wr_entry['lbInfo']}")
+            downloaded_ghost_pathname = pathlib.Path(legacy_wr_entry["href"]).name
+            legacy_wr_lb = result.legacy_wr_lb
             with open(downloaded_ghost_pathname, "wb+") as f:
                 f.write(result.rkg_data)
-            vehicle_wr_entry["recorded"] = True
-            vehicle_wr_entry_to_record = vehicle_wr_entry
+            legacy_wr_entry["recorded"] = True
+            legacy_wr_entry_to_record = legacy_wr_entry
 
-        sorted_vehicle_wrs.add(vehicle_wr_entry)
+        sorted_legacy_wrs.add(legacy_wr_entry)
 
         if result.rkg_data is not None:
             break
@@ -162,7 +149,7 @@ def find_ghost_to_record(sorted_vehicle_wrs):
             print("All wrs recorded!")
             break
 
-    return sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname, vehicle_wr_lb
+    return sorted_legacy_wrs, legacy_wr_entry_to_record, downloaded_ghost_pathname, legacy_wr_lb
 
 # 9 1 5 9 1 5
 # 1 5 9 1 5 9
@@ -198,8 +185,6 @@ def read_in_recorder_config():
             "state": SETTING_NUM_REMAINING_GHOSTS,
             "base_schedule_index": 0,
             "start_datetime": gen_start_datetime().isoformat(),
-            "add_in_music": False,
-            "music_filename": None,
             "num_remaining_ghosts": 0
         }
     else:
@@ -223,25 +208,25 @@ def serialize_yt_update_infos(yt_update_infos):
     with open("yt_update_infos_cur.json", "w+") as f:
         json.dump(yt_update_infos, f, indent=2, ensure_ascii=False)
 
-def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
-    with open("sorted_vehicle_wrs.json", "r") as f:
-        vehicle_wrs = json.load(f)
+def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
+    with open("sorted_legacy_wrs.json", "r") as f:
+        legacy_wrs = json.load(f)
 
-    sorted_vehicle_wrs = SortedList(vehicle_wrs, key=lambda x: x["lastCheckedTimestamp"])
+    sorted_legacy_wrs = SortedList(legacy_wrs, key=lambda x: x["lastCheckedTimestamp"])
 
     yt_update_infos = read_yt_update_infos()
     start_datetime = datetime.fromisoformat(yt_recorder_config["start_datetime"])
     base_schedule_index = yt_recorder_config["base_schedule_index"]
 
     for i in range(yt_recorder_config["num_remaining_ghosts"]):
-        sorted_vehicle_wrs, vehicle_wr_entry_to_record, downloaded_ghost_pathname, vehicle_wr_lb = find_ghost_to_record(sorted_vehicle_wrs)
+        sorted_legacy_wrs, legacy_wr_entry_to_record, downloaded_ghost_pathname, legacy_wr_lb = find_ghost_to_record(sorted_legacy_wrs)
 
-        iso_filename = "../../../RMCE01/RMCE01.iso"
+        iso_filename = legacyrecords_staticconfig.iso_filename
 
-        if vehicle_wr_entry_to_record is not None:
+        if legacy_wr_entry_to_record is not None:
             schedule_index = i + base_schedule_index
-            yt_title = description.gen_title(vehicle_wr_entry_to_record)
-            yt_description = description.gen_description(vehicle_wr_entry_to_record, vehicle_wr_lb, downloaded_ghost_pathname)
+            yt_title = description.gen_title(legacy_wr_entry_to_record)
+            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname)
 
             downloaded_ghost_path = pathlib.PurePosixPath(downloaded_ghost_pathname)
             upload_title = f"api{downloaded_ghost_path.stem}"
@@ -253,8 +238,8 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
                 "yt_title": yt_title,
                 "yt_description": yt_description,
                 "schedule_datetime_str": schedule_datetime_str,
-                "track_id": vehicle_wr_entry_to_record["trackId"],
-                "vehicle_id": vehicle_wr_entry_to_record["vehicleId"]
+                "track_id": legacy_wr_entry_to_record["trackId"],
+                "vehicle_id": legacy_wr_entry_to_record["vehicleId"]
             }
 
             rkg_file_main = downloaded_ghost_pathname
@@ -273,9 +258,9 @@ def record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config):
             yt_recorder_config["base_schedule_index"] += 1
             yt_recorder_config["num_remaining_ghosts"] -= 1
 
-            sorted_vehicle_wrs_as_list = list(sorted_vehicle_wrs)
+            sorted_vehicle_wrs_as_list = list(sorted_legacy_wrs)
 
-            with open("sorted_vehicle_wrs.json", "w+") as f:
+            with open("sorted_legacy_wrs.json", "w+") as f:
                 json.dump(sorted_vehicle_wrs_as_list, f, indent=2, ensure_ascii=False)
 
             serialize_yt_update_infos(yt_update_infos)
@@ -307,7 +292,7 @@ def record_and_update_uploads(num_ghosts):
         serialize_yt_update_infos({})
         yt_recorder_config = update_recorder_config_state_and_serialize(yt_recorder_config, RECORDING_GHOSTS)
     if yt_recorder_config["state"] == RECORDING_GHOSTS:
-        yt_recorder_config = record_vehicle_wr_ghosts(num_ghosts, yt_recorder_config)
+        yt_recorder_config = record_legacy_wr_ghosts(num_ghosts, yt_recorder_config)
     if yt_recorder_config["state"] == WAITING_FOR_UPLOAD:
         yt_recorder_config = waiting_for_upload(yt_recorder_config)
     if yt_recorder_config["state"] == UPDATING_UPLOADS:
@@ -315,6 +300,7 @@ def record_and_update_uploads(num_ghosts):
         yt_recorder_config = youtube.update_title_description_and_schedule(yt_recorder_config)
 
 def record_vehicle_wr_ghosts_outer():
+    legacyrecords_staticconfig.load()
     while True:
         record_and_update_uploads(6)
 
