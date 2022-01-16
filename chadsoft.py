@@ -36,7 +36,21 @@ def get_cached_endpoint_filepath(endpoint, params, is_binary):
 
     return pathlib.Path(endpoint_as_pathname)
 
+
 def get(endpoint, params=None, is_binary=False, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
+    exception_sleep_time = 15
+
+    while True:
+        try:
+            return get_in_loop_code(endpoint, params, is_binary, read_cache, write_cache, rate_limit)
+        except ConnectionError as e:
+            print(f"Exception occurred: {e}\n{''.join(traceback.format_tb(e.__traceback__))}\nSleeping for {exception_sleep_time} seconds now.")
+            time.sleep(exception_sleep_time)
+            exception_sleep_time *= 2
+            if exception_sleep_time > 1000:
+                exception_sleep_time = 1000
+
+def get_in_loop_code(endpoint, params, is_binary, read_cache, write_cache, rate_limit):
     if params is None:
         params = {}
 
@@ -49,7 +63,7 @@ def get(endpoint, params=None, is_binary=False, read_cache=False, write_cache=Tr
                 return bytes(), 404
 
         if not is_binary:
-            print(f"endpoint_as_path: {endpoint_as_path}")
+            #print(f"endpoint_as_path: {endpoint_as_path}")
             with open(endpoint_as_path, "r", encoding="utf-8-sig") as f:
                 content = f.read().encode("utf-8")
                 data = json.loads(content)

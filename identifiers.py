@@ -54,6 +54,45 @@ vehicle_names = {
     0x23: "Phantom"
 }
 
+vehicle_id_to_is_kart = {
+    0x00: True, # "Standard Kart S",
+    0x01: True, # "Standard Kart M",
+    0x02: True, # "Standard Kart L",
+    0x03: True, # "Booster Seat",
+    0x04: True, # "Classic Dragster",
+    0x05: True, # "Offroader",
+    0x06: True, # "Mini Beast",
+    0x07: True, # "Wild Wing",
+    0x08: True, # "Flame Flyer",
+    0x09: True, # "Cheep Charger",
+    0x0A: True, # "Super Blooper",
+    0x0B: True, # "Piranha Prowler",
+    0x0C: True, # "Tiny Titan",
+    0x0D: True, # "Daytripper",
+    0x0E: True, # "Jetsetter",
+    0x0F: True, # "Blue Falcon",
+    0x10: True, # "Sprinter",
+    0x11: True, # "Honeycoupe",
+    0x12: False, # "Standard Bike S",
+    0x13: False, # "Standard Bike M",
+    0x14: False, # "Standard Bike L",
+    0x15: False, # "Bullet Bike",
+    0x16: False, # "Mach Bike",
+    0x17: False, # "Flame Runner",
+    0x18: False, # "Bit Bike",
+    0x19: False, # "Sugarscoot",
+    0x1A: False, # "Wario Bike",
+    0x1B: False, # "Quacker",
+    0x1C: False, # "Zip Zip",
+    0x1D: False, # "Shooting Star",
+    0x1E: False, # "Magikruiser",
+    0x1F: False, # "Sneakster",
+    0x20: False, # "Spear",
+    0x21: False, # "Jet Bubble",
+    0x22: False, # "Dolphin Dasher",
+    0x23: False # "Phantom"
+}
+
 vehicle_ids_by_filter_name = {vehicle_name.lower().replace(" ", "-"): vehicle_id for vehicle_id, vehicle_name in vehicle_names.items()}
 
 vehicle_names_eu = {
@@ -179,6 +218,20 @@ category_names = {
     0: "Normal",
     1: "Glitch",
     2: "No-shortcut",
+    4: "Normal (200cc)",
+    5: "Glitch (200cc)",
+    6: "No-shortcut (200cc)",
+    16: "Shortcut"
+}
+
+category_names_no_200cc = {
+    -1: "(Default)",
+    0: "Normal",
+    1: "Glitch",
+    2: "No-shortcut",
+    4: "Normal",
+    5: "Glitch",
+    6: "No-shortcut",
     16: "Shortcut"
 }
 
