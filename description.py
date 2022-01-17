@@ -53,6 +53,7 @@ Former World Record: {former_wr}
 
 Helpful Links
 • Support CTGP by donating here: https://streamlabs.com/mrbean35000vr
+• CTGP Legacy Records discord server (Submit music here!): https://discord.gg/zQebERHCGS 
 • CTGP Records discord server: https://discord.com/invite/dPrhVUS
 • 200cc CTGP Records discord server: https://discord.gg/rMsJVkj
 • CTGP Kart Records discord server: https://discord.gg/zQnvDMjFMh
