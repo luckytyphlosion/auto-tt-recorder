@@ -243,11 +243,22 @@ def parse_finish_time_simple_from_legacy_wr_entry(legacy_wr_entry):
     minutes, seconds = finish_time_simple.split(":", maxsplit=1)
     return int(minutes) * 60 + float(seconds)
 
+speedmod_track_ids_as_set = None
+
+def load_speedmod_track_ids():
+    global speedmod_track_ids_as_set
+    with open("speedmod_track_ids.json", "r") as f:
+        speedmod_track_ids = json.load(f)
+
+    speedmod_track_ids_as_set = set(speedmod_track_ids)
+
 def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
     with open("sorted_legacy_wrs.json", "r") as f:
         legacy_wrs = json.load(f)
 
-    sorted_legacy_wrs = SortedList(legacy_wrs, key=lambda x: x["lastCheckedTimestamp"])
+    legacy_wrs_no_speedmod = [legacy_wr for legacy_wr in legacy_wrs if legacy_wr["trackId"] not in speedmod_track_ids_as_set]
+
+    sorted_legacy_wrs = SortedList(legacy_wrs_no_speedmod, key=lambda x: x["lastCheckedTimestamp"])
 
     yt_update_infos = read_yt_update_infos()
     start_datetime = datetime.fromisoformat(yt_recorder_config["start_datetime"])
@@ -435,7 +446,6 @@ def record_and_update_uploads(num_ghosts):
         yt_recorder_config = youtube.update_title_description_and_schedule(yt_recorder_config)
 
 def record_vehicle_wr_ghosts_outer():
-    record_and_update_uploads(2)
     while True:
         record_and_update_uploads(6)
 
@@ -443,6 +453,8 @@ def test_record_and_update_uploads():
     record_and_update_uploads(2)
 
 def main():
+    load_speedmod_track_ids()
+
     MODE = 0
     if MODE == 0:
         record_vehicle_wr_ghosts_outer()

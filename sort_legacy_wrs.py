@@ -42,8 +42,13 @@ class LeaderboardId:
         return NotImplemented
 
 def main():
-    with open("removed_ctgp_tracks.json", "r") as f:
+    with open("removed_ctgp_tracks_with_unindexed_lbs.json", "r") as f:
         removed_ctgp_tracks = json.load(f)
+
+    #with open("speedmod_track_ids.json", "r") as f:
+    #    speedmod_track_ids = json.load(f)
+    #
+    #speedmod_track_ids_as_set = set(speedmod_track_ids)
 
     sorted_legacy_wrs = SortedList(key=lambda x: x['lastCheckedTimestamp'])
     lb_count = 0
@@ -53,6 +58,7 @@ def main():
     for track_id, all_leaderboards_for_track_id_plus_check_200cc in removed_ctgp_tracks.items():
         check_200cc = all_leaderboards_for_track_id_plus_check_200cc["check_200cc"]
         track_name_full = all_leaderboards_for_track_id_plus_check_200cc["track_name_full"]
+        speed_factor = all_leaderboards_for_track_id_plus_check_200cc["speed_factor"]
 
         for leaderboard in all_leaderboards_for_track_id_plus_check_200cc["leaderboards"]:
             category_id = leaderboard.get("categoryId", -1)
@@ -70,10 +76,13 @@ def main():
                 lb_full_data = chadsoft.get_lb_from_href(lb_href, times="wr", start=None, limit=None, read_cache=True, write_cache=True, rate_limit=False)
                 num_lb_ghosts = len(lb_full_data["ghosts"])
                 if num_lb_ghosts == 0:
+                    if track_id == "7068E1F83FB5F7C7B576A923ABA43342FF86DC8B":
+                        continue
                     raise RuntimeError(f"{lb_href} unexpectedly has no ghosts!")
 
-                ghost_count += num_lb_ghosts
-                lb_count += (num_lb_ghosts != 0)
+                if speed_factor == 1.0:
+                    ghost_count += num_lb_ghosts
+                    lb_count += (num_lb_ghosts != 0)
 
                 lb_entry_builder = LbEntryBuilder()
 
@@ -117,8 +126,9 @@ def main():
                 alt_vehicle_modifier_lb_full_data = chadsoft.get_lb_from_href(lb_href, times="wr", start=alt_vehicle_modifier_lb_start, limit=alt_vehicle_modifier_lb_limit, vehicle=alt_vehicle_modifier, read_cache=True, write_cache=True, rate_limit=False)
                 alt_vehicle_modifier_entry_data = alt_vehicle_modifier_lb_full_data["ghosts"]
                 num_alt_vehicle_modifier_lb_ghosts = len(alt_vehicle_modifier_entry_data)
-                ghost_count += num_alt_vehicle_modifier_lb_ghosts
-                lb_count += (num_alt_vehicle_modifier_lb_ghosts != 0)
+                if speed_factor == 1.0:
+                    ghost_count += num_alt_vehicle_modifier_lb_ghosts
+                    lb_count += (num_alt_vehicle_modifier_lb_ghosts != 0)
 
                 lb_entry_builder_alt_vehicle_modifier = LbEntryBuilder()
 

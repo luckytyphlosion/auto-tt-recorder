@@ -152,7 +152,7 @@ class CustomTop10AndGhostDescription:
                 if lb_entry["playerId"] in censored_players_as_set:
                     top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)                    
                 else:
-                    top_10_entry = Top10Entry.from_rkg(rkg)
+                    top_10_entry = Top10Entry.from_rkg(rkg, lb_entry["playerId"], read_cache, write_cache)
 
             else:
                 top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)
@@ -215,8 +215,12 @@ class Top10Entry:
         self.partial_mii = partial_mii
 
     @classmethod
-    def from_rkg(cls, rkg):
-        country = countries_by_code[rkg.country_code]
+    def from_rkg(cls, rkg, player_id=None, read_cache=False, write_cache=True):
+        country_code = rkg.country_code
+        if country_code == 255 and player_id is not None:
+            country_code = chadsoft.get_player_from_player_id(player_id, read_cache=read_cache, write_cache=write_cache).get("country", 255)
+
+        country = countries_by_code[country_code]
         finish_time = rkg.finish_time
         wheel = (rkg.controller == CONTROLLER_WII_WHEEL)
         partial_mii = list(rkg.mii[:oMII_SYSTEM_ID] + rkg.mii[oMII_SYSTEM_ID_END:oMII_CREATOR_NAME])
