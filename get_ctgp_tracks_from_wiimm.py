@@ -218,6 +218,14 @@ def download_full_track_info_common(full_track_endpoint):
             #print(f"sha1_aliases: {}")
             #print(f"multiple sha1 aliases {track_endpoint}")
 
+    stgi_speed_factor = table_info.find("td", string="STGI speed factor:")
+    if stgi_speed_factor is not None:
+        speed_factor_val = float(stgi_speed_factor.next_sibling.string)
+    else:
+        speed_factor_val = 1.0
+
+    track_info["speed_factor"] = speed_factor_val
+
     #track_info["sha1_alias"] = sha1_alias
 
 
@@ -418,6 +426,8 @@ def calc_ctgp_tracks_from_wiimm_data():
                 "track_name_full": wiimm_track_info["track_name_full"],
                 "missing_from_archive": track_id in ("9F09DDB05BC5C7B04BB7AA120F6D0F21774143EB", "A1E5087B9951410F9B590FD1D6D831357167A3B6"),
                 "wiimm_version": wiimm_track_info["version"],
+                "speed_factor": wiimm_track_info["speed_factor"]
+                
             }
             removed_tracks[track_id] = all_leaderboards_for_track_id_plus_check_200cc
 
@@ -524,17 +534,20 @@ def calc_removed_tracks_pt2():
                 print(f"Wiimm archive doesn't have track {new_track_nameversion} ({track_id})!")
                 track_name_full = new_track_nameversion
                 wiimm_version = None
+                speed_factor = 1.0
             else:
                 full_track_info = download_full_track_info_id_only(track_id)
                 track_name_full = full_track_info["track_name_full"]
                 wiimm_version = full_track_info["version"]
+                speed_factor = full_track_info["speed_factor"]
 
             all_leaderboards_for_track_id_plus_check_200cc = {
                 "leaderboards": all_leaderboards_for_track_id,
                 "check_200cc": True,
                 "track_name_full": track_name_full,
                 "missing_from_archive": result is None,
-                "wiimm_version": wiimm_version
+                "wiimm_version": wiimm_version,
+                "speed_factor": speed_factor
             }
             removed_tracks[track_id] = all_leaderboards_for_track_id_plus_check_200cc
 
@@ -570,8 +583,22 @@ def combine_removed_tracks():
     with open("removed_ctgp_tracks.json", "w+") as f:
         json.dump(removed_tracks_pt1, f, indent=2)
 
+def get_all_speedmod_track_ids():
+    with open("removed_ctgp_tracks.json", "r") as f:
+        removed_ctgp_tracks = json.load(f)
+
+    speedmod_track_ids = []
+
+    for track_id, all_leaderboards_for_track_id_plus_check_200cc in removed_ctgp_tracks.items():
+        if all_leaderboards_for_track_id_plus_check_200cc["speed_factor"] != 1.0:
+            print(f"Found speedmod track! track_name_full: {all_leaderboards_for_track_id_plus_check_200cc['track_name_full']}, speedmod: {all_leaderboards_for_track_id_plus_check_200cc['speed_factor']}")
+            speedmod_track_ids.append(track_id)
+
+    with open("speedmod_track_ids.json", "w+") as f:
+        json.dump(speedmod_track_ids, f)
+
 def main():
-    MODE = 9
+    MODE = 11
 
     if MODE == 0:
         get_all_wiimm_ctgp_track_ids()
@@ -595,6 +622,8 @@ def main():
         print_removed_tracks_pt2()
     elif MODE == 10:
         combine_removed_tracks()
+    elif MODE == 11:
+        get_all_speedmod_track_ids()
     else:
         print("no mode selected!")
 
