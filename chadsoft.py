@@ -128,6 +128,16 @@ def get_lb_from_href_with_status(endpoint, start=0, limit=1, continent=None, veh
 
     return get(endpoint, params, read_cache=read_cache, write_cache=write_cache, rate_limit=rate_limit)
 
+def get_player_from_player_id(player_id, start=0, limit=0, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
+    params = {}
+    if start is not None:
+        params["start"] = start
+    if limit is not None:
+        params["limit"] = limit
+
+    endpoint = f"/players/{player_id[:2]}/{player_id[2:]}.json"
+    return get(endpoint, params, read_cache=read_cache, write_cache=write_cache, rate_limit=rate_limit)[0]
+
 # #filter-region-all
 # #filter-region-asia
 # #filter-region-america
