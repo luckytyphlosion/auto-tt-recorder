@@ -249,7 +249,7 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
 input_display_enum_arg_table = enumarg.EnumArgTable({
     "classic": INPUT_DISPLAY_CLASSIC,
     "gcn": INPUT_DISPLAY_CLASSIC,
-    "none": INPUT_DISPLAY_CLASSIC
+    "none": INPUT_DISPLAY_NONE
 })
 
 #class NoEncodeTimelineArgs:

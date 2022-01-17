@@ -152,18 +152,24 @@ def create_chadsoft_link(endpoint_link):
     return f"{CHADSOFT_TIME_TRIALS}{pathlib.PurePosixPath(endpoint_link).with_suffix('.html')}"
 
 def create_chadsoft_link_with_vehicle_modifier(legacy_wr_entry):
-    lb_link = create_chadsoft_link(legacy_wr_entry["lbHref"]):
+    lb_link = create_chadsoft_link(legacy_wr_entry["lbHref"])
     if legacy_wr_entry["vehicleModifier"] is not None:
         lb_link += f"#filter-vehicle-{legacy_wr_entry['vehicleModifier']}"
 
     return lb_link
 
-def create_track_name_and_version(legacy_wr_entry):
+def create_track_name_and_version_from_wr_entry(legacy_wr_entry):
     version_str = get_version_str_from_legacy_wr_entry(legacy_wr_entry)
 
     track_name_and_version = util.join_conditional_modifier(legacy_wr_entry["trackName"], version_str)
 
     return track_name_and_version
+
+def create_track_name_and_version(track_name, version):
+    if version is not None:
+        version = f"({version})"
+
+    return util.join_conditional_modifier(track_name, version_str)
 
 def format_date_utc(date_obj):
     return date_obj.strftime("%Y-%m-%d (UTC)")
@@ -202,7 +208,7 @@ def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info):
     run_time = legacy_wr_entry["finishTimeSimple"]
     laps_and_splits = "\n".join(f"Lap {lap_num} | {split.pretty()}" for lap_num, split in enumerate(rkg.splits, 1))
 
-    track_name_and_version = create_track_name_and_version(legacy_wr_entry)
+    track_name_and_version = create_track_name_and_version_from_wr_entry(legacy_wr_entry)
     if legacy_wr_entry["missingFromArchive"]:
         track_name_full = "N/A"
         wiimms_archive_link = "N/A"
