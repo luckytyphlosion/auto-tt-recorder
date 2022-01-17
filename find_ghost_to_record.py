@@ -262,7 +262,7 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
             schedule_index = i + base_schedule_index
 
             approx_video_duration = parse_finish_time_simple_from_legacy_wr_entry(legacy_wr_entry_to_record) + 22
-            music_info, music_index = None, -1#music_fetcher.get_music_exceeding_duration(yt_recorder_config, approx_video_duration)
+            music_info, music_index = music_fetcher.get_music_exceeding_duration(yt_recorder_config, approx_video_duration)
 
             yt_title = description.gen_title(legacy_wr_entry_to_record)
             yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info)
@@ -299,7 +299,7 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
             dolphin_resolution = legacyrecords_staticconfig.dolphin_resolution
             use_ffv1 = False
             speedometer = SpeedometerOption("regular", "xz", 2)
-            encode_only = True if i == 0 else False
+            encode_only = False
 
             if music_info is None:
                 music_option = music_option_bgm
@@ -350,7 +350,7 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
                 game_volume, music_volume
             )
             
-            input_display = InputDisplay(INPUT_DISPLAY_CLASSIC, True if i == 0 else False)
+            input_display = InputDisplay(INPUT_DISPLAY_CLASSIC, False)
 
             # lazy
             html_page_lb_link = description.create_chadsoft_link_with_vehicle_modifier(legacy_wr_entry_to_record)
@@ -435,6 +435,7 @@ def record_and_update_uploads(num_ghosts):
         yt_recorder_config = youtube.update_title_description_and_schedule(yt_recorder_config)
 
 def record_vehicle_wr_ghosts_outer():
+    record_and_update_uploads(2)
     while True:
         record_and_update_uploads(6)
 
@@ -442,7 +443,7 @@ def test_record_and_update_uploads():
     record_and_update_uploads(2)
 
 def main():
-    MODE = 2
+    MODE = 0
     if MODE == 0:
         record_vehicle_wr_ghosts_outer()
     elif MODE == 1:

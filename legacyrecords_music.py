@@ -66,6 +66,7 @@ class MusicFetcher:
 
     def __init__(self, mock_music_list_text=None):
         if not saved_music_durations_filepath.is_file():
+            saved_music_durations_filepath.parent.mkdir(parents=True, exist_ok=True)
             with open(saved_music_durations_filepath, "w+") as f:
                 json.dump({}, f, indent=2)
 
