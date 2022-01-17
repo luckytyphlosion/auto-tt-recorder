@@ -30,6 +30,9 @@ import urllib
 import pathlib
 import collections
 import wbz
+import chadsoft
+import identifiers
+import description
 
 family_info_row_id_regex = re.compile(r"^p1-[0-9]+-0$")
 track_id_regex = re.compile(r"a class=jii href=\"(/j/[0-9]+)\"")
@@ -269,14 +272,16 @@ def get_all_wiimm_ctgp_full_track_info():
     with open("wiimm_ctgp_full_track_info.json", "w+") as f:
         json.dump(all_distribution_track_ids, f, indent=2)
 
-def download_missing_leaderboard(chadsoft_endpoint):
-    missing_lb, status_code = requests_get_cached(chadsoft_endpoint, params={"start": 0, "limit": 0}, content_type=CONTENT_JSON)
-
+def convert_full_leaderboard_to_leaderboard_info(missing_lb):
     del missing_lb["ghosts"]
     missing_lb["_links"]["item"] = {"href": missing_lb["_links"]["self"]["href"]}
     del missing_lb["_links"]["index"]
     del missing_lb["_links"]["leaderboardFastLap"]
     return missing_lb
+
+def download_missing_leaderboard(chadsoft_endpoint):
+    missing_lb, status_code = requests_get_cached(chadsoft_endpoint, params={"start": 0, "limit": 0}, content_type=CONTENT_JSON)
+    return convert_full_leaderboard_to_leaderboard_info(missing_lb)
 
 def merge_150cc_200cc_leaderboards():
     with open("leaderboards_pretty.json", "r", encoding="utf-8-sig") as f:
@@ -597,8 +602,64 @@ def get_all_speedmod_track_ids():
     with open("speedmod_track_ids.json", "w+") as f:
         json.dump(speedmod_track_ids, f)
 
+leaderboard_start_regex = re.compile(r"^(/leaderboard/[0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/)")
+leaderboard_category_json_ids = ("00", "01", "02")
+leaderboard_200cc_category_json_ids = ("04", "05", "06")
+
+def find_missing_leaderboards(leaderboard_category_json_ids, lb_hrefs, unindexed_leaderboards_for_track_id, track_name_full, lb_start):
+    output = ""
+
+    for leaderboard_category_json_id in leaderboard_category_json_ids:
+        possible_lb_href = f"{lb_start}{leaderboard_category_json_id}.json"
+        if possible_lb_href not in lb_hrefs:
+            lb_full_data, status_code = chadsoft.get_lb_from_href_with_status(possible_lb_href, start=0, limit=0, read_cache=True, write_cache=True, rate_limit=False)
+            if status_code != 404:
+                lb_info = convert_full_leaderboard_to_leaderboard_info(lb_full_data)
+                category_name = identifiers.category_names[lb_info.get("categoryId", -1)]
+                chadsoft_html_link = description.create_chadsoft_link(possible_lb_href)
+                unindexed_leaderboards_for_track_id.append(lb_info)
+                cur_msg = f"Leaderboard for track {track_name_full} has missing leaderboard {category_name}! (link: {chadsoft_html_link})"
+                print(cur_msg)
+                output += f"{cur_msg}\n"
+
+    return output
+
+def add_unindexed_leaderboards():
+    with open("removed_ctgp_tracks.json", "r") as f:
+        removed_ctgp_tracks = json.load(f)
+
+    output = ""
+
+    for track_id, all_leaderboards_for_track_id_plus_check_200cc in removed_ctgp_tracks.items():
+        check_200cc = all_leaderboards_for_track_id_plus_check_200cc["check_200cc"]
+        track_name_full = all_leaderboards_for_track_id_plus_check_200cc["track_name_full"]
+        lb_hrefs = set()
+
+        for leaderboard in all_leaderboards_for_track_id_plus_check_200cc["leaderboards"]:
+            lb_hrefs.add(leaderboard["_links"]["item"]["href"])
+
+        lb_href = next(iter(lb_hrefs))
+        match_obj = leaderboard_start_regex.match(lb_href)
+        if not match_obj:
+            raise RuntimeError(f"{lb_href} did not match lb start regex!")
+
+        lb_start = match_obj.group(1)
+        unindexed_leaderboards_for_track_id = []
+        output += find_missing_leaderboards(leaderboard_category_json_ids, lb_hrefs, unindexed_leaderboards_for_track_id, track_name_full, lb_start)
+
+        if check_200cc or track_id == "E15503BB76C3B7A2165026D76C3DC7D97B980BBB":
+            output += find_missing_leaderboards(leaderboard_200cc_category_json_ids, lb_hrefs, unindexed_leaderboards_for_track_id, track_name_full, lb_start)
+
+        all_leaderboards_for_track_id_plus_check_200cc["leaderboards"].extend(unindexed_leaderboards_for_track_id)
+
+    with open("unindexed_leaderboards_out.dump", "w+") as f:
+        f.write(output)
+
+    with open("removed_ctgp_tracks_with_unindexed_lbs.json", "w+") as f:
+        json.dump(removed_ctgp_tracks, f, indent=2)
+
 def main():
-    MODE = 11
+    MODE = 12
 
     if MODE == 0:
         get_all_wiimm_ctgp_track_ids()
@@ -624,6 +685,8 @@ def main():
         combine_removed_tracks()
     elif MODE == 11:
         get_all_speedmod_track_ids()
+    elif MODE == 12:
+        add_unindexed_leaderboards()
     else:
         print("no mode selected!")
 

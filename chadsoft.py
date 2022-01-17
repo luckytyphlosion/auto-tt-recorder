@@ -109,6 +109,9 @@ def get_in_loop_code(endpoint, params, is_binary, read_cache, write_cache, rate_
     return data, r.status_code
 
 def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
+    return get_lb_from_href_with_status(endpoint, start, limit, continent, vehicle, times, override_cache, read_cache, write_cache, rate_limit)[0]
+
+def get_lb_from_href_with_status(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
     params = {}
     if start is not None:
         params["start"] = start
@@ -123,7 +126,7 @@ def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, t
     if override_cache is not None:
         params["_"] = override_cache
 
-    return get(endpoint, params, read_cache=read_cache, write_cache=write_cache, rate_limit=rate_limit)[0]
+    return get(endpoint, params, read_cache=read_cache, write_cache=write_cache, rate_limit=rate_limit)
 
 # #filter-region-all
 # #filter-region-asia
