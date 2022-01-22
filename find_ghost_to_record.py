@@ -23,12 +23,15 @@ import collections
 import dateutil
 from lb_entry import LbEntryBuilder
 import time
+import shutil
 import record_ghost
 import description
 import sys
 import math
 import pytz
 import youtube
+import copy
+
 import legacyrecords_staticconfig
 import legacyrecords_music
 import identifiers
@@ -193,26 +196,34 @@ RECORDING_GHOSTS = 1
 WAITING_FOR_UPLOAD = 2
 UPDATING_UPLOADS = 3
 
+#RECORDING_GHOSTS_DUMPING_FRAMES = 0
+#RECORDING_GHOSTS_RENDERING_INPUT_DISPLAY = 1
+#RECORDING_GHOSTS_ENCODING = 2
+
 def read_in_recorder_config():
+    yt_recorder_config = {
+        "state": SETTING_NUM_REMAINING_GHOSTS,
+        "base_schedule_index": 0,
+        "start_datetime": gen_start_datetime().isoformat(),
+        "num_remaining_ghosts": 0,
+        "used_music_indices": [],
+        "num_ghosts_per_iteration": [6]
+    }
+
     yt_recorder_config_path = pathlib.Path(YT_RECORDER_CONFIG_FILENAME)
-    if not yt_recorder_config_path.is_file():
-        yt_recorder_config = {
-            "state": SETTING_NUM_REMAINING_GHOSTS,
-            "base_schedule_index": 0,
-            "start_datetime": gen_start_datetime().isoformat(),
-            "num_remaining_ghosts": 0,
-            "used_music_indices": []
-        }
-    else:
+    if yt_recorder_config_path.is_file():
         with open(yt_recorder_config_path, "r") as f:
-            yt_recorder_config = json.load(f)
+            saved_yt_recorder_config = json.load(f)
+
+        # overwrites saved values, but saves missing default values
+        yt_recorder_config.update(saved_yt_recorder_config)
 
     return yt_recorder_config
 
 def update_recorder_config_state_and_serialize(yt_recorder_config, state):
     yt_recorder_config["state"] = state
     with open(YT_RECORDER_CONFIG_FILENAME, "w+") as f:
-        json.dump(yt_recorder_config, f)
+        json.dump(yt_recorder_config, f, indent=2)
 
     return yt_recorder_config
 
@@ -252,7 +263,7 @@ def load_speedmod_track_ids():
 
     speedmod_track_ids_as_set = set(speedmod_track_ids)
 
-def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
+def record_legacy_wr_ghosts(yt_recorder_config):
     with open("sorted_legacy_wrs.json", "r") as f:
         legacy_wrs = json.load(f)
 
@@ -344,12 +355,12 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
             else:
                 output_format = "mp4"
                 crf = 18
-                h26x_preset = "medium"
-                video_codec = "libx265"
+                h26x_preset = "slow"
+                video_codec = "libx264"
                 audio_codec = "libopus"
                 audio_bitrate = "128k"
                 output_width = dolphin_resolution_to_output_width[dolphin_resolution]
-                pix_fmt = "yuv420p10le"
+                pix_fmt = "yuv420p"
                 youtube_settings = True
                 game_volume = 1.0
                 music_volume = 1.0
@@ -360,7 +371,7 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
                 output_width, pix_fmt, youtube_settings,
                 game_volume, music_volume
             )
-            
+
             input_display = InputDisplay(INPUT_DISPLAY_CLASSIC, False)
 
             # lazy
@@ -385,7 +396,8 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
 
             timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
 
-            record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings)
+            checkpoint_filename = "legacy_records_checkpoint.dump"
+            record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, checkpoint_filename=checkpoint_filename)
 
             schedule_datetime_str = gen_schedule_datetime_str(start_datetime, schedule_index)
             yt_update_infos[upload_title] = {
@@ -395,8 +407,6 @@ def record_legacy_wr_ghosts(num_ghosts, yt_recorder_config):
                 "vehicle_modifier": identifiers.vehicle_modifier_to_str.get(legacy_wr_entry_to_record["vehicleModifier"]),
                 "track_name": legacy_wr_entry_to_record["trackName"],
                 "version": legacy_wr_entry_to_record.get("version")
-                #"track_id": legacy_wr_entry_to_record["trackId"],
-                #"vehicle_id": legacy_wr_entry_to_record["vehicleId"]
             }
 
             yt_recorder_config["base_schedule_index"] += 1
@@ -430,15 +440,22 @@ def waiting_for_upload(yt_recorder_config):
 
     return update_recorder_config_state_and_serialize(yt_recorder_config, UPDATING_UPLOADS)
 
-def record_and_update_uploads(num_ghosts):
+def record_and_update_uploads():
     yt_recorder_config = read_in_recorder_config()
 
     if yt_recorder_config["state"] == SETTING_NUM_REMAINING_GHOSTS:
+        num_ghosts_per_iteration = yt_recorder_config["num_ghosts_per_iteration"]
+        if len(num_ghosts_per_iteration) == 1:
+            num_ghosts = num_ghosts_per_iteration[0]
+        else:
+            num_ghosts = num_ghosts_per_iteration.pop(0)
+
         yt_recorder_config["num_remaining_ghosts"] = num_ghosts
+        yt_recorder_config["num_ghosts_per_iteration"] = num_ghosts_per_iteration
         serialize_yt_update_infos({})
         yt_recorder_config = update_recorder_config_state_and_serialize(yt_recorder_config, RECORDING_GHOSTS)
     if yt_recorder_config["state"] == RECORDING_GHOSTS:
-        yt_recorder_config = record_legacy_wr_ghosts(num_ghosts, yt_recorder_config)
+        yt_recorder_config = record_legacy_wr_ghosts(yt_recorder_config)
     if yt_recorder_config["state"] == WAITING_FOR_UPLOAD:
         yt_recorder_config = waiting_for_upload(yt_recorder_config)
     if yt_recorder_config["state"] == UPDATING_UPLOADS:
@@ -447,10 +464,10 @@ def record_and_update_uploads(num_ghosts):
 
 def record_vehicle_wr_ghosts_outer():
     while True:
-        record_and_update_uploads(6)
+        record_and_update_uploads()
 
 def test_record_and_update_uploads():
-    record_and_update_uploads(2)
+    record_and_update_uploads()
 
 def main():
     load_speedmod_track_ids()

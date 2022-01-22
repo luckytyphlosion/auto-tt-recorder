@@ -170,7 +170,7 @@ def create_track_name_and_version(track_name, version):
     if version is not None:
         version = f"({version})"
 
-    return util.join_conditional_modifier(track_name, version_str)
+    return util.join_conditional_modifier(track_name, version)
 
 def format_date_utc(date_obj):
     return date_obj.strftime("%Y-%m-%d (UTC)")

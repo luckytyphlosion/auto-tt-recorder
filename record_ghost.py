@@ -65,7 +65,48 @@ timeline_setting_to_lua_mode = {
     TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN: LUA_MODE_RECORD_GHOST_FOR_TOP_10
 }
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None):
+CHECKPOINT_NONE = -1
+CHECKPOINT_DUMPING_TOP_10 = 0
+CHECKPOINT_DUMPING_TT_REPLAY = 1
+CHECKPOINT_DUMPING_INPUT_DISPLAY = 2
+CHECKPOINT_ENCODING = 3
+
+def read_checkpoint(checkpoint_filename):
+    if checkpoint_filename is not None:
+        checkpoint_filepath = pathlib.Path(checkpoint_filename)
+        if checkpoint_filepath.is_file():
+            with open(checkpoint_filepath, "r") as f:
+                checkpoint = int(f.read().strip())
+        else:
+            checkpoint = update_and_write_max_checkpoint(checkpoint_filename, CHECKPOINT_DUMPING_TOP_10, CHECKPOINT_DUMPING_TOP_10)
+    else:
+        checkpoint = CHECKPOINT_NONE
+
+    return checkpoint
+
+def update_and_write_max_checkpoint(checkpoint_filename, cur_checkpoint, new_checkpoint):
+    if checkpoint_filename is not None:
+        new_checkpoint = max(cur_checkpoint, new_checkpoint)
+        checkpoint_as_str = str(new_checkpoint)
+        with open(checkpoint_filename, "w+") as f:
+            f.write(checkpoint_as_str)
+    else:
+        new_checkpoint = CHECKPOINT_NONE
+
+    return new_checkpoint
+
+def checkpoint_not_passed(cur_checkpoint, desired_checkpoint):
+    if cur_checkpoint == CHECKPOINT_NONE:
+        return True
+
+    return cur_checkpoint <= desired_checkpoint
+
+def checkpoint_done(checkpoint_filename):
+    if checkpoint_filename is not None:
+        checkpoint_filepath = pathlib.Path(checkpoint_filename)
+        checkpoint_filepath.unlink(missing_ok=True)
+
+def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -97,7 +138,9 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     if timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
         timeline_settings.input_display.set_rkg_file_or_data(rkg_file_main)
 
-    if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
+    checkpoint = read_checkpoint(checkpoint_filename)
+
+    if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN) and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TOP_10):
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
             "data/rksys.dat", rkg_file_main,
             "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -125,6 +168,8 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
             pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").replace(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
             pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").replace(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
 
+    checkpoint = update_and_write_max_checkpoint(checkpoint_filename, checkpoint, CHECKPOINT_DUMPING_TT_REPLAY)
+
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         "data/rksys.dat", rkg_file_main,
         "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
@@ -142,7 +187,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
     mkw_filesys.replace_track(szs_filename, rkg)
     mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer)
 
-    if not encode_only:
+    if not encode_only and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TT_REPLAY):
         output_params_path = pathlib.Path("dolphin/output_params.txt")
         output_params_path.unlink(missing_ok=True)
     
@@ -161,8 +206,11 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
 
         dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
 
+    # todo CHECKPOINT_DUMPING_INPUT_DISPLAY
+    checkpoint = update_and_write_max_checkpoint(checkpoint_filename, checkpoint, CHECKPOINT_ENCODING)
     encode.encode_video(output_video_filename, ffmpeg_filename, ffprobe_filename, dolphin_resolution, music_option, timeline_settings)
 
+    checkpoint_done(checkpoint_filename)
     print("Done!")
 
 def copy_config_if_not_exist(base_config_filename, dest_config_filename):
