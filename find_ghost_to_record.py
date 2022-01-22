@@ -297,6 +297,9 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             schedule_index = i + base_schedule_index
 
             approx_video_duration = parse_finish_time_simple_from_legacy_wr_entry(legacy_wr_entry_to_record) + 22
+            if i != 0:
+                music_fetcher.get_music_info_list()
+
             music_info, music_link = music_fetcher.get_music_exceeding_duration(yt_recorder_config, approx_video_duration, legacy_wr_entry_to_record["hash"])
 
             yt_title = description.gen_title(legacy_wr_entry_to_record)
