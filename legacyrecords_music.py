@@ -22,8 +22,12 @@ class MusicInfo:
     def download_if_not_exists_then_set_music_filename(self):
         downloaded_music_filename = pathlib.Path(self.link).name
         downloaded_music_filepath = pathlib.Path(f"music_cached/{downloaded_music_filename}")
-    
-        if not downloaded_music_filepath.is_file():
+        nondownloaded_music_filepath = pathlib.Path(f"music_cached/{self.link}")
+
+        if not nondownloaded_music_filepath.is_file() and not downloaded_music_filepath.is_file():
+            if not self.link.startswith("http"):
+                raise RuntimeError(f"Music file {self.link} does not exist and is not a link!")
+
             r = requests.get(self.link, allow_redirects=True)
             #if r.headers["content-type"] != "application/octet-stream":
             #    raise RuntimeError(f"Downloaded music file {music_info.link} is not binary!")
@@ -133,6 +137,7 @@ def test_get_music():
     mock_music_list_text ="""\
 https://cdn.discordapp.com/attachments/528745839708078093/932354387983097927/undertale_last_breath_phase_3.opus,luckytyphlosion,https://www.youtube.com/watch?v=dIWNltBsq10,Benlab,Undertale Last Breath: An Enigmatic Encounter (Phase 3)
 https://cdn.discordapp.com/attachments/528745839708078093/932356305929240706/-_Dark_Sheep-bYCbm469Zq0.webm,luckytyphlosion,https://youtu.be/bYCbm469Zq0,Chroma,Dark Sheep
+Digimon World 3 Soundtrack - Protocol Ruins Extended-7FSqNAxoLYs.webm,luckytyphlosion,https://www.youtube.com/watch?v=7FSqNAxoLYs,Digimon World 3,Protocol Ruins
 """
 
     music_fetcher = MusicFetcher(mock_music_list_text)
