@@ -331,6 +331,16 @@ class TrackNameVersion:
             return self.__key() == other.__key()
         return NotImplemented
 
+def get_track_nameversion(leaderboard):
+    track_name = leaderboard.get("name")
+    version = leaderboard.get("version")
+    if track_name == "SNES Mario Circuit 1" and version == "v1.0":
+        author = leaderboard.get("authors", [None])[0]
+        track_nameversion = f"{track_name}|{version}|{author}"
+    else:
+        track_nameversion = f"{track_name}|{version}"
+    return track_nameversion
+
 def key_leaderboards_by_track_id_and_track_name_version_separately():
     with open("leaderboards_combined.json", "r") as f:
         leaderboards_all = json.load(f)
@@ -341,13 +351,7 @@ def key_leaderboards_by_track_id_and_track_name_version_separately():
     for leaderboard in leaderboards_all:
         track_name = leaderboard.get("name")
         if track_name is not None:
-            version = leaderboard.get("version")
-            if track_name == "SNES Mario Circuit 1" and version == "v1.0":
-                author = leaderboard.get("authors", [None])[0]
-                track_nameversion = f"{track_name}|{version}|{author}"
-            else:
-                track_nameversion = f"{track_name}|{version}"
-            #track_name_version = TrackNameVersion(track_name, version)
+            track_nameversion = get_track_nameversion(leaderboard)
             leaderboards_by_track_name_version[track_nameversion].append(leaderboard)
 
         leaderboards_by_track_id[leaderboard["trackId"]].append(leaderboard)
@@ -592,12 +596,18 @@ def get_all_speedmod_track_ids():
     with open("removed_ctgp_tracks.json", "r") as f:
         removed_ctgp_tracks = json.load(f)
 
+    output = ""
     speedmod_track_ids = []
 
     for track_id, all_leaderboards_for_track_id_plus_check_200cc in removed_ctgp_tracks.items():
         if all_leaderboards_for_track_id_plus_check_200cc["speed_factor"] != 1.0:
-            print(f"Found speedmod track! track_name_full: {all_leaderboards_for_track_id_plus_check_200cc['track_name_full']}, speedmod: {all_leaderboards_for_track_id_plus_check_200cc['speed_factor']}")
+            cur_output = f"Found speedmod track! track_name_full: {all_leaderboards_for_track_id_plus_check_200cc['track_name_full']}, speedmod: {all_leaderboards_for_track_id_plus_check_200cc['speed_factor']}"
+            print(cur_output)
+            output += f"{cur_output}\n"
             speedmod_track_ids.append(track_id)
+
+    with open("speedmod_tracks_out.dump", "w+") as f:
+        f.write(output)
 
     with open("speedmod_track_ids.json", "w+") as f:
         json.dump(speedmod_track_ids, f)
@@ -658,8 +668,46 @@ def add_unindexed_leaderboards():
     with open("removed_ctgp_tracks_with_unindexed_lbs.json", "w+") as f:
         json.dump(removed_ctgp_tracks, f, indent=2)
 
+def find_non_ctgp_tracks_with_names():
+    with open("removed_ctgp_tracks_with_unindexed_lbs.json", "r") as f:
+        removed_ctgp_tracks = json.load(f)
+
+    with open("leaderboards_combined_by_track_name_version.json", "r") as f:
+        leaderboards_by_track_name_version_with_rts = json.load(f)
+
+    leaderboards_by_track_name_version = {k: v for k, v in leaderboards_by_track_name_version_with_rts.items() if not v[0]["defaultTrack"]}
+
+    track_nameversions = set(leaderboards_by_track_name_version.keys())
+    ctgp_track_nameversions = set()
+
+    for track_id, all_leaderboards_for_track_id_plus_check_200cc in removed_ctgp_tracks.items():
+        for leaderboard in all_leaderboards_for_track_id_plus_check_200cc["leaderboards"]:
+            track_nameversion = get_track_nameversion(leaderboard)
+            ctgp_track_nameversions.add(track_nameversion)
+
+    with open("ctgp-leaderboards_1120.json", "r", encoding="utf-8-sig") as f:
+        leaderboards_current = json.load(f)
+
+    for leaderboard in leaderboards_current["leaderboards"]:
+        track_nameversion = get_track_nameversion(leaderboard)
+        ctgp_track_nameversions.add(track_nameversion)
+
+    non_ctgp_track_nameversions = track_nameversions - ctgp_track_nameversions
+    non_ctgp_track_names_and_versions = []
+    for non_ctgp_track_nameversion in non_ctgp_track_nameversions:
+        split_non_ctgp_track_nameversion = non_ctgp_track_nameversion.split("|", maxsplit=1)
+        if len(split_non_ctgp_track_nameversion) == 1:
+            non_ctgp_track_names_and_versions.append(non_ctgp_track_nameversion)
+        else:
+            non_ctgp_track_names_and_versions.append(f"{split_non_ctgp_track_nameversion[0]} ({split_non_ctgp_track_nameversion[1]})")
+
+    output = "\n".join(x for x in non_ctgp_track_names_and_versions if "No Sound Triggers" not in x) + "\n"
+
+    with open("non_ctgp_tracks_with_names_out.dump", "w+") as f:
+        f.write(output)
+
 def main():
-    MODE = 12
+    MODE = 13
 
     if MODE == 0:
         get_all_wiimm_ctgp_track_ids()
@@ -687,6 +735,8 @@ def main():
         get_all_speedmod_track_ids()
     elif MODE == 12:
         add_unindexed_leaderboards()
+    elif MODE == 13:
+        find_non_ctgp_tracks_with_names()
     else:
         print("no mode selected!")
 
