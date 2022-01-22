@@ -41,7 +41,7 @@ class MusicInfo:
         return f"link: {self.link}, suggestor: {self.suggestor}, source: {self.source}, artist: {self.artist}, name: {self.name}, music_filename: {self.music_filename}"
 
 saved_music_durations_filepath = pathlib.Path("music_cached/music_durations.json")
-audio_len_regex = re.compile(r"^size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
+audio_len_regex = re.compile(r"size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
 
 def get_audio_len(audio_filename):
     #print(f"audio_filename: {audio_filename}")
@@ -66,6 +66,7 @@ class MusicFetcher:
 
     def __init__(self, mock_music_list_text=None):
         if not saved_music_durations_filepath.is_file():
+            saved_music_durations_filepath.parent.mkdir(parents=True, exist_ok=True)
             with open(saved_music_durations_filepath, "w+") as f:
                 json.dump({}, f, indent=2)
 
