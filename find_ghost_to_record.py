@@ -200,17 +200,24 @@ UPDATING_UPLOADS = 3
 #RECORDING_GHOSTS_RENDERING_INPUT_DISPLAY = 1
 #RECORDING_GHOSTS_ENCODING = 2
 
-def read_in_recorder_config():
+def read_in_recorder_config(custom_config_filename=None):
     yt_recorder_config = {
         "state": SETTING_NUM_REMAINING_GHOSTS,
         "base_schedule_index": 0,
         "start_datetime": gen_start_datetime().isoformat(),
         "num_remaining_ghosts": 0,
         "used_music_indices": [],
-        "num_ghosts_per_iteration": [6]
+        "num_ghosts_per_iteration": [6],
+        "used_music_links": [],
+        "transitioned_to_used_music_links": False
     }
 
-    yt_recorder_config_path = pathlib.Path(YT_RECORDER_CONFIG_FILENAME)
+    if custom_config_filename is not None:
+        chosen_yt_recorder_config_filename = custom_config_filename
+    else:
+        chosen_yt_recorder_config_filename = YT_RECORDER_CONFIG_FILENAME
+
+    yt_recorder_config_path = pathlib.Path(chosen_yt_recorder_config_filename)
     if yt_recorder_config_path.is_file():
         with open(yt_recorder_config_path, "r") as f:
             saved_yt_recorder_config = json.load(f)
@@ -220,9 +227,14 @@ def read_in_recorder_config():
 
     return yt_recorder_config
 
-def update_recorder_config_state_and_serialize(yt_recorder_config, state):
+def update_recorder_config_state_and_serialize(yt_recorder_config, state, custom_config_filename=None):
+    if custom_config_filename is not None:
+        chosen_yt_recorder_config_filename = custom_config_filename
+    else:
+        chosen_yt_recorder_config_filename = YT_RECORDER_CONFIG_FILENAME
+
     yt_recorder_config["state"] = state
-    with open(YT_RECORDER_CONFIG_FILENAME, "w+") as f:
+    with open(chosen_yt_recorder_config_filename, "w+") as f:
         json.dump(yt_recorder_config, f, indent=2)
 
     return yt_recorder_config
@@ -275,6 +287,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
     start_datetime = datetime.fromisoformat(yt_recorder_config["start_datetime"])
     base_schedule_index = yt_recorder_config["base_schedule_index"]
     music_fetcher = legacyrecords_music.MusicFetcher()
+    music_fetcher.transition_to_used_music_links()
 
     for i in range(yt_recorder_config["num_remaining_ghosts"]):
         print(f"Recording ghost {i}!")
@@ -284,7 +297,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             schedule_index = i + base_schedule_index
 
             approx_video_duration = parse_finish_time_simple_from_legacy_wr_entry(legacy_wr_entry_to_record) + 22
-            music_info, music_index = music_fetcher.get_music_exceeding_duration(yt_recorder_config, approx_video_duration)
+            music_info, music_link = music_fetcher.get_music_exceeding_duration(yt_recorder_config, approx_video_duration, legacy_wr_entry_to_record["hash"])
 
             yt_title = description.gen_title(legacy_wr_entry_to_record)
             yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info)
@@ -411,8 +424,8 @@ def record_legacy_wr_ghosts(yt_recorder_config):
 
             yt_recorder_config["base_schedule_index"] += 1
             yt_recorder_config["num_remaining_ghosts"] -= 1
-            if music_option not in (None, -1):
-                yt_recorder_config["used_music_indices"].append(music_index)
+            if music_info is not None:
+                yt_recorder_config["used_music_links"].append(music_link)
 
             sorted_vehicle_wrs_as_list = list(sorted_legacy_wrs)
 
