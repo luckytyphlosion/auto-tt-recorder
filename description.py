@@ -29,6 +29,8 @@ import chadsoft
 
 TITLE_TEMPLATE = "【CTGP {lb_modifiers}Legacy WR】 {track_version_category} - {time} - {player_name}"
 DESCRIPTION_TEMPLATE = """\
+Submit music in the CTGP Legacy Records discord server: https://discord.gg/zQebERHCGS 
+
 Date Set: {date_set}
 Player: {player_name}
 Players page: {player_page_link}
@@ -53,7 +55,6 @@ Former World Record: {former_wr}
 
 Helpful Links
 • Support CTGP by donating here: https://streamlabs.com/mrbean35000vr
-• CTGP Legacy Records discord server (Submit music here!): https://discord.gg/zQebERHCGS 
 • CTGP Records discord server: https://discord.com/invite/dPrhVUS
 • 200cc CTGP Records discord server: https://discord.gg/rMsJVkj
 • CTGP Kart Records discord server: https://discord.gg/zQnvDMjFMh
