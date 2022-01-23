@@ -287,7 +287,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
     start_datetime = datetime.fromisoformat(yt_recorder_config["start_datetime"])
     base_schedule_index = yt_recorder_config["base_schedule_index"]
     music_fetcher = legacyrecords_music.MusicFetcher()
-    music_fetcher.transition_to_used_music_links()
+    music_fetcher.transition_to_used_music_links(yt_recorder_config)
 
     for i in range(yt_recorder_config["num_remaining_ghosts"]):
         print(f"Recording ghost {i}!")
