@@ -356,6 +356,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             # output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt, youtube_settings, game_volume, music_volume
             # )
             FAST_TEST_ENCODE = False
+            DO_LIBX265 = True
             if FAST_TEST_ENCODE:
                 output_format = "mp4"
                 crf = 18
@@ -368,13 +369,25 @@ def record_legacy_wr_ghosts(yt_recorder_config):
                 youtube_settings = True
                 game_volume = 1.0
                 music_volume = 1.0
+            elif DO_LIBX265:
+                output_format = "mp4"
+                crf = 18
+                h26x_preset = "medium"
+                video_codec = "libx265"
+                audio_codec = "libopus"
+                audio_bitrate = "256k"
+                output_width = dolphin_resolution_to_output_width[dolphin_resolution]
+                pix_fmt = "yuv420p10le"
+                youtube_settings = False
+                game_volume = 1.0
+                music_volume = 1.0
             else:
                 output_format = "mp4"
                 crf = 18
                 h26x_preset = "slow"
                 video_codec = "libx264"
                 audio_codec = "libopus"
-                audio_bitrate = "128k"
+                audio_bitrate = "256k"
                 output_width = dolphin_resolution_to_output_width[dolphin_resolution]
                 pix_fmt = "yuv420p"
                 youtube_settings = True

@@ -40,6 +40,7 @@ def check_track_has_speedmod(track_filename):
     wkmpt_filename = get_wkmpt_filename()
 
     wkmpt_output = subprocess.check_output((wkmpt_filename, "STGI", "-H", track_filename), encoding="utf-8")
+    #print(f"wkmpt_output: {wkmpt_output}")
     stgi_info, track_filename_from_wkmpt = wkmpt_output.strip().split(" : ", maxsplit=1)
     split_stgi_info = stgi_info.split()
-    return split_stgi_info[2] != "--"
+    return split_stgi_info[2] != "--" and split_stgi_info[2] != "1.00"
