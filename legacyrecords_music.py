@@ -94,6 +94,19 @@ class MusicFetcher:
         self.reserved_music_infos = {}
         for row in reader:
             row_ghost_id = row.get("ghost_id")
+            if row_ghost_id is not None:
+                if len(row_ghost_id) != 40:
+                    invalid_ghost_id = True
+                else:
+                    try:
+                        int(row_ghost_id, 16)
+                        invalid_ghost_id = False
+                    except ValueError:
+                        invalid_ghost_id = True
+    
+                if invalid_ghost_id:
+                    raise RuntimeError(f"ghost_id {row_ghost_id} not valid!")
+
             row_link = row["link"]
             music_info = MusicInfo(row_link, row["suggestor"], row["source"], row["artist"], row["name"], row_ghost_id)
             self.music_info_dict[row_link] = music_info
@@ -215,7 +228,7 @@ def test_music_fetcher_transition_to_links_reserved_music_infos():
     print(f"music_info: {music_info}, music_link: {music_link}\n")
 
 def main():
-    MODE = 2
+    MODE = 1
     if MODE == 0:
         test_get_music()
     elif MODE == 1:
