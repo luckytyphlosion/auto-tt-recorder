@@ -27,10 +27,12 @@ import random
 import legacyrecords_music
 import chadsoft
 
+from constants.slower_glitch import *
+
 TITLE_TEMPLATE = "【CTGP {lb_modifiers}Legacy WR】 {track_version_category} - {time} - {player_name}"
 DESCRIPTION_TEMPLATE = """\
 Submit music in the CTGP Legacy Records discord server: https://discord.gg/zQebERHCGS 
-
+{fake_glitch_notice}
 Date Set: {date_set}
 Player: {player_name}
 Players page: {player_page_link}
@@ -98,16 +100,16 @@ def get_version_str_from_legacy_wr_entry(legacy_wr_entry):
 
     return version_str
 
-def gen_title(legacy_wr_entry):
-    title, truncated = gen_title_loopcode(legacy_wr_entry)
+def gen_title(legacy_wr_entry, slower_glitch_type):
+    title, truncated = gen_title_loopcode(legacy_wr_entry, slower_glitch_type)
     if not truncated:
         return title
 
-    title, truncated = gen_title_loopcode(legacy_wr_entry, skip_version_str=True)
+    title, truncated = gen_title_loopcode(legacy_wr_entry, slower_glitch_type, skip_version_str=True)
     if not truncated:
         return title
 
-    title, truncated = gen_title_loopcode(legacy_wr_entry, skip_version_str=True)
+    title, truncated = gen_title_loopcode(legacy_wr_entry, slower_glitch_type, skip_version_str=True)
     return title
 
 def create_lb_modifiers_str(legacy_wr_entry):
@@ -120,13 +122,16 @@ def create_lb_modifiers_str(legacy_wr_entry):
 
     return lb_modifiers
 
-def gen_title_loopcode(legacy_wr_entry, skip_version_str=False, skip_category_name=False):
+def gen_title_loopcode(legacy_wr_entry, slower_glitch_type, skip_version_str=False, skip_category_name=False):
     track_name = legacy_wr_entry["trackName"]
 
     if skip_category_name:
         category_name = None
     else:
-        category_name = None if legacy_wr_entry["categoryId"] == -1 else f"({legacy_wr_entry['categoryName']})"
+        if slower_glitch_type in (SLOWER_GLITCH_95_RULE, SLOWER_GLITCH_REVERSE_95_RULE, SLOWER_GLITCH_FAKE_GLITCH):
+            category_name = "(Fake Glitch)"
+        else:
+            category_name = None if legacy_wr_entry["categoryId"] == -1 else f"({legacy_wr_entry['categoryName']})"
 
     if skip_version_str:
         version_str = None
@@ -176,7 +181,16 @@ def create_track_name_and_version(track_name, version):
 def format_date_utc(date_obj):
     return date_obj.strftime("%Y-%m-%d (UTC)")
 
-def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info):
+def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info, slower_glitch_type):
+    if slower_glitch_type == SLOWER_GLITCH_95_RULE:
+        fake_glitch_notice = "Note: This run does not actually perform an Ultra Shortcut. It has been miscategorized as Glitch due to CTGP's faulty Glitch detection. However, it comes close but gets a no-lap count due to the 95% Rule.\n"
+    elif slower_glitch_type == SLOWER_GLITCH_REVERSE_95_RULE:
+        fake_glitch_notice = "Note: This run does not actually perform an Ultra Shortcut. It has been miscategorized as Glitch due to CTGP's faulty Glitch detection. However, it comes close but gets a no-lap count due to the Reverse 95% Rule/4.9% Rule.\n"
+    elif slower_glitch_type == SLOWER_GLITCH_FAKE_GLITCH:
+        fake_glitch_notice = "Note: This run does not actually perform an Ultra Shortcut. It has been miscategorized as Glitch due to CTGP's faulty Glitch detection. For this specific run, it may be misclassified due to crossing the finish line backwards via a respawn.\n"
+    else:
+        fake_glitch_notice = ""
+
     date_set_obj = dateutil.parser.isoparse(legacy_wr_entry["dateSet"])
     date_set = format_date_utc(date_set_obj)
 
@@ -187,8 +201,8 @@ def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info):
 
     run_link = create_chadsoft_link(legacy_wr_entry["ghostHref"])
     lb_link = create_chadsoft_link_with_vehicle_modifier(legacy_wr_entry)
-    if legacy_wr_entry["vehicleModifier"] is not None:
-        lb_link += f"#filter-vehicle-{legacy_wr_entry['vehicleModifier']}"
+    #if legacy_wr_entry["vehicleModifier"] is not None:
+    #    lb_link += f"#filter-vehicle-{legacy_wr_entry['vehicleModifier']}"
     country_id = legacy_wr_entry.get("country")
     if country_id is None:
         location = "Unknown"
@@ -263,6 +277,7 @@ def gen_description(legacy_wr_entry, legacy_wr_lb, rkg_filename, music_info):
         )
 
     description_intermediate = DESCRIPTION_TEMPLATE.format(
+        fake_glitch_notice=fake_glitch_notice,
         date_set=date_set,
         player_name=player_name,
         player_page_link=player_page_link,
@@ -298,11 +313,11 @@ def test_gen_title():
             break
 
     print(f"Creating title for legacy wr {random_legacy_wr_entry['hash']}!")
-    title = gen_title(random_legacy_wr_entry)
+    title = gen_title(random_legacy_wr_entry, SLOWER_GLITCH_NO_GLITCH)
     print(f"title: {title}, len(title): {len(title)}")
 
 def test_gen_title_and_description():
-    random.seed(1146)
+    random.seed(1148)
     output = ""
 
     with open("sorted_legacy_wrs.json", "r") as f:
@@ -313,8 +328,12 @@ def test_gen_title_and_description():
         if not random_legacy_wr_entry["isRedundant"] and random_legacy_wr_entry["ghostHref"] is not None:
             break
 
+    slower_glitch_type = random.choice((SLOWER_GLITCH_NO_GLITCH, SLOWER_GLITCH_REAL_GLITCH, SLOWER_GLITCH_95_RULE, SLOWER_GLITCH_REVERSE_95_RULE, SLOWER_GLITCH_FAKE_GLITCH))
+
+    print(f"Random slower_glitch_type: {slower_glitch_type}")
     print(f"Creating title for legacy wr {random_legacy_wr_entry['hash']}!")
-    output += gen_title(random_legacy_wr_entry) + "\n\n"
+    
+    output += gen_title(random_legacy_wr_entry, slower_glitch_type) + "\n\n"
 
     legacy_wr_lb = chadsoft.get_lb_from_href(random_legacy_wr_entry["lbHref"], start=0, limit=2, vehicle=random_legacy_wr_entry["vehicleModifier"], times="wr", read_cache=True, write_cache=True)
 
@@ -330,8 +349,8 @@ https://cdn.discordapp.com/attachments/528745839708078093/932354387983097927/und
 https://cdn.discordapp.com/attachments/528745839708078093/932356305929240706/-_Dark_Sheep-bYCbm469Zq0.webm,luckytyphlosion,https://youtu.be/bYCbm469Zq0,Chroma,Dark Sheep
 """
 
-    music_info = legacyrecords_music.get_music({"music_index": random.randint(0, 2)}, mock_music_list_text)
-    output += gen_description(random_legacy_wr_entry, legacy_wr_lb, downloaded_ghost_pathname, music_info)
+    music_info = None#legacyrecords_music.get_music({"music_index": random.randint(0, 2)}, mock_music_list_text)
+    output += gen_description(random_legacy_wr_entry, legacy_wr_lb, downloaded_ghost_pathname, music_info, slower_glitch_type)
     with open("test_gen_description_out.dump", "w+") as f:
         f.write(output)
 

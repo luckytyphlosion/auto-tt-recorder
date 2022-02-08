@@ -42,6 +42,7 @@ from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
 from stateclasses.input_display import *
 from stateclasses.encode_classes import *
+from constants.slower_glitch import *
 
 CHADSOFT_READ_CACHE = True
 CHADSOFT_WRITE_CACHE = True
@@ -302,9 +303,6 @@ def record_legacy_wr_ghosts(yt_recorder_config):
 
             music_info, music_link = music_fetcher.get_music_exceeding_duration(yt_recorder_config, approx_video_duration, legacy_wr_entry_to_record["hash"])
 
-            yt_title = description.gen_title(legacy_wr_entry_to_record)
-            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info)
-
             rkg_file_main = downloaded_ghost_pathname
 
             downloaded_ghost_path = pathlib.PurePosixPath(downloaded_ghost_pathname)
@@ -427,6 +425,24 @@ def record_legacy_wr_ghosts(yt_recorder_config):
 
             checkpoint_filename = "legacy_records_checkpoint.dump"
             record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, checkpoint_filename=checkpoint_filename)
+
+            slower_glitch_type = SLOWER_GLITCH_NO_GLITCH
+
+            if legacy_wr_entry_to_record["categoryId"] in (1, 5):
+                with open("dolphin/output_params.txt", "r") as f:
+                    output_params_text = f.read()
+
+                if "is95Rule" in output_params_text:
+                    slower_glitch_type = SLOWER_GLITCH_95_RULE
+                elif "isUltra" in output_params_text:
+                    slower_glitch_type = SLOWER_GLITCH_REAL_GLITCH
+                elif "isReverse95Rule" in output_params_text:
+                    slower_glitch_type = SLOWER_GLITCH_REVERSE_95_RULE
+                else:
+                    slower_glitch_type = SLOWER_GLITCH_FAKE_GLITCH
+
+            yt_title = description.gen_title(legacy_wr_entry_to_record, slower_glitch_type)
+            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info, slower_glitch_type)
 
             schedule_datetime_str = gen_schedule_datetime_str(start_datetime, schedule_index)
             yt_update_infos[upload_title] = {

@@ -80,27 +80,47 @@ local EXECUTING_ACTION = 1
 local IN_DELAY = 2
 local EXIT_LOOP_NO_DELAY = 3
 
+local WAITING_FOR_KCP0_TO_KCP_LAST = 0
+local WAITING_FOR_KCP_LAST_TO_KCP0 = 1
+local DETECTED_ULTRA = 2
+
 local curSegmentIndexG = ADVANCE_TO_TRACK_SELECT
 local curActionIndexG = 1
 local curStateG = EXECUTING_ACTION
 local delayEndFrameCountG = 0
 local cursorSetManuallyG = false
+local glitchDetectionStateG = WAITING_FOR_KCP0_TO_KCP_LAST
+local curLapOnPrevFrameG = 0
+local curKCPOnPrevFrameG = -1
+local curLapOnKCP0EntryG = -1
 
 local curSegmentIndexForNextFrame = ADVANCE_TO_TRACK_SELECT
 local curActionIndexForNextFrame = 1
 local curStateForNextFrame = EXECUTING_ACTION
 local delayEndFrameCountForNextFrame = 0
 local cursorSetManuallyForNextFrame = false
+local glitchDetectionStateForNextFrame = WAITING_FOR_KCP0_TO_KCP_LAST
+local curLapOnPrevFrameForNextFrame = 0
+local curKCPOnPrevFrameForNextFrame = -1
+local curLapOnKCP0EntryForNextFrame = -1
 
 local params = {}
 
 local outputParams = {}
+
+local lastKCP = -1;
 
 local cupDebugText = ""
 local triggeredFlowerCupText = ""
 local frameOfInputText = ""
 local recordingStartedText = ""
 local lastPtsText = ""
+local detectedUltraText = ""
+local detected95RuleText = ""
+local detectedReverse95RuleText = ""
+local detectedL4UltraText = ""
+local detectedL495RuleText = ""
+local detectedL4Reverse95RuleText = ""
 
 function setChooseCupState(curSegmentIndex, curActionIndex, curState)
 	cup = tonumber(params["cup"])
@@ -301,6 +321,13 @@ function setFrameReplayStarts(curSegmentIndex, curActionIndex, curState)
 	return curSegmentIndex, curActionIndex, curState
 end
 
+function setLastKCPValue(curSegmentIndex, curActionIndex, curState)
+	lastKCP = core.getCurKeyCheckpoint();
+	curState = EXECUTING_ACTION
+	curActionIndex = curActionIndex + 1
+	return curSegmentIndex, curActionIndex, curState
+end
+
 function waitFrameOfInput1ThenSetFrameInputStarts(curSegmentIndex, curActionIndex, curState)
 	frameOfInput = core.getFrameOfInput()
 	if frameOfInput ~= 1 then
@@ -448,6 +475,7 @@ local advLiveReplayRaceGhostSegment = {
 	{waitFrameOfInput0, 0},
 	{startDumpFramesForEncodeLuaModes, 0},
 	{setFrameReplayStarts, 0},
+	{setLastKCPValue, 0},
 	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
 	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
@@ -498,6 +526,7 @@ local advLiveReplaySoloTimeTrialSegment = {
 	{waitFrameOfInput0, 0},
 	{startDumpFramesForEncodeLuaModes, 0},
 	{setFrameReplayStarts, 0},
+	{setLastKCPValue, 0},
 	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
 	{waitRaceCompletion, 60 * 10},
 	{stopDumpFrames, 0},
@@ -660,6 +689,10 @@ function onScriptUpdate()
 		curStateG = curStateForNextFrame
 		delayEndFrameCountG = delayEndFrameCountForNextFrame
 		cursorSetManuallyG = cursorSetManuallyForNextFrame
+		glitchDetectionStateG = glitchDetectionStateForNextFrame
+		curLapOnPrevFrameG = curLapOnPrevFrameForNextFrame
+		curKCPOnPrevFrameG = curKCPOnPrevFrameForNextFrame
+		curLapOnKCP0EntryG = curLapOnKCP0EntryForNextFrame
 		isDifferentFrame = true
 	end
 	prevFrame = frame
@@ -669,6 +702,10 @@ function onScriptUpdate()
 	local curState = curStateG
 	local delayEndFrameCount = delayEndFrameCountG
 	local cursorSetManually = cursorSetManuallyG
+	local glitchDetectionState = glitchDetectionStateG
+	local curLapOnPrevFrame = curLapOnPrevFrameG
+	local curKCPOnPrevFrame = curKCPOnPrevFrameG
+	local curLapOnKCP0Entry = curLapOnKCP0EntryG
 
 	entryCount = entryCount + 1
 	text = text .. string.format("\n\n\n\n\n\nFrame: %d, entryCount: %d\n", frame, entryCount)
@@ -747,6 +784,71 @@ function onScriptUpdate()
 		end
 	end
 
+-- if state == 0:
+--   check if in KCP Last, prev KCP is KCP0, kcp0Lap is curLap, and curLap is prevCurLap
+--     set state 1
+-- elif state == 1:
+--   check if in KCP0, and curLap is kcp0Lap + 1
+--     isUltra is true
+--     set state 2
+-- 
+-- if state != 2:
+--   if prevKCP != curKCP and curKCP is KCP0:
+--     kcp0Lap = curLap
+
+	if type(curAction.command) == "function" and curAction.command == waitRaceCompletion then
+		local curKCP = core.getCurKeyCheckpoint()
+		local curLap = core.getCurrentLap()
+		if glitchDetectionState == WAITING_FOR_KCP0_TO_KCP_LAST then
+			if curKCP > 1 and curKCPOnPrevFrame == 0 then
+				if curLapOnKCP0Entry == curLap and curLap == curLapOnPrevFrame then
+					glitchDetectionState = WAITING_FOR_KCP_LAST_TO_KCP0
+				elseif curLap + 1 == curLapOnPrevFrame then
+					if curState == IN_DELAY then
+						outputParams["isL495Rule"] = "true"
+						detectedL495RuleText = "Detected 95% Rule After Race!\n"
+					else
+						outputParams["is95Rule"] = "true"
+						detected95RuleText = "Detected 95% Rule!\n"						
+					end
+				end
+			end
+		elseif glitchDetectionState == WAITING_FOR_KCP_LAST_TO_KCP0 then
+			if curKCP == 0 then
+				if curLap == curLapOnKCP0Entry + 1 then
+					if curState == IN_DELAY and core.getRaceCompletion() > tonumber(params["lapCount"]) + 2 then
+						outputParams["isL4Ultra"] = "true"
+						detectedL4UltraText = "Detected Ultra Shortcut After Race!\n"
+						glitchDetectionState = DETECTED_ULTRA
+					else
+						outputParams["isUltra"] = "true"
+						detectedUltraText = "Detected Ultra Shortcut!\n"
+						glitchDetectionState = DETECTED_ULTRA
+					end
+				else
+					if curState == IN_DELAY then
+						outputParams["isL4Reverse95Rule"] = "true"
+						detectedL4Reverse95RuleText = "Detected Reverse 95% Rule After Race!\n"
+						glitchDetectionState = WAITING_FOR_KCP0_TO_KCP_LAST
+					else
+						outputParams["isReverse95Rule"] = "true"
+						detectedReverse95RuleText = "Detected Reverse 95% Rule!\n"
+						glitchDetectionState = WAITING_FOR_KCP0_TO_KCP_LAST
+					end
+				end
+			end
+		end
+
+		if glitchDetectionState ~= DETECTED_ULTRA then
+			if (curKCPOnPrevFrame ~= curKCP and curKCP == 0) or (curKCP == 0 and curLap == curLapOnPrevFrame + 1) then
+				curLapOnKCP0Entry = curLap
+			end
+		end
+
+		curKCPOnPrevFrame = curKCP
+		curLapOnPrevFrame = curLap
+	end
+
 	--curAction = segments[curSegmentIndex][curActionIndex]
 	--permaText = string.format("type(curAction.command): %s, curAction.command: %s\n", type(curAction.command), curAction.command)
 	--permaText = permaText .. string.format("curActionIndex: %d\n", curActionIndex)
@@ -759,6 +861,10 @@ function onScriptUpdate()
 	curStateForNextFrame = curState
 	delayEndFrameCountForNextFrame = delayEndFrameCount
 	cursorSetManuallyForNextFrame = cursorSetManually
+	glitchDetectionStateForNextFrame = glitchDetectionState
+	curLapOnPrevFrameForNextFrame = curLapOnPrevFrame
+	curKCPOnPrevFrameForNextFrame = curKCPOnPrevFrame
+	curLapOnKCP0EntryForNextFrame = curLapOnKCP0Entry
 
 	frameOfInputText = "frameOfInput: " .. core.getFrameOfInput() .. "\n"
 	if outputParams["frameRecordingStarts"] ~= nil then
@@ -769,7 +875,12 @@ function onScriptUpdate()
 
 	lastPtsText = "lastPts: " .. GetAVIDumpLastPts() .. ", refreshRate: " .. GetTargetRefreshRate() .. ", aviDumpLastFrame: " .. GetAVIDumpLastFrame() .. "\n"
 
-	text = text .. cupDebugText .. triggeredFlowerCupText .. frameOfInputText .. recordingStartedText .. lastPtsText
+	local checkpointInfoText = ""
+	checkpointInfoText = checkpointInfoText .. string.format("CP: %d, KCP: %d, Max KCP: %d, Lap: %d\n", core.getCurCheckpoint(), core.getCurKeyCheckpoint(), core.getMaxKeyCheckpoint(), core.getCurrentLap())
+	checkpointInfoText = checkpointInfoText .. string.format("Lap Completion: %6.6f, Lap Completion Max: %6.6f\nRace Completion: %6.6f\n", core.getLapCompletion(), core.getLapCompletionMax(), core.getRaceCompletion())
+	checkpointInfoText = checkpointInfoText .. string.format("lastKCP: %d, kcp0Lap: %d, glitchState: %d\n", lastKCP, curLapOnKCP0Entry, glitchDetectionState)
+
+	text = text .. cupDebugText .. triggeredFlowerCupText .. frameOfInputText .. recordingStartedText .. lastPtsText .. checkpointInfoText .. detectedUltraText .. detected95RuleText .. detectedReverse95RuleText .. detectedL4UltraText .. detectedL495RuleText .. detectedL4Reverse95RuleText
 	SetScreenText(text)
 end
 

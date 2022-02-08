@@ -347,15 +347,56 @@ local function getFinishDifference()
 end
 core.getFinishDifference = getFinishDifference
 
+local function getRaceData2BasePointer()
+	local raceData2
+	if GetGameID() == "RMCP01" then raceData2 = 0x9BD730
+	elseif GetGameID() == "RMCE01"then raceData2 = 0x9B8F70
+	elseif GetGameID() == "RMCJ01" then raceData2 = 0x9BC790
+	elseif GetGameID() == "RMCK01" then raceData2 = 0x9ABD70
+	end
+	return raceData2
+end
+
+local function getCurCheckpoint()
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValue16(raceData2, 0xC, 0x0, 0xa)
+end
+core.getCurCheckpoint = getCurCheckpoint
+
+local function getCurKeyCheckpoint()
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValue8(raceData2, 0xC, 0x0, 0x27)
+end
+core.getCurKeyCheckpoint = getCurKeyCheckpoint
+
+local function getMaxKeyCheckpoint()
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValue8(raceData2, 0xC, 0x0, 0x28)
+end
+core.getMaxKeyCheckpoint = getMaxKeyCheckpoint
+
+local function getLapCompletion()
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValueFloat(raceData2, 0xC, 0x0, 0x18)
+end
+core.getLapCompletion = getLapCompletion
+
+local function getLapCompletionMax()
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValueFloat(raceData2, 0xC, 0x0, 0x1c)
+end
+core.getLapCompletionMax = getLapCompletionMax
+
 local function getRaceCompletion()
-  local raceData2
-  if GetGameID() == "RMCP01" then raceData2 = 0x9BD730
-  elseif GetGameID() == "RMCE01"then raceData2 = 0x9B8F70
-  elseif GetGameID() == "RMCJ01" then raceData2 = 0x9BC790
-  elseif GetGameID() == "RMCK01" then raceData2 = 0x9ABD70
-  end
-  return ReadValueFloat(raceData2, 0xC, 0x0, 0xc)
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValueFloat(raceData2, 0xC, 0x0, 0xc)
 end
 core.getRaceCompletion = getRaceCompletion
+
+local function getCurrentLap()
+	local raceData2 = getRaceData2BasePointer()
+	return ReadValue16(raceData2, 0xC, 0x0, 0x24)
+end
+core.getCurrentLap = getCurrentLap
 
 return core
