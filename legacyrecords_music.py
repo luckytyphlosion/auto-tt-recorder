@@ -132,7 +132,9 @@ class MusicFetcher:
         all_music_links = set(self.music_info_dict.keys())
         used_music_links = set(yt_recorder_config["used_music_links"])
         unused_music_links = all_music_links - used_music_links
-        if len(unused_music_links) == 0:        
+        unused_music_links_count = len(unused_music_links)
+        print(f"unused_music_links_count: {unused_music_links_count}")
+        if unused_music_links_count == 0:        
             return None, -1
 
         chosen_music_link = None
