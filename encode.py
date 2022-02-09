@@ -215,7 +215,7 @@ class Encoder:
         if encode_settings.output_width is not None:
             final_video_stream = ffmpeg.filter(almost_final_streams[0], "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
         else:
-            final_video_stream = almost_final_streams[0]
+            final_video_stream = ffmpeg.filter(almost_final_streams[0], "crop", "trunc(iw/2)*2", "trunc(ih/2)*2")
 
         final_audio_stream = almost_final_streams[1]
 
