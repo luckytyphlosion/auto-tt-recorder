@@ -31,6 +31,7 @@ import math
 import pytz
 import youtube
 import copy
+import re
 
 import legacyrecords_staticconfig
 import legacyrecords_music
@@ -486,7 +487,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             if legacy_wr_entry_to_record["categoryId"] in (-1, 0, 4):
                 lb_modifiers_with_category_str = lb_modifiers_str
             else:
-                lb_modifiers_with_category_str = f"{lb_modifiers_str}({legacy_wr_entry_to_record['categoryName']}) "
+                lb_modifiers_with_category_str = f"{lb_modifiers_str}{legacy_wr_entry_to_record['categoryName']} "
 
             custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_chadsoft(
                 html_page_lb_link,
