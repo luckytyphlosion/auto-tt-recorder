@@ -276,6 +276,12 @@ def load_speedmod_track_ids():
 
     speedmod_track_ids_as_set = set(speedmod_track_ids)
 
+lb_href_glitch_regex = re.compile(r"^(/leaderboard/[0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/)(01|05).json")
+
+GLITCH_TYPE_NONE = 0
+GLITCH_TYPE_FASTER = 1
+GLITCH_TYPE_SLOWER = 2
+
 def record_legacy_wr_ghosts(yt_recorder_config):
     with open("sorted_legacy_wrs.json", "r") as f:
         legacy_wrs = json.load(f)
@@ -296,8 +302,8 @@ def record_legacy_wr_ghosts(yt_recorder_config):
 
         if legacy_wr_entry_to_record is not None:
             schedule_index = i + base_schedule_index
-
-            approx_video_duration = parse_finish_time_simple_from_legacy_wr_entry(legacy_wr_entry_to_record) + 22
+            finish_time_simple_as_num = parse_finish_time_simple_from_legacy_wr_entry(legacy_wr_entry_to_record)
+            approx_video_duration = finish_time_simple_as_num + 22
             if i != 0:
                 music_fetcher.get_music_info_list()
 
@@ -312,18 +318,89 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             pathlib.Path(legacyrecords_staticconfig.output_video_directory).mkdir(parents=True, exist_ok=True)
             output_video_filename = f"{legacyrecords_staticconfig.output_video_directory}/{upload_title}.mp4"
             iso_filename = legacyrecords_staticconfig.iso_filename
+            category_id = legacy_wr_entry_to_record["categoryId"]
 
-            if legacy_wr_entry_to_record["vehicleModifier"] is not None:
-                legacy_wr_entry_ignoring_vehicle_modifier = legacy_wr_lb_ignoring_vehicle_modifier["ghosts"][0]
-                if legacy_wr_entry_ignoring_vehicle_modifier["playerId"] not in legacyrecords_staticconfig.censored_players:
-                    rkg_link = legacy_wr_entry_ignoring_vehicle_modifier["href"]
-                    rkg_data, status_code = chadsoft.get(rkg_link, is_binary=True, read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
-                    if status_code != 404:
-                        rkg_file_comparison = rkg_data
-                    else:
-                        print(f"Rkg file for ghost id {legacy_wr_entry_ignoring_vehicle_modifier['hash']} does not exist!")
-                        rkg_file_comparison = None
+            # want:
+            # - slower glitch compares against no glitch
+            # - faster glitch compares against no glitch
+            # - faster glitch other vehicle compares against faster glitch
+            # - no glitch other vehicle compares against no glitch
+            # - no glitch compares against nothing
+
+            legacy_wr_entry_vehicle_modifier = legacy_wr_entry_to_record["vehicleModifier"]
+
+            if category_id in (1, 5):
+                match_obj = lb_href_glitch_regex.match(legacy_wr_entry_to_record["lbHref"])
+                if category_id == 1:
+                    category_json_stem = "00"
+                elif category_id == 5:
+                    category_json_stem = "04"
                 else:
+                    assert False
+
+                track_lb_base = match_obj.group(1)
+                normal_lb_href = f"{track_lb_base}{category_json_stem}.json"
+
+                normal_lb = chadsoft.get_lb_from_href(normal_lb_href, start=0, limit=1, vehicle=legacy_wr_entry_vehicle_modifier, times="wr", read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
+                normal_lb_ghosts = normal_lb["ghosts"]
+                # maybe in case a shortcut is bike only?
+                if len(normal_lb_ghosts) != 0:
+                    potential_comparison_ghost_entry = normal_lb_ghosts[0]
+                else:
+                    if legacy_wr_entry_vehicle_modifier is not None:
+                        # try checking no-shortcut
+                        if category_id == 1:
+                            no_shortcut_category_json_stem = "02"
+                        elif category_id == 5:
+                            no_shortcut_category_json_stem = "06"
+                        else:
+                            assert False
+                        no_shortcut_lb_href = f"{track_lb_base}{no_shortcut_category_json_stem}.json"
+                        no_shortcut_lb, status_code = chadsoft.get_lb_from_href_with_status(no_shortcut_lb_href, start=0, limit=1, vehicle=legacy_wr_entry_vehicle_modifier, times="wr", read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
+                        if status_code != 404:
+                            no_shortcut_lb_ghosts = no_shortcut_lb["ghosts"]
+                            if len(no_shortcut_lb_ghosts) != 0:
+                                potential_comparison_ghost_entry = no_shortcut_lb_ghosts[0]
+                            else:
+                                potential_comparison_ghost_entry = None
+                        else:
+                            potential_comparison_ghost_entry = None
+                    else:
+                        potential_comparison_ghost_entry = None
+
+                if potential_comparison_ghost_entry is not None:
+                    potential_comparison_ghost_entry_finish_time_simple_as_num = parse_finish_time_simple_from_legacy_wr_entry(potential_comparison_ghost_entry)
+                    if potential_comparison_ghost_entry_finish_time_simple_as_num < finish_time_simple_as_num:
+                        # slower glitch compares against no glitch
+                        comparison_ghost_entry = potential_comparison_ghost_entry
+                        print(f"Found slower glitch!")
+                        glitch_type = GLITCH_TYPE_SLOWER
+                    else:
+                        if legacy_wr_entry_vehicle_modifier is None:
+                            # faster glitch compares against no glitch
+                            comparison_ghost_entry = potential_comparison_ghost_entry
+                        else:
+                            # faster glitch other vehicle compares against faster glitch
+                            comparison_ghost_entry = legacy_wr_lb_ignoring_vehicle_modifier["ghosts"][0]
+                        glitch_type = GLITCH_TYPE_FASTER
+                else:
+                    comparison_ghost_entry = None
+            else:
+                glitch_type = GLITCH_TYPE_NONE
+                if legacy_wr_entry_vehicle_modifier is not None:
+                    # no glitch other vehicle compares against no glitch
+                    comparison_ghost_entry = legacy_wr_lb_ignoring_vehicle_modifier["ghosts"][0]
+                else:
+                    # no glitch compares against nothing
+                    comparison_ghost_entry = None
+
+            if comparison_ghost_entry is not None and comparison_ghost_entry["playerId"] not in legacyrecords_staticconfig.censored_players:
+                rkg_link = comparison_ghost_entry["href"]
+                rkg_data, status_code = chadsoft.get(rkg_link, is_binary=True, read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
+                if status_code != 404:
+                    rkg_file_comparison = rkg_data
+                else:
+                    print(f"Rkg file for ghost id {comparison_ghost_entry['hash']} does not exist!")
                     rkg_file_comparison = None
             else:
                 rkg_file_comparison = None
@@ -406,11 +483,15 @@ def record_legacy_wr_ghosts(yt_recorder_config):
 
             track_name_and_version = description.create_track_name_and_version_from_wr_entry(legacy_wr_entry_to_record)
             lb_modifiers_str = description.create_lb_modifiers_str(legacy_wr_entry_to_record)
+            if legacy_wr_entry_to_record["categoryId"] in (-1, 0, 4):
+                lb_modifiers_with_category_str = lb_modifiers_str
+            else:
+                lb_modifiers_with_category_str = f"{lb_modifiers_str}({legacy_wr_entry_to_record['categoryName']}) "
 
             custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_chadsoft(
                 html_page_lb_link,
                 "ww",
-                f"{track_name_and_version} {lb_modifiers_str}CTGP Top 10",
+                f"{track_name_and_version} {lb_modifiers_with_category_str}CTGP Top 10",
                 1,
                 f"{lb_modifiers_str}CTGP Champion",
                 legacyrecords_staticconfig.censored_players,
@@ -427,22 +508,26 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             record_ghost.record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, checkpoint_filename=checkpoint_filename)
 
             slower_glitch_type = SLOWER_GLITCH_NO_GLITCH
-
-            if legacy_wr_entry_to_record["categoryId"] in (1, 5):
+            
+            if category_id in (1, 5):
                 with open("dolphin/output_params.txt", "r") as f:
                     output_params_text = f.read()
 
                 if "is95Rule" in output_params_text:
                     slower_glitch_type = SLOWER_GLITCH_95_RULE
                 elif "isUltra" in output_params_text:
-                    slower_glitch_type = SLOWER_GLITCH_REAL_GLITCH
+                    if glitch_type == GLITCH_TYPE_FASTER:
+                        slower_glitch_type = SLOWER_GLITCH_FASTER_GLITCH
+                    else:
+                        slower_glitch_type = SLOWER_GLITCH_REAL_SLOWER_GLITCH
                 elif "isReverse95Rule" in output_params_text:
                     slower_glitch_type = SLOWER_GLITCH_REVERSE_95_RULE
                 else:
                     slower_glitch_type = SLOWER_GLITCH_FAKE_GLITCH
 
             yt_title = description.gen_title(legacy_wr_entry_to_record, slower_glitch_type)
-            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info, slower_glitch_type)
+            
+            yt_description = description.gen_description(legacy_wr_entry_to_record, legacy_wr_lb, downloaded_ghost_pathname, music_info, slower_glitch_type, comparison_ghost_entry)
 
             schedule_datetime_str = gen_schedule_datetime_str(start_datetime, schedule_index)
             yt_update_infos[upload_title] = {
