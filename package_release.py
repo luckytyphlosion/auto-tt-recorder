@@ -94,10 +94,10 @@ def main():
     seven_zip_filepath = pathlib.Path(seven_zip_filename)
     seven_zip_filepath.unlink(missing_ok=True)
 
-    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.7z", f"release_working/{release_name}", "-t7z", "-mx=9", "-myx=9", "-ms=on", "-mmt=off", "-m0=LZMA2:d=256m:fb=273:mc=10000"), check=True)
+    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.7z", f"./release_working/{release_name}/*", "-t7z", "-mx=9", "-myx=9", "-ms=on", "-mmt=off", "-m0=LZMA2:d=256m:fb=273:mc=10000"), check=True)
 
     print("Creating zip archive!")
-    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.zip", f"release_working/{release_name}", "-tzip", "-mx=9", "-mfb=258", "-mpass=15", "-mmt=off"), check=True)
+    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.zip", f"./release_working/{release_name}/*", "-tzip", "-mx=9", "-mfb=258", "-mpass=15", "-mmt=off"), check=True)
 
 if __name__ == "__main__":
     main()
