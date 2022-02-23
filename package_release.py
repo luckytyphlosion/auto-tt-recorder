@@ -36,7 +36,7 @@ def main():
         release_config = yaml.safe_load(f)
 
     print("Building record_ghost.exe!")
-    subprocess.run(("pyinstaller", "-F", "record_ghost.py"), check=True)
+    subprocess.run(("pyinstaller", "-F", "record_ghost.py", "--paths", "virt_win/Lib/site-packages"), check=True)
 
     dolphin_lua_core_dirname = release_config["dolphin_lua_core_dirname"]
     release_name = release_config["release_name"]
