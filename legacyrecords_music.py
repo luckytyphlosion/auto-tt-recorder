@@ -49,8 +49,13 @@ saved_music_durations_filepath = pathlib.Path("music_cached/music_durations.json
 audio_len_regex = re.compile(r"size=N/A time=([0-9]{2}):([0-9]{2}):([0-9]{2}\.[0-9]{2})", flags=re.MULTILINE)
 
 def get_audio_len(audio_filename):
-    #print(f"audio_filename: {audio_filename}")
-    ffmpeg_output = subprocess.check_output(["ffmpeg", "-i", audio_filename, "-f", "null", "-"], stderr=subprocess.STDOUT).replace(b"\r", b"\n").decode("utf-8")
+    print(f"audio_filename: {audio_filename}")
+    ffmpeg_output_undecoded = subprocess.check_output(["ffmpeg", "-i", audio_filename, "-f", "null", "-"], stderr=subprocess.STDOUT).replace(b"\r", b"\n")
+
+    try:
+        ffmpeg_output = ffmpeg_output_undecoded.decode("utf-8")
+    except UnicodeDecodeError:
+        ffmpeg_output = ffmpeg_output_undecoded.decode("shift_jis")
 
     audio_len_match_objs = audio_len_regex.findall(ffmpeg_output)
     if len(audio_len_match_objs) == 0:
@@ -154,6 +159,7 @@ class MusicFetcher:
             with open(saved_music_durations_filepath, "r") as f:
                 saved_music_durations = json.load(f)
 
+            cur_closest_music_duration = 99999
             for music_link in unused_music_links_as_list:
                 music_info = self.music_info_dict[music_link]
                 music_info.download_if_not_exists_then_set_music_filename()
@@ -166,10 +172,11 @@ class MusicFetcher:
                     saved_music_durations[music_info.link] = music_duration
                 print(f"music_duration: {music_duration}")
     
-                if music_duration >= approx_video_duration:
+                if music_duration >= approx_video_duration and music_duration - approx_video_duration < cur_closest_music_duration:
                     chosen_music_link = music_link
                     chosen_music_info = music_info
-                    break
+                    cur_closest_music_duration = music_duration - approx_video_duration
+                    print(f"chosen_music_link: {chosen_music_link}, music_duration: {music_duration}, approx_video_duration: {approx_video_duration}, cur_closest_music_duration: {cur_closest_music_duration}")
 
             with open(saved_music_durations_filepath, "w+") as f:
                 json.dump(saved_music_durations, f, indent=2)

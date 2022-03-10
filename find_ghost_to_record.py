@@ -73,8 +73,13 @@ def check_suitable_ghost(legacy_wr_entry):
     vehicle_modifier = legacy_wr_entry["vehicleModifier"]
     lb_href = legacy_wr_entry["lbHref"]
     date_set_timestamp = legacy_wr_entry["dateSetTimestamp"]
-    updated_legacy_wr_lb_ignoring_vehicle_modifier = chadsoft.get_lb_from_href(lb_href, start=0, limit=2, times="wr", read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
-    updated_legacy_wr_entry_data_ignoring_vehicle_modifier = updated_legacy_wr_lb_ignoring_vehicle_modifier["ghosts"]
+    try:
+        updated_legacy_wr_lb_ignoring_vehicle_modifier = chadsoft.get_lb_from_href(lb_href, start=0, limit=2, times="wr", read_cache=CHADSOFT_READ_CACHE, write_cache=CHADSOFT_WRITE_CACHE)
+        updated_legacy_wr_entry_data_ignoring_vehicle_modifier = updated_legacy_wr_lb_ignoring_vehicle_modifier["ghosts"]
+    except Exception as e:
+        print(f"legacy_wr_entry: {legacy_wr_entry}, updated_legacy_wr_lb_ignoring_vehicle_modifier: {updated_legacy_wr_lb_ignoring_vehicle_modifier}")
+        raise RuntimeError(e)
+
 
     if len(updated_legacy_wr_entry_data_ignoring_vehicle_modifier) == 0:
         lb_entry_builder = LbEntryBuilder()
@@ -296,6 +301,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
     base_schedule_index = yt_recorder_config["base_schedule_index"]
     music_fetcher = legacyrecords_music.MusicFetcher()
     music_fetcher.transition_to_used_music_links(yt_recorder_config)
+    recorded_all_ghosts = False
 
     for i in range(yt_recorder_config["num_remaining_ghosts"]):
         print(f"Recording ghost {i}!")
@@ -432,7 +438,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             # output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt, youtube_settings, game_volume, music_volume
             # )
             FAST_TEST_ENCODE = False
-            DO_LIBX265 = True
+            DO_LIBX265 = False
             if FAST_TEST_ENCODE:
                 output_format = "mp4"
                 crf = 18
@@ -454,7 +460,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
                 audio_bitrate = "256k"
                 output_width = dolphin_resolution_to_output_width[dolphin_resolution]
                 pix_fmt = "yuv420p10le"
-                youtube_settings = False
+                youtube_settings = True
                 game_volume = 1.0
                 music_volume = 1.0
             else:
@@ -551,11 +557,15 @@ def record_legacy_wr_ghosts(yt_recorder_config):
                 json.dump(sorted_vehicle_wrs_as_list, f, indent=2, ensure_ascii=False)
 
             serialize_yt_update_infos(yt_update_infos)
-            
+
             yt_recorder_config = update_recorder_config_state_and_serialize(yt_recorder_config, RECORDING_GHOSTS)
         else:
             yt_recorder_config["num_remaining_ghosts"] = 0
+            recorded_all_ghosts = True
             break
+
+    if not recorded_all_ghosts:
+        yt_recorder_config["base_schedule_index"] += 6
 
     return update_recorder_config_state_and_serialize(yt_recorder_config, WAITING_FOR_UPLOAD)
 

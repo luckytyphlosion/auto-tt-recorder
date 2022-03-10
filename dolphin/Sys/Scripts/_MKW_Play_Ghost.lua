@@ -708,7 +708,7 @@ function onScriptUpdate()
 	local curLapOnKCP0Entry = curLapOnKCP0EntryG
 
 	entryCount = entryCount + 1
-	text = text .. string.format("\n\n\n\n\n\nFrame: %d, entryCount: %d\n", frame, entryCount)
+	text = text .. string.format("Frame: %d, entryCount: %d\n", frame, entryCount)
 	text = text .. string.format("cursorSetManually: %s\n", cursorSetManually)
 	text = text .. string.format("\nRunning Play Ghost!\n")
 
