@@ -194,7 +194,7 @@ def test_gen_start_datetime():
 
 def gen_schedule_datetime_str(start_datetime, schedule_index):
     if True:
-        return pytz.utc.localize(start_datetime + timedelta(hours=4) * schedule_index).isoformat()
+        return pytz.utc.localize(start_datetime + timedelta(hours=24) * schedule_index).isoformat()
     else:
         return pytz.utc.localize(start_datetime + timedelta(hours=1) * schedule_index).isoformat()
         
@@ -438,7 +438,7 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             # output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt, youtube_settings, game_volume, music_volume
             # )
             FAST_TEST_ENCODE = False
-            DO_LIBX265 = False
+            DO_LIBX265 = True
             if FAST_TEST_ENCODE:
                 output_format = "mp4"
                 crf = 18
@@ -475,6 +475,12 @@ def record_legacy_wr_ghosts(yt_recorder_config):
                 youtube_settings = True
                 game_volume = 1.0
                 music_volume = 1.0
+                #if legacy_wr_entry_to_record["hash"] in ("344DC14E5AA13E4500E43E5C90F3FD4311A742F6", "BDAEDBFD1B08B74FC406075EC24F493961E14EAA"):
+                #    game_volume = 0.01
+                #    music_volume = 1.0
+                #else:
+                #    game_volume = 0.2
+                #    music_volume = 1.0
 
             encode_settings = CrfEncodeSettings(
                 output_format, crf, h26x_preset,
@@ -564,8 +570,8 @@ def record_legacy_wr_ghosts(yt_recorder_config):
             recorded_all_ghosts = True
             break
 
-    if not recorded_all_ghosts:
-        yt_recorder_config["base_schedule_index"] += 6
+    #if not recorded_all_ghosts:
+    #    yt_recorder_config["base_schedule_index"] += 6
 
     return update_recorder_config_state_and_serialize(yt_recorder_config, WAITING_FOR_UPLOAD)
 

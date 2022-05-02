@@ -180,10 +180,10 @@ class Encoder:
         dynamic_filter_args = self.gen_dynamic_filter_args(fade_frame_duration)
 
         video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
-        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav", ar="48000")
+        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
 
         if music_option.option == MUSIC_CUSTOM_MUSIC:
-            music_in_file = ffmpeg.input(music_option.music_filename, ar="48000").audio
+            music_in_file = ffmpeg.input(music_option.music_filename).audio
             if encode_settings.music_volume == 1.0:
                 music_volume_stream = music_in_file
             else:

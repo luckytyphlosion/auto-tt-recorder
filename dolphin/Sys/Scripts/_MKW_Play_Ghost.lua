@@ -784,6 +784,11 @@ function onScriptUpdate()
 		end
 	end
 
+	local frameOfInput = core.getFrameOfInput()
+	if frameOfInput > 22000 and frameOfInput < 22100 then
+		error("Run did not terminate within ~6 minutes!")
+	end
+
 -- if state == 0:
 --   check if in KCP Last, prev KCP is KCP0, kcp0Lap is curLap, and curLap is prevCurLap
 --     set state 1

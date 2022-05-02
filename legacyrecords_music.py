@@ -5,6 +5,7 @@ import pathlib
 import json
 import subprocess
 import re
+import time
 
 music_info_fieldnames = ("link", "suggestor", "source", "artist", "name", "ghost_id")
 
@@ -85,7 +86,7 @@ class MusicFetcher:
     def get_music_info_list(self, mock_music_list_text=None):
         if mock_music_list_text is None:
             music_list_link = legacyrecords_staticconfig.music_list_link
-            r = requests.get(music_list_link)
+            r = requests.get(f"{music_list_link}?{int(time.time())}")
             if r.status_code != 200:
                 raise RuntimeError(f"music_list_link returned {r.status_code}: {r.reason}")
             response_text = r.text
@@ -177,6 +178,9 @@ class MusicFetcher:
                     chosen_music_info = music_info
                     cur_closest_music_duration = music_duration - approx_video_duration
                     print(f"chosen_music_link: {chosen_music_link}, music_duration: {music_duration}, approx_video_duration: {approx_video_duration}, cur_closest_music_duration: {cur_closest_music_duration}")
+
+            if chosen_music_link is not None and approx_video_duration <= 90 and cur_closest_music_duration >= 30:
+                chosen_music_link = None
 
             with open(saved_music_durations_filepath, "w+") as f:
                 json.dump(saved_music_durations, f, indent=2)
