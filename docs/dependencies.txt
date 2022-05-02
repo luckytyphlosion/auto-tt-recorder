@@ -1,1 +1,1 @@
-requests ffmpeg-python sortedcontainers python-dateutil pytz configargparse pyyaml google-api-python-client google-auth-oauthlib google-auth
+requests ffmpeg-python sortedcontainers python-dateutil pytz configargparse pyyaml google-api-python-client google-auth-oauthlib google-auth Pillow
