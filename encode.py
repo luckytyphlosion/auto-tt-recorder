@@ -152,9 +152,13 @@ class Encoder:
 
         input_display_in_file = ffmpeg.input("temp/input_display.mov")
 
-        scaled_input_display = ffmpeg.filter(input_display_in_file, "scale",
-            input_display_gfx_info.inputs_width, input_display_gfx_info.inputs_height, flags="bicubic"
-        )
+        if input_display_gfx_info.inputs_width is not None:
+            scaled_input_display = ffmpeg.filter(input_display_in_file, "scale",
+                input_display_gfx_info.inputs_width, input_display_gfx_info.inputs_height, flags="bicubic"
+            )
+        else:
+            scaled_input_display = input_display_in_file
+
         # +{input_display_start_frame/60}/TB
         # {input_display_start_frame}
         print(f"input_display_start_frame: {input_display_start_frame}")

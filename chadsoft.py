@@ -291,6 +291,11 @@ class GhostPage:
 
         return self.ghost_info
 
+    @staticmethod
+    def is_ghost_page_link(ghost_page_link):
+        match_obj = ghost_page_link_regex.match(ghost_page_link)
+        return match_obj is not None
+
 class Leaderboard:
     __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "read_cache", "write_cache")
 

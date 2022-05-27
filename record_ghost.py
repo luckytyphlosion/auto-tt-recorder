@@ -324,7 +324,7 @@ def main():
     )
     # global args
     ap.add_argument("-cfg", "--config", dest="config", default=None, is_config_file=True, help="Alternative config file to put in command line arguments. Arguments provided on the command line will override arguments provided in the config file, if specified.")
-    ap.add_argument("-i", "--main-ghost-filename", dest="input_ghost_filename", help="Filename of the main ghost to record. Can be omitted if -ttc/--top-10-chadsoft is specified, if so then the ghost to record will be the one specified by -tth/--top-10-highlight", default=None)
+    ap.add_argument("-i", "--main-ghost-filename", dest="main_ghost_filename", help="Filename of the main ghost to record. Can be omitted if -ttc/--top-10-chadsoft is specified, if so then the ghost to record will be the one specified by -tth/--top-10-highlight", default=None)
     ap.add_argument("-o", "--output-video-filename", dest="output_video_filename", help="Filename of the output recorded ghost. All possible allowed formats are mkv, webm, and mp4, but further restrictions apply. See the note on output formats.", required=True)
     ap.add_argument("-r", "--iso-filename", dest="iso_filename", help="Filename of the Mario Kart Wii ISO.", required=True)
     ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost. This cannot be specified with -ccg/--chadsoft-comparison-ghost-page.")
@@ -342,6 +342,10 @@ def main():
     ap.add_argument("-dv", "--dolphin-volume", dest="dolphin_volume", type=int, default=0, help="Volume of the Dolphin executable. Only relevant for debugging, has no impact on audiodump volume.")
     ap.add_argument("-cg", "--chadsoft-ghost-page", dest="chadsoft_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to record. Specifying this will fill in the options for -i/--main-ghost-filename and -s/--szs-filename if they are not set (and the track to record is a custom track for szs filename). This option is not valid if the chosen timeline is top10 and -ttg/--top-10-gecko-code-filename is not specified.")
     ap.add_argument("-ccg", "--chadsoft-comparison-ghost-page", dest="chadsoft_comparison_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to compare against. This cannot be specified with -c/--comparison-ghost-filename.")
+    ap.add_argument("-mga", "--main-ghost-auto", dest="main_ghost_auto", default=None, help="Smart option which is just -i/--main-ghost-filename and -cg/--chadsoft-ghost-page combined. Will automatically detect which option to use, based on the option input (i.e. chadsoft link will use -cg/--chadsoft-ghost-page, otherwise assumes -i/--main-ghost-filename). Cannot be used with -i/--main-ghost-filename and -cg/--chadsoft-ghost-page.")
+    ap.add_argument("-cga", "--comparison-ghost-auto", dest="comparison_ghost_auto", default=None, help="Smart option which is just -c/--comparison-ghost-filename and -ccg/--chadsoft-comparison-ghost-page combined. Will automatically detect which option to use, based on the option input (i.e. chadsoft link will use -ccg/--chadsoft-ghost-page, otherwise assumes -c/--comparison-ghost-filename).")
+
+
     ap.add_argument("-tn", "--track-name", dest="track_name", default=None, help="The name of the track. This will affect the track name shown on the Ghost description page, seen in all timelines. Default is to use the track name of the Rkg track slot.")
     ap.add_argument("-em", "--ending-message", dest="ending_message", default="Video recorded by Auto TT Recorder", help="The ending message that shows on the bottom left after completing a time trial. Default is \"Video recorded by Auto TT Recorder\" (without quotes).")
     ap.add_argument("-crc", "--chadsoft-read-cache", dest="chadsoft_read_cache", action="store_true", default=False, help="Whether to read any data downloaded from Chadsoft and saved to a local cache folder.")
@@ -397,41 +401,65 @@ def main():
     else:
         cc_option = CC_UNKNOWN
 
-    if args.input_ghost_filename is None and args.top_10_chadsoft is None and args.chadsoft_ghost_page is None:
+    # backwards compatibility with previous yamls
+    chadsoft_ghost_page_link = args.chadsoft_ghost_page
+    # just for consistency
+    main_ghost_filename = args.main_ghost_filename
+
+    if main_ghost_filename is None and args.top_10_chadsoft is None and chadsoft_ghost_page_link is None and args.main_ghost_auto is None:
         raise RuntimeError("Ghost file, chadsoft leaderboard, or chadsoft ghost page not specified!")
 
-    if args.top_10_chadsoft is not None and args.chadsoft_ghost_page is not None:
+    if args.top_10_chadsoft is not None and chadsoft_ghost_page_link is not None:
         raise RuntimeError("Only one of -ttc/--top-10-chadsoft and -cg/--chadsoft-ghost-page can be specified!")
 
-    if args.chadsoft_ghost_page is not None:
-        ghost_page = chadsoft.GhostPage(args.chadsoft_ghost_page, args.chadsoft_read_cache, args.chadsoft_write_cache)
-    else:
-        ghost_page = None
+    if chadsoft_ghost_page_link is not None and main_ghost_filename is not None:
+        raise RuntimeError("Only one of -i/--main-ghost-filename and -cg/--chadsoft-ghost-page can be specified!")
 
-    if ghost_page is not None:
-        if args.input_ghost_filename is not None:
-            raise RuntimeError("Only one of -i/--main-ghost-filename and -cg/--chadsoft-ghost-page can be specified!")
+    if args.main_ghost_auto is not None:
+        if main_ghost_filename is not None or chadsoft_ghost_page_link is not None:
+            raise RuntimeError("-mga/--main-ghost-auto cannot be specified with -i/--main-ghost-filename or -cg/--chadsoft-ghost-page!")
 
+        if chadsoft.GhostPage.is_ghost_page_link(args.main_ghost_auto):
+            chadsoft_ghost_page_link = args.main_ghost_auto
+        else:
+            main_ghost_filename = args.main_ghost_auto
+
+    if chadsoft_ghost_page_link is not None:
+        ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, args.chadsoft_read_cache, args.chadsoft_write_cache)
         rkg_file_main = ghost_page.get_rkg()
 
         if cc_option == CC_UNKNOWN:
             cc_option = CC_200 if ghost_page.is_200cc() else CC_150
     else:
-        rkg_file_main = args.input_ghost_filename
+        rkg_file_main = main_ghost_filename
 
     output_video_filename = args.output_video_filename
     output_format_maybe_dot = pathlib.Path(output_video_filename).suffix
     if output_format_maybe_dot not in (".mp4", ".mkv", ".webm"):    
         raise RuntimeError("Output file does not have an accepted file extension!")
     output_format = output_format_maybe_dot[1:]
-    
+
     iso_filename = args.iso_filename
-    if args.comparison_ghost_filename is not None and args.chadsoft_comparison_ghost_page is not None:
+
+    comparison_ghost_filename = args.comparison_ghost_filename
+    chadsoft_comparison_ghost_page_link = args.chadsoft_comparison_ghost_page
+
+    if comparison_ghost_filename is not None and chadsoft_comparison_ghost_page_link is not None:
         raise RuntimeError("Only one of -c/--comparison-ghost-filename and -ccg/--chadsoft-comparison-ghost-page is allowed!")
-    elif args.comparison_ghost_filename is not None:
-        rkg_file_comparison = args.comparison_ghost_filename
-    elif args.chadsoft_comparison_ghost_page is not None:
-        rkg_file_comparison = chadsoft.GhostPage(args.chadsoft_comparison_ghost_page, args.chadsoft_read_cache, args.chadsoft_write_cache).get_rkg()
+
+    if args.comparison_ghost_auto is not None:
+        if comparison_ghost_filename is not None or chadsoft_comparison_ghost_page_link is not None:
+            raise RuntimeError("-mga/--main-ghost-auto cannot be specified with -i/--main-ghost-filename or -cg/--chadsoft-ghost-page!")
+
+        if chadsoft.GhostPage.is_ghost_page_link(args.comparison_ghost_auto):
+            chadsoft_comparison_ghost_page_link = args.comparison_ghost_auto
+        else:
+            comparison_ghost_filename = args.comparison_ghost_auto
+
+    if comparison_ghost_filename is not None:
+        rkg_file_comparison = comparison_ghost_filename
+    elif chadsoft_comparison_ghost_page_link is not None:
+        rkg_file_comparison = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, args.chadsoft_read_cache, args.chadsoft_write_cache).get_rkg()
     else:
         rkg_file_comparison = None
 
