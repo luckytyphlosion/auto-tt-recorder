@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 from math import floor
 #import numpy, cv2
