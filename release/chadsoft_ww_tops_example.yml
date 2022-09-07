@@ -45,6 +45,7 @@ speedometer: fancy
 # The metric of speed which the speedometer reports. Possible options are (without quotes):
 # "engine": The speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers)
 # "xyz": The norm of the current position minus the previous position.
+# "xz": The norm of the current position minus the previous position, excluding any y-axis movement. Essentially measures straight-forward speed, and is the most accurate measure in airtime.
 speedometer-metric: engine
 
 # The number of decimal places in the speedometer. Allowed values depend on the style of the speedometer. These are:
