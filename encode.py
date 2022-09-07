@@ -19,7 +19,9 @@ import ffmpeg
 import os
 import re
 import pathlib
+import platform
 
+import job_process
 import PyRKG.VideoGenerator
 
 from stateclasses.timeline_classes import *
@@ -30,6 +32,8 @@ from stateclasses.input_display import *
 nb_frames_regex = re.compile(r"^nb_frames=([0-9]+)", flags=re.MULTILINE)
 
 dev_null = "/dev/null" if os.name == "posix" else "NUL"
+
+platform_system = platform.system()
 
 FPS = 59.94005994006
 
@@ -97,9 +101,14 @@ class Encoder:
         return video_frame_duration
 
     def encode_stream_copy(self, output_video_filename):
-        subprocess.run(
-            (self.ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename), check=True
-        )
+        ffmpeg_stream_copy_cmd = (self.ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
+
+        if platform_system == "Windows":
+            job_process.run_subprocess_as_job(ffmpeg_stream_copy_cmd)
+        else:
+            subprocess.run(
+                ffmpeg_stream_copy_cmd, check=True
+            )
 
     def gen_dynamic_filter_args(self, fade_frame_duration):
         output_params = {}
@@ -279,9 +288,9 @@ class Encoder:
                     assert False
 
             output_stream = ffmpeg.output(final_video_stream, final_audio_stream, output_video_filename, **ffmpeg_output_kwargs)
-            if self.print_cmd:
-                command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
-                print(f"command: {command}")
+            if platform_system == "Windows":
+                ffmpeg_final_command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
+                job_process.run_subprocess_as_job(ffmpeg_final_command)
             else:
                 ffmpeg.run(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
         elif encode_settings.type == ENCODE_TYPE_SIZE_BASED:
@@ -347,24 +356,29 @@ class Encoder:
 
             output_stream_pass2 = ffmpeg.output(final_video_stream, final_audio_stream, tentative_output_video_filename, **ffmpeg_output_kwargs_pass2)
             
-            if self.print_cmd:
+            if platform_system == "Windows":
                 pass1_command = ffmpeg.compile(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
+                job_process.run_subprocess_as_job(pass1_command)
                 pass2_command = ffmpeg.compile(output_stream_pass2, cmd=self.ffmpeg_filename, overwrite_output=True)
+                job_process.run_subprocess_as_job(pass2_command)
 
-                print(f"pass1_command: {pass1_command}\npass2_command: {pass2_command}")
             else:
                 ffmpeg.run(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
                 ffmpeg.run(output_stream_pass2, cmd=self.ffmpeg_filename, overwrite_output=True)
-                if encode_settings.output_format == "mp4":
-                    mkv_to_mp4_args = [self.ffmpeg_filename, "-y", "-i", tentative_output_video_filename, "-c", "copy"]
-                    if encode_settings.audio_codec == "libopus":
-                        mkv_to_mp4_args.extend(("-strict", "-2"))
 
-                    # -strict -2 must be before output video
-                    mkv_to_mp4_args.append(output_video_filename)
+            if encode_settings.output_format == "mp4":
+                mkv_to_mp4_args = [self.ffmpeg_filename, "-y", "-i", tentative_output_video_filename, "-c", "copy"]
+                if encode_settings.audio_codec == "libopus":
+                    mkv_to_mp4_args.extend(("-strict", "-2"))
 
+                # -strict -2 must be before output video
+                mkv_to_mp4_args.append(output_video_filename)
+
+                if platform_system == "Windows":
+                    job_process.run_subprocess_as_job(mkv_to_mp4_args)
+                else:
                     subprocess.run(mkv_to_mp4_args, check=True)
-                    output_video_filepath_as_mkv.unlink(missing_ok=True)
+                output_video_filepath_as_mkv.unlink(missing_ok=True)
         else:
             assert False
 
@@ -401,10 +415,10 @@ def test_generated_command():
     # output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt
     # , CrfEncodeSettings, SizeBasedEncodeSettings
     # SizeBasedEncodeSettings(output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt)
-    MODE = 2
+    MODE = 0
     if MODE == 0:
         crf_encode_settings = CrfEncodeSettings("mkv", 18, "medium", "libx264", "libopus", "128k", 854, "yuv420p", True, 0.6, 1.0)
-        timeline_settings = FromTTGhostSelectionTimelineSettings(crf_encode_settings)
+        timeline_settings = FromTTGhostSelectionTimelineSettings(crf_encode_settings, InputDisplay(INPUT_DISPLAY_CLASSIC, True))
         music_option = MusicOption(MUSIC_CUSTOM_MUSIC, "bubble_bath_the_green_orbs.wav")
         encoder = Encoder("ffmpeg", "ffprobe", "480p", music_option, timeline_settings, print_cmd=True)
         encoder.encode("test_crf_command.mkv")
