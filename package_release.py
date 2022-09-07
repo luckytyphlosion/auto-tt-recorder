@@ -3,6 +3,7 @@ import subprocess
 import pathlib
 import shutil
 import platform
+import argparse
 
 lua_core_folders_to_copy = (
     "Languages",
@@ -32,23 +33,41 @@ bin_files_to_copy = (
 def main():
     platform_system_lower = platform.system().lower()
 
+    #ap = argparse.ArgumentParser()
+    #ap.add_argument("-g", "--for-gui", dest="for_gui", action="store_true", default=False, description="Whether to package auto-tt-recorder for GUI")
+    #
+    #ap.parse_args()
+
     with open("release_config.yml", "r") as f:
         release_config = yaml.safe_load(f)
 
+    for_gui = release_config["for_gui"]
+
     print("Building record_ghost.exe!")
-    subprocess.run(("pyinstaller", "-F", "record_ghost.py", "--paths", "virt_win/Lib/site-packages"), check=True)
+    package_type_flag = "-D" if for_gui else "-F"
+
+    subprocess.run(("pyinstaller", package_type_flag, "record_ghost.py", "--paths", "virt_win/Lib/site-packages"), check=True)
 
     dolphin_lua_core_dirname = release_config["dolphin_lua_core_dirname"]
     release_name = release_config["release_name"]
 
-    release_dirname = f"release_working/{release_name}"
+    if for_gui:
+        release_dirname = f"release_working/auto-tt-recorder_{release_name}_for_gui"
+    else:
+        release_dirname = f"release_working/{release_name}"
+
     print(f"Copying fixed release files to {release_dirname}")
 
     release_dirpath = pathlib.Path(release_dirname)
     if release_dirpath.is_dir():
         shutil.rmtree(release_dirpath)
 
-    shutil.copytree("release", release_dirpath)
+    if for_gui:
+        shutil.copytree("release/licenses", f"{release_dirpath}/licenses")
+        shutil.copy2("release/legal.txt", f"{release_dirpath}/legal.txt")
+        shutil.copy2("release/README.txt", f"{release_dirpath}/README.txt")
+    else:
+        shutil.copytree("release", release_dirpath)
 
     release_dirpath.mkdir(parents=True, exist_ok=True)
     release_dolphin_dirname = f"{release_dirname}/dolphin"
@@ -83,21 +102,26 @@ def main():
     shutil.copytree("data", f"{release_dirname}/data")
     shutil.copytree("layouts", f"{release_dirname}/layouts")
 
-    print("Copying record_ghost.exe to release directory!")
-    shutil.copy2("dist/record_ghost.exe", f"{release_dirname}/bin/record_ghost.exe")
+    if for_gui:
+        print("Copying dist/record_ghost/ to release directory!")
+        shutil.copytree("dist/record_ghost", f"{release_dirname}/bin/record_ghost")
+    else:
+        print("Copying record_ghost.exe to release directory!")
+        shutil.copy2("dist/record_ghost.exe", f"{release_dirname}/bin/record_ghost.exe")
 
     print("Copying Lua Scripts to release directory!")
     shutil.copytree("dolphin/Sys/Scripts", f"{release_dolphin_dirname}/Sys/Scripts")
 
-    print("Creating 7z archive!")
-    seven_zip_filename = f"release_working/auto-tt-recorder_{release_name}.7z"
-    seven_zip_filepath = pathlib.Path(seven_zip_filename)
-    seven_zip_filepath.unlink(missing_ok=True)
-
-    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.7z", f"./release_working/{release_name}/*", "-t7z", "-mx=9", "-myx=9", "-ms=on", "-mmt=off", "-m0=LZMA2:d=256m:fb=273:mc=10000"), check=True)
-
-    print("Creating zip archive!")
-    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.zip", f"./release_working/{release_name}/*", "-tzip", "-mx=9", "-mfb=258", "-mpass=15", "-mmt=off"), check=True)
+    if not for_gui:
+        print("Creating 7z archive!")
+        seven_zip_filename = f"release_working/auto-tt-recorder_{release_name}.7z"
+        seven_zip_filepath = pathlib.Path(seven_zip_filename)
+        seven_zip_filepath.unlink(missing_ok=True)
+    
+        subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.7z", f"./release_working/{release_name}/*", "-t7z", "-mx=9", "-myx=9", "-ms=on", "-mmt=off", "-m0=LZMA2:d=256m:fb=273:mc=10000"), check=True)
+    
+        print("Creating zip archive!")
+        subprocess.run(("C:/Program Files/7-Zip/7z.exe", "a", f"release_working/auto-tt-recorder_{release_name}.zip", f"./release_working/{release_name}/*", "-tzip", "-mx=9", "-mfb=258", "-mpass=3", "-mmt=off"), check=True)
 
 if __name__ == "__main__":
     main()

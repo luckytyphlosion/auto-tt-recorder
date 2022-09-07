@@ -24,6 +24,10 @@ import re
 import random
 import time
 
+if platform.system() == "Windows":
+    import win32process
+    import win32job
+
 on_wsl = "microsoft" in platform.uname()[3].lower()
 good_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-/.\\:")
 dolphin_filename_regex = re.compile(r"Dolphin_[0-9]+_[0-9]+.exe")
@@ -33,15 +37,15 @@ def sanitize_and_check_iso_exists(iso_filename):
     # if the filename ends with spaces
     iso_filename = iso_filename.strip()
 
-    #if not all(c in good_chars for c in iso_filename):
-    #    bad_chars = set()
-    #    for c in iso_filename:
-    #        if c not in good_chars:
-    #            bad_chars.add(c)
-    #
-    #    bad_chars_msg = ", ".join(f'"{c}"' for c in bad_chars)
-    #
-    #    raise RuntimeError(f"Found illegal characters in ISO path \"{iso_filename}\" to file (safeguard against shell injection)! Remove the following characters from your ISO filename: {bad_chars_msg}")
+    if not all(c in good_chars for c in iso_filename):
+        bad_chars = set()
+        for c in iso_filename:
+            if c not in good_chars:
+                bad_chars.add(c)
+    
+        bad_chars_msg = ", ".join(f'"{c}"' for c in bad_chars)
+    
+        raise RuntimeError(f"Found illegal characters in ISO path \"{iso_filename}\" to file (safeguard against shell injection)! Remove the following characters from your ISO filename: {bad_chars_msg}")
 
     iso_filepath = pathlib.Path(iso_filename)
     if not iso_filepath.exists():
@@ -64,8 +68,10 @@ def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
 
     if on_wsl:
         run_dolphin_wsl(iso_filename_resolved, hide_window)
+    elif platform.system() == "Windows":
+        run_dolphin_windows(iso_filename_resolved, hide_window)
     else:
-        run_dolphin_non_wsl(iso_filename_resolved, hide_window)
+        run_dolphin_generic(iso_filename_resolved, hide_window)
 
     os.chdir("..")
 
@@ -78,7 +84,31 @@ def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
     if dolphin_status.strip() != "":
         raise RuntimeError(f"Error occurred while running Dolphin: {dolphin_status}")
 
-def run_dolphin_non_wsl(iso_filename_resolved, hide_window):
+# https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess?redirectedfrom=MSDN
+STILL_ACTIVE = 259
+
+# Taken from https://stackoverflow.com/questions/1230669/subprocess-deleting-child-processes-in-windows/12942797#12942797
+def run_dolphin_windows(iso_filename_resolved, hide_window):
+    dolphin_command = f"./Dolphin.exe -b -e \"{iso_filename_resolved}\""
+    if hide_window:
+        dolphin_command += " -hm -dr"
+
+    startup = win32process.STARTUPINFO()
+    (hProcess, hThread, processId, threadId) = win32process.CreateProcess(None, dolphin_command, None, None, True, win32process.CREATE_BREAKAWAY_FROM_JOB, None, None, startup)
+
+    hJob = win32job.CreateJobObject(None, "")
+    extended_info = win32job.QueryInformationJobObject(hJob, win32job.JobObjectExtendedLimitInformation)
+    extended_info["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    win32job.SetInformationJobObject(hJob, win32job.JobObjectExtendedLimitInformation, extended_info)
+    win32job.AssignProcessToJobObject(hJob, hProcess)
+
+    while True:
+        exit_code = win32process.GetExitCodeProcess(hProcess)
+        if exit_code != STILL_ACTIVE:
+            break
+        time.sleep(1)
+
+def run_dolphin_generic(iso_filename_resolved, hide_window):
     args = ["./Dolphin.exe", "-b", "-e", iso_filename_resolved]
     if hide_window:
         args.extend(("-hm", "-dr"))

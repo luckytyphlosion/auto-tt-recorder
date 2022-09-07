@@ -388,7 +388,18 @@ def main():
     #ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
     ap.add_argument("-mkd", "--mk-channel-ghost-description", dest="mk_channel_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines mkchannel and top10.Default is Ghost Data.")
 
+    ap.add_argument("-uo", "--unbuffered-output", dest="unbuffered_output", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr to flush at every newline.")
+    #ap.add_argument("-sfu8", "--standard-streams-force-utf8", dest="standard_streams_force_utf8", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr as .")
+
     args = ap.parse_args()
+
+    if args.unbuffered_output:
+        sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 1)
+        sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
+
+    # Specifically for auto-tt-recorder-gui, but might help those with wonky terminals
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
     #error_occurred = False
 
