@@ -15,17 +15,17 @@ audio-codec: libopus
 crf-value: 15
 youtube-settings: true
 keep-window: true
-chadsoft-read-cache: false
-chadsoft-write-cache: false
-encode-only: true
-input-display-dont-create: true
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+encode-only: false
+input-display-dont-create: false
 dolphin-resolution: 480p
 h26x-preset: placebo
 game-volume: 1
 music-volume: 1
 output-width: null
 unbuffered-output: true
-iso-filename: "C:/Users/User/Documents/RMCE 01/RMCE01.iso"
+iso-filename: "../../RMCE 01/RMCE01.iso"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/5F/2F/C6DCF7DEF1750CBEE354B542E638A16A047D.html
-output-video-filename: C:/Users/User/Documents/RMCE 01/ds_mc_glitch.mp4
+output-video-filename: ../../ds_mc_glitch.mp4
 track-name: DS Mario Circuit

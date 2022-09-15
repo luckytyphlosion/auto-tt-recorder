@@ -442,6 +442,7 @@ def main():
         if cc_option == CC_UNKNOWN:
             cc_option = CC_200 if ghost_page.is_200cc() else CC_150
     else:
+        ghost_page = None
         rkg_file_main = main_ghost_filename
 
     output_video_filename = args.output_video_filename

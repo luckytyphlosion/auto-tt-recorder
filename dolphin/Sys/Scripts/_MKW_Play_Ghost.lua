@@ -341,17 +341,109 @@ function waitFrameOfInput1ThenSetFrameInputStarts(curSegmentIndex, curActionInde
 	return curSegmentIndex, curActionIndex, curState
 end
 
+function convertArrayToSet(arr)
+	local set = {}
+	for i, elem in ipairs(arr) do
+		set[elem] = true
+	end
+
+	return set
+end
+
+-- Basically derived from https://github.com/Chadderz121/wii-ct-code/blob/8aaf1a8/bad1/bad1Data/mod/random.mod
+-- License included below
+------------------------------------------------------------------------------------
+-- Copyright (C) 2011-2014 Alex "Chadderz" Chadwick
+-- Copyright (C) 2011-2014 Robert "MrBean35000vr" Chadwick
+-- 
+-- Permission is hereby granted, free of charge, to any person obtaining a copy of
+-- this software and associated documentation files (the "Software"), to deal in
+-- the Software without restriction, including without limitation the rights to
+-- use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+-- the Software, and to permit persons to whom the Software is furnished to do so,
+-- subject to the following conditions:
+-- 
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+-- 
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+-- FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+-- COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+-- IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+-- CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+------------------------------------------------------------------------------------
+
+function isScreenDisplayed(menuIdToFind, allowedScreenIds)
+	local menuDataPointer = Pointers.getMenuDataPointer()
+	-- https://github.com/Chadderz121/wii-ct-code/blob/8aaf1a8/bad1/bad1Data/mod/random.mod#L21-L24
+	local menuData = GetPointerNormal(menuDataPointer)
+	local menuData_r4 = GetPointerNormal(menuData)
+
+	local panelAddress, menuId
+	local panelFound
+
+	-- https://github.com/Chadderz121/wii-ct-code/blob/8aaf1a8/bad1/bad1Data/mod/random.mod#L26-L48
+	-- with modifications
+	while true do
+		panelAddress = GetPointerNormal(menuData_r4 + 0x378)
+		if panelAddress == 0 then
+			menuData_r4 = menuData_r4 - 4
+		else
+			menuId = ReadValue32(panelAddress + 4)
+			if menuId == menuIdToFind then
+				panelFound = true
+				break
+			end
+
+			if allowedScreenIds[menuId] then
+				menuData_r4 = menuData_r4 - 4
+			else
+				panelFound = false
+				break				
+			end
+		end
+	end
+
+	if not panelFound then
+		return false
+	end
+
+	-- https://github.com/Chadderz121/wii-ct-code/blob/8aaf1a8/bad1/bad1Data/mod/random.mod#L72-L75
+	local screenDisplayed = ReadValue32(panelAddress + 0x8)
+
+	return screenDisplayed == 4
+end
+
+function waitScreenDisplayed(curSegmentIndex, curActionIndex, curState, menuIdToFind, allowedScreenIds)
+	if isScreenDisplayed(menuIdToFind, allowedScreenIds) then
+		curActionIndex = curActionIndex + 1
+		curState = IN_DELAY
+	else
+		curState = EXIT_LOOP_NO_DELAY
+	end
+
+	return curSegmentIndex, curActionIndex, curState
+end
+
+CUP_SELECTION_SCREEN_ID = 0x6e
+SINGLE_PLAYER_FROM_TT_CHANGE_COURSE_MENU_ALLOWED_SCREEN_IDS = {[0x6f] = true}
+
+function waitCupSelectionScreenDisplayed(curSegmentIndex, curActionIndex, curState)
+	return waitScreenDisplayed(curSegmentIndex, curActionIndex, curState, CUP_SELECTION_SCREEN_ID, SINGLE_PLAYER_FROM_TT_CHANGE_COURSE_MENU_ALLOWED_SCREEN_IDS)
+end
+
+local GHOST_HISTOGRAM_SCREEN_ID = 0xA8
+local MK_CHANNEL_LEADERBOARDS_MENU_ALLOWED_SCREEN_IDS = convertArrayToSet({0x4E, 0x4F, 0x50, 0x51, 0x52, 0x6E, 0x6F, 0x84, 0x85, 0x86, 0x88, 0x89, 0x95, 0xA7, 0xA8, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF})
+
+function waitGhostHistogramScreenDisplayed(curSegmentIndex, curActionIndex, curState)
+	return waitScreenDisplayed(curSegmentIndex, curActionIndex, curState, GHOST_HISTOGRAM_SCREEN_ID, MK_CHANNEL_LEADERBOARDS_MENU_ALLOWED_SCREEN_IDS)
+end
+
 local advanceToCharacterSelectSegment = {
-	{"none", 70},
-	{"A", 230},
-	{"A", 50},
-	{"A", 75},
-	{"A", 400},
-	{"down", 25},
-	{"A", 90},
-	{"A", 180},
-	{"A", 90},
-	{"A", 90},
+	{waitCupSelectionScreenDisplayed, 15},
+	{"B", 50},
+	{"A", 80},
 	{setChooseCupState, 0},
 }
 
@@ -445,7 +537,8 @@ local advLiveReplayWatchReplaySegment = {
 	{"up", 5},
 	{"A", 70},
 	{"up", 5},
-	{"A", 310},
+	{"A", 5},
+	{waitCupSelectionScreenDisplayed, 20},
 	{"A", 25},
 	{"A", 80},
 	{navigateToCompareGhost, 0}	
@@ -503,7 +596,8 @@ local advLiveReplayWatchReplayNoCompareSegment = {
 	{"up", 5},
 	{"A", 70},
 	{"up", 5},
-	{"A", 310},
+	{"A", 5},
+	{waitCupSelectionScreenDisplayed, 20},
 	{"A", 25},
 	{"A", 80},
 	{navigateToMainGhostSoloTimeTrial, 0}
@@ -538,7 +632,7 @@ local advLiveReplaySoloTimeTrialSegment = {
 -- ###################################################
 
 local doCustomTop10Segment = {
-	{"none", 800},
+	{waitGhostHistogramScreenDisplayed, 300},
 	{"A", 44},
 	{startDumpFrames, 0},
 	{"none", 240},
@@ -550,7 +644,7 @@ local doCustomTop10Segment = {
 }
 
 local doMkChannelGhostScreenSegment = {
-	{"none", 400},
+	{waitGhostHistogramScreenDisplayed, 100},
 	{"A", 80},
 	{"B", 31},
 	{startDumpFrames, 0},

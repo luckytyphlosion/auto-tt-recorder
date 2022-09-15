@@ -1,20 +1,19 @@
-output-video-filename: dkr_star_city_top10.mp4
+output-video-filename: gba_broken_pier_top10.mp4
 iso-filename: "../../RMCE 01/RMCE01.iso"
 
-ffmpeg-filename: "bin/ffmpeg.exe"
-ffprobe-filename: "bin/ffprobe.exe"
-chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/3B/DC/FD61CA4BBA214B38B049795342659FA8DEAF.html
+chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/E2/D6/8B9DB037EA467A08BF0059BA58832D6DB2AB.html
 timeline: top10
 dolphin-resolution: 480p
 speedometer: regular
 speedometer-metric: xz
 speedometer-decimal-places: 2
-track-name: "DKR Star City"
+track-name: "GBA Broken Pier"
 
 input-display: gcn
 #input-display-dont-create: false
 music-filename: bgm
-encode-type: size
+encode-type: crf
+crf-value: 18
 video-codec: libx264
 audio-codec: libopus
 h26x-preset: ultrafast
@@ -26,8 +25,8 @@ chadsoft-write-cache: true
 encode-only: false
 input-display-dont-create: false
 
-top-10-chadsoft: "https://www.chadsoft.co.uk/time-trials/leaderboard/0A/94B7DBA38E008F85A7FB6F2567C9C73E45FE969F/00.html"
+top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/19/B8F4EBD8C454FEC90D91D8F74D2AF229C4A89481/00.html"
 top-10-location: ww
-top-10-title: "DKR Star City (v1.1) Worldwide Top 10"
+top-10-title: "GBA Broken Pier Worldwide Top 10"
 mk-channel-ghost-description: World Champion
 

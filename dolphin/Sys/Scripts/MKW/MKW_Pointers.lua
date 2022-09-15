@@ -63,4 +63,15 @@ local function getFrameOfInputAddress()
 end
 Pointers.getFrameOfInputAddress = getFrameOfInputAddress
 
+local function getMenuDataPointer()
+  local menuDataPointer
+  if GetGameID() == "RMCP01" then menuDataPointer = 0x9c1e38
+  elseif GetGameID() == "RMCE01" then menuDataPointer = 0x9bd508
+  elseif GetGameID() == "RMCJ01" then menuDataPointer = 0x9c0e98
+  elseif GetGameID() == "RMCK01" then menuDataPointer = 0x9b0478
+  end
+  return menuDataPointer
+end
+Pointers.getMenuDataPointer = getMenuDataPointer
+
 return Pointers

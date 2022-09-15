@@ -97,11 +97,11 @@ regular_km_h_som_num_decimal_places_to_xpos = {
     2: "c3ed"
 }
 
-def create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message, on_200cc):
+def create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message, on_200cc):
     params = GeckoParams()
 
-    params.add_subst("default_character", default_character)
-    params.add_subst("default_vehicle", default_vehicle)
+    params.add_subst("tt_character", tt_character)
+    params.add_subst("tt_vehicle", tt_vehicle)
     # default_drift is True -> automatic -> 2 for gecko code
     # default_drift is False -> manual -> 1 for gecko code
     params.add_subst("default_drift", default_drift)
@@ -157,11 +157,11 @@ def create_gecko_code_params(default_character, default_vehicle, default_drift, 
     return params
 
 def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc):
-    default_character = rkg.character_id
-    default_vehicle = rkg.vehicle_id
+    tt_character = rkg.character_id
+    tt_vehicle = rkg.vehicle_id
     default_drift = 2 if rkg.drift_type else 1
 
-    return create_gecko_code_params(default_character, default_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc)
+    return create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc)
 
 def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name):
     custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description
