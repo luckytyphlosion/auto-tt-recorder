@@ -1,0 +1,31 @@
+ffmpeg-filename: bin/ffmpeg.exe
+ffprobe-filename: bin/ffprobe.exe
+timeline: mkchannel
+speedometer: fancy
+speedometer-metric: engine
+speedometer-decimal-places: 1
+input-display: gcn
+music-filename: bgm
+hq-textures: true
+top-10-location: ww
+mk-channel-ghost-description: Ghost Data
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+crf-value: 15
+youtube-settings: true
+keep-window: true
+chadsoft-read-cache: false
+chadsoft-write-cache: false
+encode-only: true
+input-display-dont-create: true
+dolphin-resolution: 480p
+h26x-preset: placebo
+game-volume: 1
+music-volume: 1
+output-width: null
+unbuffered-output: true
+iso-filename: "C:/Users/User/Documents/RMCE 01/RMCE01.iso"
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/5F/2F/C6DCF7DEF1750CBEE354B542E638A16A047D.html
+output-video-filename: C:/Users/User/Documents/RMCE 01/ds_mc_glitch.mp4
+track-name: DS Mario Circuit

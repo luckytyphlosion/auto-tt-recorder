@@ -1,0 +1,127 @@
+# The filename of the video to create. For best results this should end in .mp4
+output-video-filename: niswoe_desert_200cc_glitch.mp4
+
+# The filename of the ISO to use. Only NTSC-U is currently supported.
+# This can also be a full path name, e.g. "C:/Users/User/Documents/RMCE 01/RMCE01.iso"
+# You MUST replace \ with /
+iso-filename: "/mnt/c/Users/User/Documents/RMCE 01/RMCE01.iso"
+
+# Keep these as is
+ffmpeg-filename: ffmpeg
+ffprobe-filename: ffprobe
+
+main-ghost-auto: 00m45s8330874 Booshi.rkg
+comparison-ghost-auto: https://chadsoft.co.uk/time-trials/rkgd/06/70/136157F960259B437A5EAE00BFFFF1EF1E6A.html
+szs-filename: desert_course.szs
+on-200cc: true
+
+######################################################################
+######################################################################
+
+# Keep this setting as is
+timeline: mkchannel
+
+# The "style" of the speedometer. Valid values are as follows (without quotes):
+# "fancy" (looks like this: https://cdn.discordapp.com/attachments/543944508295872512/927372195297128538/CTGP_WR_Six_King_Labyrinth_No-shortcut_-_3_15.png)
+# "regular" (looks like this: https://cdn.discordapp.com/attachments/543944508295872512/927372194701529099/unknown.png)
+# "standard" (looks like this: https://cdn.discordapp.com/attachments/543944508295872512/927372195544588398/unknown.png)
+speedometer: regular
+
+# The metric of speed which the speedometer reports. Possible options are (without quotes):
+# "engine": The speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers)
+# "xyz": The norm of the current position minus the previous position.
+speedometer-metric: xz
+
+# The number of decimal places in the speedometer. Allowed values depend on the style of the speedometer. These are:
+# "fancy": 0-1
+# "regular": 0-2
+# "standard": 2 (the option is actually ignored)
+speedometer-decimal-places: 2
+
+# The name of the custom track (e.g. Desert Fort). Default is to use the track name of the track slot which the ghost is set on.
+track-name: Royal Raceway
+
+# Whether to show an input display in the output video.
+# Currently only gcn/classic is supported.
+# Put "none" for no input display.
+input-display: gcn
+
+# The filename of the music to use.
+# Specify bgm to just use game music.
+# Specify none to use no music (but with SFX).
+music-filename: bgm
+
+# Whether to use HQ textures. Current supported textures are HQ Mushrooms. Looks bad at 480p.
+hq-textures: false
+
+# The background of the Mario Kart Channel Race Ghost Screen. Allowed values are:
+# ww: The background is the 3D globe.
+# <Continent or country>: The location of that continent or country on the 2D globe.
+# See the list of valid locations in locations.txt
+top-10-location: ww
+
+# The text which appears on the top left of the Mario Kart Channel Race Ghost Screen.
+mk-channel-ghost-description: World Champion
+
+# Keep these settings as is
+encode-type: crf
+video-codec: libx264
+audio-codec: libopus
+crf-value: 15
+youtube-settings: true
+
+# Whether to keep the Dolphin window as an interactable window.
+# This setting might be useful to see recording progress.
+keep-window: true
+
+##############################
+# A GUIDE ON AUDIO BALANCING #
+##############################
+
+# First, run the script with the following settings
+chadsoft-read-cache: false
+chadsoft-write-cache: true
+encode-only: false
+input-display-dont-create: false
+dolphin-resolution: 720p
+h26x-preset: ultrafast
+game-volume: 0.6
+music-volume: 1.0
+output-width: null
+
+# Then, view the output video. If you are content with the audio balancing, proceed to Step 3.
+# Otherwise, do the following:
+# - Change the value of chadsoft-read-cache to true
+# - Change the value of encode-only to true
+# - Change the value of input-display-dont-create to true
+# - Adjust the values of game-volume and music-volume
+#   - These values are just multipliers, e.g. 0.5 makes the volume half as loud.
+# Then, run the script again, and repeat the above steps until you are content with the audio balancing.
+
+# Step 3:
+# Change the following settings:
+# - encode-only to false
+# - dolphin-resolution to your desired resolution
+#   - Valid values are: 480p, 720p, 1080p, 1440p, 2160p
+# - h26x-preset to slow
+# - output-width to the width of the output video:
+#   - For 2160p, set this to 3840
+#   - For 1440p, set this to 2560
+#   - For 1080p, set this to 1920
+#   - For 720p, set this to 1280
+#   - For 480p, set this to 854
+# Then, run the script again.
+
+# Step 4
+# Change the settings back to the default values (for next time)
+# The default values are repeated below
+
+# chadsoft-read-cache: false
+# chadsoft-write-cache: true
+# encode-only: false
+# input-display-dont-create: false
+# dolphin-resolution: 480p
+# h26x-preset: ultrafast
+# game-volume: 0.6
+# music-volume: 1.0
+# output-width: null

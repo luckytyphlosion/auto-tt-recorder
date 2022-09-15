@@ -172,5 +172,4 @@ release_config.yml
 legacy_records_cached/
 legacy_records.yml
 music_cached/
-*.yml
 *.7z
