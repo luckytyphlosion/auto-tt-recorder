@@ -27,37 +27,14 @@ import time
 import job_process
 
 on_wsl = "microsoft" in platform.uname()[3].lower()
-good_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-/.\\:")
 dolphin_filename_regex = re.compile(r"Dolphin_[0-9]+_[0-9]+.exe")
-
-def sanitize_and_check_iso_exists(iso_filename):
-    # bug in Dolphin Lua Core will cause Dolphin's memory and disk usage to spike extremely
-    # if the filename ends with spaces
-    iso_filename = iso_filename.strip()
-
-    if not all(c in good_chars for c in iso_filename):
-        bad_chars = set()
-        for c in iso_filename:
-            if c not in good_chars:
-                bad_chars.add(c)
-    
-        bad_chars_msg = ", ".join(f'"{c}"' for c in bad_chars)
-    
-        raise RuntimeError(f"Found illegal characters in ISO path \"{iso_filename}\" to file (safeguard against shell injection)! Remove the following characters from your ISO filename: {bad_chars_msg}")
-
-    iso_filepath = pathlib.Path(iso_filename)
-    if not iso_filepath.exists():
-        raise RuntimeError(f"Iso filename \"{iso_filename}\" does not exist!")
-
-    return iso_filename
 
 # IMPORTANT! ISO filename MUST be sanitized
 # Most notably, a bug in Dolphin-Lua-Core will cause Dolphin to spike in memory and disk usage
 # if the passed ISO filename ends in a space
 # Also, if on WSL, ISO filename must also be sanitized to prevent shell injection within powershell.exe
-def run_dolphin(iso_filename, hide_window, sanitize_iso_filename=True):
-    iso_filename = sanitize_and_check_iso_exists(iso_filename)
-    iso_filename_resolved = str(pathlib.Path(iso_filename).resolve())
+def run_dolphin(mkw_iso, hide_window, sanitize_iso_filename=True):
+    iso_filename_resolved = str(pathlib.Path(mkw_iso.iso_filename).resolve())
 
     dolphin_status_path = pathlib.Path("dolphin/status.txt")
     dolphin_status_path.unlink(missing_ok=True)
@@ -92,7 +69,6 @@ def run_dolphin_windows(iso_filename_resolved, hide_window):
         dolphin_command.extend(("-hm", "-dr"))
 
     job_process.run_subprocess_as_job(dolphin_command)
-    dolphin_command = f"./Dolphin.exe -b -e \"{iso_filename_resolved}\""
 
 def run_dolphin_generic(iso_filename_resolved, hide_window):
     args = ["./Dolphin.exe", "-b", "-e", iso_filename_resolved]

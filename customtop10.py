@@ -259,7 +259,7 @@ class CustomTop10:
         self.globe_location = simplify_globe_location(globe_location)
         self.globe_position = CustomTop10.get_globe_position_from_location(globe_location)
         if top_10_title is None:
-            top_10_title = CustomTop10.get_default_top_10_title(top_10_title)
+            top_10_title = CustomTop10.get_default_top_10_title(globe_location)
         self.top_10_title = top_10_title
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")

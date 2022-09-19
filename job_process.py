@@ -116,3 +116,10 @@ def run_subprocess_as_job(cmd_and_args):
             break
             
         time.sleep(1)
+
+
+def test_subprocess_as_job():
+    run_subprocess_as_job(("../Dolphin-Lua-Core/Binary/x64/Dolphin.exe", "-b", "-e", "$i"))
+
+if __name__ == "__main__":
+    test_subprocess_as_job()

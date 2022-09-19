@@ -37,6 +37,7 @@ import create_lua_params
 import mkw_filesys
 import msgeditor
 import wiimm
+import iso
 
 from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
@@ -106,7 +107,7 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -120,8 +121,6 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
                 track_name_in_error_msg = ""
 
             raise RuntimeError(f"Track{track_name_in_error_msg}has speed modifier! (speed modified tracks are unsupported currently)")
-
-    iso_filename = dolphin_process.sanitize_and_check_iso_exists(iso_filename)
 
     if speedometer is None:
         speedometer = speedometer_option_none
@@ -163,7 +162,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
             create_dolphin_configs_if_not_exist()
             modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, False)
 
-            dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
+            dolphin_process.run_dolphin(mkw_iso, hide_window)
 
             pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").replace(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
             pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").replace(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
@@ -204,7 +203,7 @@ def record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_co
         modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
         mkw_filesys.copy_hq_textures_if_necessary(hq_textures)
 
-        dolphin_process.run_dolphin(iso_filename, hide_window, sanitize_iso_filename=False)
+        dolphin_process.run_dolphin(mkw_iso, hide_window)
 
     # todo CHECKPOINT_DUMPING_INPUT_DISPLAY
     checkpoint = update_and_write_max_checkpoint(checkpoint_filename, checkpoint, CHECKPOINT_ENCODING)
@@ -451,7 +450,7 @@ def main():
         raise RuntimeError("Output file does not have an accepted file extension!")
     output_format = output_format_maybe_dot[1:]
 
-    iso_filename = args.iso_filename
+    mkw_iso = iso.Iso(args.iso_filename)
 
     comparison_ghost_filename = args.comparison_ghost_filename
     chadsoft_comparison_ghost_page_link = args.chadsoft_comparison_ghost_page
@@ -480,7 +479,7 @@ def main():
     if args.szs_filename is not None:
         szs_filename = args.szs_filename
     elif ghost_page is not None:
-        szs_filename = ghost_page.get_szs(iso_filename)
+        szs_filename = ghost_page.get_szs(mkw_iso.iso_filename)
     else:
         szs_filename = None
 
@@ -489,9 +488,9 @@ def main():
     track_name = args.track_name
     ending_message = args.ending_message
 
-    if timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
-        if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
-            raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
+    #if timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
+    #    if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
+    #        raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
                 
     if timeline == TIMELINE_NO_ENCODE:
         if output_format != "mkv":
@@ -558,7 +557,7 @@ def main():
                 if rkg_file_main is None:
                     rkg_file_main = custom_top_10_and_ghost_description.get_rkg_file_main()
                 if szs_filename is None:
-                    szs_filename = custom_top_10_and_ghost_description.get_szs(iso_filename)
+                    szs_filename = custom_top_10_and_ghost_description.get_szs(mkw_iso.iso_filename)
                 if cc_option == CC_UNKNOWN:
                     cc_option = CC_200 if custom_top_10_and_ghost_description.is_200cc() else CC_150
 
@@ -594,7 +593,7 @@ def main():
     else:
         on_200cc = True
 
-    record_ghost(rkg_file_main, output_video_filename, iso_filename, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
