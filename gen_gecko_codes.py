@@ -97,7 +97,7 @@ regular_km_h_som_num_decimal_places_to_xpos = {
     2: "c3ed"
 }
 
-def create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message, on_200cc):
+def create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, track_id, track_name, ending_message, on_200cc, region):
     params = GeckoParams()
 
     params.add_subst("tt_character", tt_character)
@@ -144,7 +144,7 @@ def create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedomete
             assert False
         params.add_subst("xyz_or_xz_metric", xyz_or_xz_code)
 
-    msg_editor = msgeditor.MsgEditor("NTSC-U")
+    msg_editor = msgeditor.MsgEditor(region.name)
     msg_editor.add_subst(identifiers.GHOST_CREATED_FOR_PLAYER_MSG_ID, ending_message)
     msg_editor.add_track_name_subst(track_id, track_name)
     msg_editor_code = msg_editor.generate()
@@ -156,12 +156,12 @@ def create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedomete
 
     return params
 
-def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc):
+def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc, region):
     tt_character = rkg.character_id
     tt_vehicle = rkg.vehicle_id
     default_drift = 2 if rkg.drift_type else 1
 
-    return create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc)
+    return create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc, region)
 
 def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, region):
     custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description
