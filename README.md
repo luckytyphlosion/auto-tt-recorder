@@ -1,5 +1,5 @@
 # auto-tt-recorder
-[Discord link](https://discord.gg/zQebERHCGS)
+[Discord link](https://discord.gg/6FqfpnqP57)
 
 Automatically record CTGP TTs (and upload to YouTube?)
 
