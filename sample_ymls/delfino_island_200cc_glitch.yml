@@ -6,7 +6,7 @@ input-display: gcn
 music-filename: bgm
 hq-textures: true
 top-10-location: ww
-mk-channel-ghost-description: Ghost Data
+mk-channel-ghost-description: "ロックマンエグ"
 encode-type: size
 video-codec: libx264
 audio-codec: libopus
@@ -23,7 +23,7 @@ game-volume: 1
 music-volume: 1
 output-width: null
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCE01.iso"
+iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
 output-video-filename: delfino_island_200cc_glitch.mp4
 track-name: Delfino Island

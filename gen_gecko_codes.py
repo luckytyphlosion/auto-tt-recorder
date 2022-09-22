@@ -163,7 +163,7 @@ def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bg
 
     return create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc)
 
-def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name):
+def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, region):
     custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description
 
     params = GeckoParams()
@@ -178,7 +178,7 @@ def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_nam
     if ghost_description is None:
         ghost_description = "Ghost Data"
 
-    msg_editor = msgeditor.MsgEditor("NTSC-U")
+    msg_editor = msgeditor.MsgEditor(region.name)
     msg_editor.add_subst(identifiers.MY_GHOST_MSG_ID, ghost_description)
     msg_editor.add_track_name_subst(rkg.track_id, track_name)
     msg_editor_code = msg_editor.generate()

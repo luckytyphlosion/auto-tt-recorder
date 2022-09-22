@@ -18,25 +18,8 @@ import struct
 import os
 import pathlib
 
-REGION_PAL = "PAL"
-REGION_NTSC_U = "NTSC-U"
-REGION_NTSC_J = "NTSC-J"
-REGION_NTSC_K = "NTSC-K"
-
-TITLE_ID_PAL = "RMCP01"
-TITLE_ID_NTSC_U = "RMCE01"
-TITLE_ID_NTSC_J = "RMCJ01"
-TITLE_ID_NTSC_K = "RMCK01"
-
-title_code_to_region = {
-    TITLE_ID_PAL: REGION_PAL,
-    TITLE_ID_NTSC_U: REGION_NTSC_U,
-    TITLE_ID_NTSC_J: REGION_NTSC_J,
-    TITLE_ID_NTSC_K: REGION_NTSC_K
-}
-
-all_regions = set((REGION_PAL, REGION_NTSC_U, REGION_NTSC_J, REGION_NTSC_K))
-all_title_ids = set((TITLE_ID_PAL, TITLE_ID_NTSC_U, TITLE_ID_NTSC_J, TITLE_ID_NTSC_K))
+from stateclasses.region_classes import *
+from constants.regions import *
 
 ISO_FORMAT_ISO = 0
 ISO_FORMAT_WBFS = 1
@@ -44,14 +27,15 @@ ISO_FORMAT_WBFS = 1
 good_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-/.\\:")
 
 class IsMkwIsoResult:
-    __slots__ = ("result", "reason")
+    __slots__ = ("result", "reason", "title_id")
 
-    def __init__(self, result, reason=None):
+    def __init__(self, result, reason=None, title_id=None):
         self.result = result
         self.reason = reason
+        self.title_id = title_id
 
 class Iso:
-    __slots__ = ("iso_filename", "format", "title_id", "region")
+    __slots__ = ("iso_filename", "format", "region")
 
     def __init__(self, iso_filename):
         self.iso_filename = Iso.sanitize_and_check_iso_exists(iso_filename)
@@ -61,7 +45,7 @@ class Iso:
         if not is_mkw_iso.result:
             raise RuntimeError(f"{self.iso_filename} is not a valid Mario Kart Wii ISO! {is_mkw_iso.reason}")
 
-        self.region = title_code_to_region[self.title_id]
+        self.region = Region(is_mkw_iso.title_id)
 
     def check_if_mkw_iso(self):
         not_mkw_iso_reason = ""
@@ -105,9 +89,7 @@ class Iso:
             if wii_magicword != 0x5D1C9EA3:
                 return IsMkwIsoResult(False, "(Wii disc identifier not found)")
 
-            self.title_id = title_id
-
-            return IsMkwIsoResult(True)
+            return IsMkwIsoResult(True, title_id=title_id)
 
     @staticmethod
     def sanitize_and_check_iso_exists(iso_filename):

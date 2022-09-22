@@ -135,7 +135,7 @@ dolphin/User
 dolphin/User2
 dolphin/User3
 *.dat
-!data/rksys.dat
+!data/RMC*01/rksys.dat
 *.rkg
 compare.sh
 mock_api/

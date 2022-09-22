@@ -126,7 +126,7 @@ class CustomTop10AndGhostDescription:
         self.highlight_index = highlight_index
 
     @classmethod
-    def from_chadsoft(cls, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, read_cache, write_cache):
+    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, read_cache, write_cache):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
@@ -161,7 +161,7 @@ class CustomTop10AndGhostDescription:
 
         globe_location = simplify_globe_location(globe_location)
 
-        custom_top_10 = CustomTop10("NTSC-U", globe_location, top_10_title, top_10_entries, highlight_index)
+        custom_top_10 = CustomTop10(iso_region, globe_location, top_10_title, top_10_entries, highlight_index)
         top_10_code = custom_top_10.generate()
 
         return cls(globe_location, ghost_description, top_10_code, leaderboard=leaderboard, highlight_index=highlight_index)
@@ -174,9 +174,9 @@ class CustomTop10AndGhostDescription:
         return cls(globe_location, ghost_description, top_10_code)
 
     @classmethod
-    def from_mk_channel_ghost_select_only(cls, globe_location, ghost_description):
+    def from_mk_channel_ghost_select_only(cls, iso_region, globe_location, ghost_description):
         dummy_top_10_entry = Top10Entry.dummy_entry()
-        custom_top_10 = CustomTop10("NTSC-U", globe_location, "Dummy", [dummy_top_10_entry], 1)
+        custom_top_10 = CustomTop10(iso_region, globe_location, "Dummy", [dummy_top_10_entry], 1)
         top_10_code = custom_top_10.generate()
         return cls(globe_location, ghost_description, top_10_code)
 

@@ -141,14 +141,14 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
     if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN) and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TOP_10):
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
-            "data/rksys.dat", rkg_file_main,
-            "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
+            f"data/{mkw_iso.region.title_id}/rksys.dat", rkg_file_main,
+            f"dolphin/User/Wii/title/00010004/{mkw_iso.region.hex_title_id}/data/rksys.dat",
             "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
             rkg_file_comparison
         )
         
-        params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name)
-        gen_gecko_codes.create_gecko_code_file("data/RMCE01_custom_top_10_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
+        params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, mkw_iso.region)
+        gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_custom_top_10_gecko_codes_template.ini", f"dolphin/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
         top_10_or_mk_channel_lua_mode = LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN if timeline_settings.type == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN else LUA_MODE_RECORD_TOP_10
         create_lua_params.create_lua_params_for_custom_top_10_or_mk_channel("dolphin/lua_config.txt", top_10_or_mk_channel_lua_mode)
 
@@ -170,8 +170,8 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     checkpoint = update_and_write_max_checkpoint(checkpoint_filename, checkpoint, CHECKPOINT_DUMPING_TT_REPLAY)
 
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
-        "data/rksys.dat", rkg_file_main,
-        "dolphin/User/Wii/title/00010004/524d4345/data/rksys.dat",
+        f"data/{mkw_iso.region.title_id}/rksys.dat", rkg_file_main,
+        f"dolphin/User/Wii/title/00010004/{mkw_iso.region.hex_title_id}/data/rksys.dat",
         "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
         rkg_file_comparison
     )
@@ -179,6 +179,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
     params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc)
+    raise RuntimeError()
     gen_gecko_codes.create_gecko_code_file("data/RMCE01_gecko_codes_template.ini", "dolphin/User/GameSettings/RMCE01.ini", params)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
@@ -244,6 +245,7 @@ def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume,
     with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config, open_config_for_modification(dolphin_wiimote_config_filename) as dolphin_wiimote_config:
         turn_off_dump_frames_audio(dolphin_config)
         disable_wiimotes(dolphin_wiimote_config)
+        enable_pal60_mode(dolphin_config)
         set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
 
 def turn_off_dump_frames_audio(dolphin_config):
@@ -253,6 +255,9 @@ def turn_off_dump_frames_audio(dolphin_config):
 def disable_wiimotes(dolphin_wiimote_config):
     for section in ("Wiimote1", "Wiimote2", "Wiimote3", "Wiimote4"):
         dolphin_wiimote_config[section]["Source"] = "0"
+
+def enable_pal60_mode(dolphin_config):
+    dolphin_config["Display"]["PAL60"] = "True"
 
 def set_variable_dolphin_config_options(dolphin_config, dolphin_gfx_config, dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures):
     dolphin_config["DSP"]["Volume"] = str(dolphin_volume)
@@ -544,6 +549,7 @@ def main():
                 raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
             elif args.top_10_chadsoft is not None:
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_chadsoft(
+                    mkw_iso.region.name,
                     args.top_10_chadsoft,
                     args.top_10_location,
                     args.top_10_title,
@@ -573,6 +579,7 @@ def main():
             timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
         elif timeline == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN:
             custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_mk_channel_ghost_select_only(
+                mkw_iso.region.name,
                 args.top_10_location,
                 args.mk_channel_ghost_description
             )
