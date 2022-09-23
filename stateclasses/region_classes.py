@@ -30,10 +30,19 @@ title_id_to_hex_title_id = {
     TITLE_ID_NTSC_K: "524d434b"
 }
 
+title_id_to_default_language_suffix = {
+    TITLE_ID_PAL: "E",
+    TITLE_ID_NTSC_U: "U",
+    TITLE_ID_NTSC_J: "J",
+    TITLE_ID_NTSC_K: "K"
+}
+
 class Region:
-    __slots__ = ("name", "title_id", "hex_title_id")
+    __slots__ = ("name", "title_id", "hex_title_id", "default_language_suffix")
 
     def __init__(self, title_id):
         self.title_id = title_id
         self.name = title_id_to_region[self.title_id]
         self.hex_title_id = title_id_to_hex_title_id[self.title_id]
+        self.default_language_suffix = title_id_to_default_language_suffix[self.title_id]
+

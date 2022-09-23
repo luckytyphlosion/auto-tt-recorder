@@ -1,12 +1,13 @@
 timeline: mkchannel
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCE01.iso"
-chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
-output-video-filename: delfino_island_200cc_glitch.mp4
-track-name: Delfino Island
+iso-filename: "../../RMCE 01/RMCK01.wbfs"
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DB/DD/200F67030284C2D5ABC405230FFB623F4A65.html
+chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/6E/BD/08F8173FDB9F1930514DC41EE3BD9E711B9C.html
+output-video-filename: test_comparison_fancy_xz_som_d1_out.mp4
+track-name: Kamek's Library
 input-display: gcn
 hq-textures: true
-mk-channel-ghost-description: "ロックマンエグ"
+mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
 encode-type: crf
 video-codec: libx264
@@ -25,7 +26,8 @@ music-volume: 1
 output-width: null
 
 speedometer: fancy
-speedometer-metric: engine
+speedometer-metric: xz
 speedometer-decimal-places: 1
 music-filename: bgm
+
 

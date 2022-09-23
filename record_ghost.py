@@ -184,7 +184,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
     create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt", lua_mode)
     mkw_filesys.replace_track(szs_filename, rkg)
-    mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer)
+    mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer, mkw_iso.region)
 
     if not encode_only and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TT_REPLAY):
         output_params_path = pathlib.Path("dolphin/output_params.txt")
@@ -201,7 +201,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
         create_dolphin_configs_if_not_exist()
         modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
-        mkw_filesys.copy_hq_textures_if_necessary(hq_textures)
+        mkw_filesys.copy_hq_textures_if_necessary(hq_textures, mkw_iso.region)
 
         dolphin_process.run_dolphin(mkw_iso, hide_window)
 
@@ -388,7 +388,6 @@ def main():
     ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The filename of the file containing the gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
-    #ap.add_argument("-ttn", "--top-10-course-name", dest="top_10_course_name", default=None, help="The name of the course which will appear on the Top 10 Ghost Entry screen. Default is to use the course name of the Rkg track slot.")
     ap.add_argument("-mkd", "--mk-channel-ghost-description", dest="mk_channel_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines mkchannel and top10.Default is Ghost Data.")
 
     ap.add_argument("-uo", "--unbuffered-output", dest="unbuffered_output", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr to flush at every newline.")
@@ -423,8 +422,8 @@ def main():
     if main_ghost_filename is None and args.top_10_chadsoft is None and chadsoft_ghost_page_link is None and args.main_ghost_auto is None:
         raise RuntimeError("Ghost file, chadsoft leaderboard, or chadsoft ghost page not specified!")
 
-    if args.top_10_chadsoft is not None and chadsoft_ghost_page_link is not None:
-        raise RuntimeError("Only one of -ttc/--top-10-chadsoft and -cg/--chadsoft-ghost-page can be specified!")
+    if args.top_10_chadsoft is not None and chadsoft_ghost_page_link is not None and args.top_10_highlight != -1:
+        raise RuntimeError("Only one of -ttc/--top-10-chadsoft and -cg/--chadsoft-ghost-page can be specified if -tth/--top-10-highlight is not -1!")
 
     if chadsoft_ghost_page_link is not None and main_ghost_filename is not None:
         raise RuntimeError("Only one of -i/--main-ghost-filename and -cg/--chadsoft-ghost-page can be specified!")

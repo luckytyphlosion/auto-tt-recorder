@@ -1,12 +1,12 @@
 timeline: mkchannel
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCE01.iso"
+iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
-output-video-filename: delfino_island_200cc_glitch.mp4
+output-video-filename: test_200cc_fancy_som_d0_out.mp4
 track-name: Delfino Island
 input-display: gcn
-hq-textures: true
-mk-channel-ghost-description: "ロックマンエグ"
+hq-textures: false
+mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
 encode-type: crf
 video-codec: libx264
@@ -26,6 +26,7 @@ output-width: null
 
 speedometer: fancy
 speedometer-metric: engine
-speedometer-decimal-places: 1
+speedometer-decimal-places: 0
 music-filename: bgm
+
 

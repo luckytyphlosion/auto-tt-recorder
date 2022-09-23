@@ -161,6 +161,7 @@ storage/
 *.mov
 *.temp
 *.opus
+temp/
 
 !data/Race_U.szs
 !layouts/**/*

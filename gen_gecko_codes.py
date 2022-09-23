@@ -180,6 +180,10 @@ def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_nam
 
     msg_editor = msgeditor.MsgEditor(region.name)
     msg_editor.add_subst(identifiers.MY_GHOST_MSG_ID, ghost_description)
+    # Todo, multiple language support
+    msg_editor.add_subst(identifiers.MKCHANNEL_GHOST_SCREEN_RACE_THIS_GHOST_MSG_ID, "Start This Race")
+    msg_editor.add_subst(identifiers.MKCHANNEL_GHOST_SCREEN_WATCH_REPLAY_MSG_ID, "Watch Replay")
+
     msg_editor.add_track_name_subst(rkg.track_id, track_name)
     msg_editor_code = msg_editor.generate()
 

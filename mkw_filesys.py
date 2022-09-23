@@ -41,11 +41,11 @@ def replace_track(szs_filename, rkg):
     dolphin_nand_course_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Race/Course/{track_filename}")
     shutil.copy(szs_filepath, dolphin_nand_course_filepath)
 
-def add_fancy_km_h_race_szs_if_necessary(speedometer):
-    dolphin_nand_scene_ui_dirpath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Scene/UI")
+def add_fancy_km_h_race_szs_if_necessary(speedometer, region):
+    dolphin_nand_scene_ui_dirpath = pathlib.Path("dolphin/User/Wii/RMCX01/Scene/UI")
     dolphin_nand_scene_ui_dirpath.mkdir(parents=True, exist_ok=True)
     # todo localize this
-    dolphin_nand_race_szs_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Scene/UI/Race_U.szs")
+    dolphin_nand_race_szs_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Scene/UI/Race_{region.default_language_suffix}.szs")
 
     if speedometer.style == SOM_FANCY_KM_H:
         shutil.copy("data/Race_U.szs", dolphin_nand_race_szs_filepath)
@@ -62,16 +62,16 @@ hq_textures_src_filenames = (
 )
 
 # not technically mkw filesys
-def copy_hq_textures_if_necessary(hq_textures):
+def copy_hq_textures_if_necessary(hq_textures, region):
     if not hq_textures:
         return
 
-    dolphin_hq_textures_dest_dir = pathlib.Path("dolphin/User/Load/Textures/RMCE01")
+    dolphin_hq_textures_dest_dir = pathlib.Path(f"dolphin/User/Load/Textures/{region.title_id}")
     dolphin_hq_textures_dest_dir.mkdir(parents=True, exist_ok=True)
 
     for hq_texture_src_filename in hq_textures_src_filenames:
         hq_texture_src_filepath = pathlib.Path(hq_texture_src_filename)
-        hq_texture_dest_filepath = pathlib.Path(f"dolphin/User/Load/Textures/RMCE01/{hq_texture_src_filepath.name}")
+        hq_texture_dest_filepath = pathlib.Path(f"dolphin/User/Load/Textures/{region.title_id}/{hq_texture_src_filepath.name}")
 
         if not hq_texture_dest_filepath.is_file():
             shutil.copy(hq_texture_src_filepath, hq_texture_dest_filepath)

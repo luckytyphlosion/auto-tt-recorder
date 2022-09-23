@@ -150,7 +150,7 @@ class CustomTop10AndGhostDescription:
             if rkg_data is not None:                
                 rkg = Rkg(rkg_data)
                 if lb_entry["playerId"] in censored_players_as_set:
-                    top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)                    
+                    top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry, censor=True)
                 else:
                     top_10_entry = Top10Entry.from_rkg(rkg, lb_entry["playerId"], read_cache, write_cache)
 
