@@ -40,11 +40,10 @@ end
 
 local helper_isScriptEnabled = true
 
-LUA_MODE_RECORD_GHOST_NO_ENCODE = 0
-LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 1
-LUA_MODE_RECORD_TOP_10 = 2
-LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN = 3
-LUA_MODE_RECORD_GHOST_FOR_TOP_10 = 4
+LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 0
+LUA_MODE_RECORD_TOP_10 = 1
+LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN = 2
+LUA_MODE_RECORD_GHOST_ONLY = 3
 
 local ADVANCE_TO_TRACK_SELECT = 1
 local CHOOSE_MUSHROOM_CUP = 2
@@ -71,6 +70,9 @@ local NAVIGATE_TO_2ND_GHOST_NO_COMPARE = 22
 local ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE = 23
 local NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2 = 24
 local ADV_LIVE_REPLAY_SOLO_TIME_TRIAL = 25
+local ADV_LIVE_REPLAY_TT_GHOST_SELECT_COMMON = 26
+local ADV_LIVE_REPLAY_GHOST_ONLY_COMMON = 27
+local ADV_LIVE_REPLAY_COMMON = 28
 
 local DO_CUSTOM_TOP_10 = 1
 
@@ -221,10 +223,11 @@ function startDumpFrames(curSegmentIndex, curActionIndex, curState)
 	return curSegmentIndex, curActionIndex, curState
 end
 
-function startDumpFramesForRace(curSegmentIndex, curActionIndex, curState)
-	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT or params["mode"] == LUA_MODE_RECORD_GHOST_NO_ENCODE then
+function startDumpFramesForRecordFromTTGhostSelect(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
 		SetFrameAndAudioDump(true)
-		outputParams["frameRecordingStarts"] = GetFrameCount()
+	else
+		error("Expected mode to be LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT!")
 	end
 
 	curActionIndex = curActionIndex + 1
@@ -233,7 +236,7 @@ function startDumpFramesForRace(curSegmentIndex, curActionIndex, curState)
 	return curSegmentIndex, curActionIndex, curState
 end
 
-function stopDumpFramesIfRecordFromTTGhostSelect(curSegmentIndex, curActionIndex, curState)
+function stopDumpFramesForRecordFromTTGhostSelect(curSegmentIndex, curActionIndex, curState)
 	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
 		SetFrameAndAudioDump(false)
 	end
@@ -255,7 +258,7 @@ function renameTTGhostSelectDumpFiles(curSegmentIndex, curActionIndex, curState)
 end
 
 function startDumpFramesForEncodeLuaModes(curSegmentIndex, curActionIndex, curState)
-	if params["mode"] == LUA_MODE_RECORD_GHOST_FOR_TOP_10 or params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
+	if params["mode"] == LUA_MODE_RECORD_GHOST_ONLY or params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
 		SetFrameAndAudioDump(true)
 		outputParams["frameRecordingStarts"] = GetFrameCount()		
 	end
@@ -312,6 +315,22 @@ function navigateToMainGhostSoloTimeTrial(curSegmentIndex, curActionIndex, curSt
 	end
 	curState = EXECUTING_ACTION
 	return curSegmentIndex, curActionIndex, curState
+end
+
+function ttGhostSelectOrGhostOnlyBranch(curSegmentIndex, curActionIndex, curState)
+	if params["mode"] == LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT then
+		curSegmentIndex = ADV_LIVE_REPLAY_TT_GHOST_SELECT_COMMON
+		curActionIndex = 1
+	elseif params["mode"] == LUA_MODE_RECORD_GHOST_ONLY then
+		curSegmentIndex = ADV_LIVE_REPLAY_GHOST_ONLY_COMMON
+		curActionIndex = 1
+	else
+		error(string.format("Unknown lua mode %d in ttGhostSelectOrGhostOnlyBranch!", params["mode"]))
+	end
+
+	curState = EXECUTING_ACTION
+
+	return curSegmentIndex, curActionIndex, curState	
 end
 
 function setFrameReplayStarts(curSegmentIndex, curActionIndex, curState)
@@ -558,23 +577,7 @@ local navigateTo3rdGhost2Segment = {
 
 local advLiveReplayRaceGhostSegment = {
 	{"none", 30},
-	{startDumpFramesForRace, 0},
-	{"none", 60},
-	{"A", 30},
-	{"A", 96},
-	{stopDumpFramesIfRecordFromTTGhostSelect, 0},
-	{"none", 3},
-	{renameTTGhostSelectDumpFiles, 3},
-	{waitFrameOfInput0, 0},
-	{startDumpFramesForEncodeLuaModes, 0},
-	{setFrameReplayStarts, 0},
-	{setLastKCPValue, 0},
-	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
-	{waitRaceCompletion, 60 * 10},
-	{stopDumpFrames, 0},
-	{"done", 0}
-	--{waitFrameOfInput0, 0},
-	--{"done", 0}
+	{ttGhostSelectOrGhostOnlyBranch, 0}
 }
 
 local navigateToMainGhostNoCompareSegment = {
@@ -610,13 +613,27 @@ local navigateTo2ndGhostNoCompare2Segment = {
 
 local advLiveReplaySoloTimeTrialSegment = {
 	{"up", 30},
-	{startDumpFramesForRace, 0},
+	{ttGhostSelectOrGhostOnlyBranch, 0}
+}
+
+local advLiveReplayTTGhostSelectCommonSegment = {
+	{startDumpFramesForRecordFromTTGhostSelect, 0},
 	{"none", 60},
 	{"A", 30},
 	{"A", 96},
-	{stopDumpFramesIfRecordFromTTGhostSelect, 0},
+	{stopDumpFramesForRecordFromTTGhostSelect, 0},
 	{"none", 3},
 	{renameTTGhostSelectDumpFiles, 3},
+	{ADV_LIVE_REPLAY_COMMON, 0}
+}
+
+local advLiveReplayGhostOnlyCommonSegment = {
+	{"A", 30},
+	{"A", 10},
+	{ADV_LIVE_REPLAY_COMMON, 0}
+}
+
+local advLiveReplayCommonSegment = {
 	{waitFrameOfInput0, 0},
 	{startDumpFramesForEncodeLuaModes, 0},
 	{setFrameReplayStarts, 0},
@@ -683,7 +700,10 @@ local recordGhostStandardSegments = {
 	[NAVIGATE_TO_2ND_GHOST_NO_COMPARE] = navigateTo2ndGhostNoCompareSegment,
 	[ADV_LIVE_REPLAY_WATCH_REPLAY_NO_COMPARE] = advLiveReplayWatchReplayNoCompareSegment,
 	[NAVIGATE_TO_2ND_GHOST_NO_COMPARE_2] = navigateTo2ndGhostNoCompare2Segment,
-	[ADV_LIVE_REPLAY_SOLO_TIME_TRIAL] = advLiveReplaySoloTimeTrialSegment
+	[ADV_LIVE_REPLAY_SOLO_TIME_TRIAL] = advLiveReplaySoloTimeTrialSegment,
+	[ADV_LIVE_REPLAY_TT_GHOST_SELECT_COMMON] = advLiveReplayTTGhostSelectCommonSegment,
+	[ADV_LIVE_REPLAY_GHOST_ONLY_COMMON] = advLiveReplayGhostOnlyCommonSegment,
+	[ADV_LIVE_REPLAY_COMMON] = advLiveReplayCommonSegment
 }
 
 local recordTop10Segments = {
@@ -830,7 +850,8 @@ function onScriptUpdate()
 	local failsafeCount = 0
 
 	while curState == EXECUTING_ACTION do
-		curAction = segments[curSegmentIndex][curActionIndex]
+		local curSegment = segments[curSegmentIndex]
+		curAction = curSegment[curActionIndex]
 		if type(curAction.command) == "string" then
 			if pressButtonCommands[curAction.command] then
 				PressButton(curAction.command)

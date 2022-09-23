@@ -216,21 +216,26 @@ class Encoder:
         video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
     
         audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
+
+        if secondary_video_in_file is not None and secondary_audio_in_file is not None:
+            all_streams = [
+                secondary_video_in_file,
+                secondary_audio_in_file,
+                video_faded_stream,
+                audio_combined_faded_stream
+            ]
     
-        all_streams = [
-            secondary_video_in_file,
-            secondary_audio_in_file,
-            video_faded_stream,
-            audio_combined_faded_stream
-        ]
-
-        almost_final_streams = ffmpeg.filter_multi_output(all_streams, "concat", n=2, v=1, a=1)
-        if encode_settings.output_width is not None:
-            final_video_stream = ffmpeg.filter(almost_final_streams[0], "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
+            almost_final_streams = ffmpeg.filter_multi_output(all_streams, "concat", n=2, v=1, a=1)
+            almost_final_video_stream = almost_final_streams[0]
+            final_audio_stream = almost_final_streams[1]
         else:
-            final_video_stream = ffmpeg.filter(almost_final_streams[0], "crop", "trunc(iw/2)*2", "trunc(ih/2)*2")
+            almost_final_video_stream = video_faded_stream
+            final_audio_stream = audio_combined_faded_stream
 
-        final_audio_stream = almost_final_streams[1]
+        if encode_settings.output_width is not None:
+            final_video_stream = ffmpeg.filter(almost_final_video_stream, "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
+        else:
+            final_video_stream = ffmpeg.filter(almost_final_video_stream, "crop", "trunc(iw/2)*2", "trunc(ih/2)*2")
 
         return final_video_stream, final_audio_stream, dynamic_filter_args
 
@@ -253,7 +258,9 @@ class Encoder:
 
         encode_settings = timeline_settings.encode_settings
 
-        if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
+        if timeline_settings.type == TIMELINE_GHOST_ONLY:
+            final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_complex_common(None, None)
+        elif timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
             final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_from_tt_ghost_select()
         elif timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
             final_video_stream, final_audio_stream, dynamic_filter_args = self.encode_from_top_10_leaderboard()
@@ -388,7 +395,7 @@ class Encoder:
 
         if self.timeline_settings.type == TIMELINE_NO_ENCODE:
             self.encode_stream_copy(output_video_filename)
-        elif self.timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
+        elif self.timeline_settings.type in (TIMELINE_GHOST_ONLY, TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
             self.encode_complex(output_video_filename)
         else:
             raise RuntimeError("Unimplemented timeline settings type!")

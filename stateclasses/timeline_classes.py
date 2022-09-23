@@ -5,6 +5,7 @@ TIMELINE_NO_ENCODE = 0
 TIMELINE_FROM_TT_GHOST_SELECTION = 1
 TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN = 2
 TIMELINE_FROM_TOP_10_LEADERBOARD = 3
+TIMELINE_GHOST_ONLY = 4
 
 class TimelineSettings(ABC):
     def __init__(self):
@@ -59,3 +60,14 @@ class FromTop10LeaderboardTimelineSettings(TimelineSettings):
     @property
     def type(self):
         return TIMELINE_FROM_TOP_10_LEADERBOARD
+
+class GhostOnlyTimelineSettings(TimelineSettings):
+    __slots__ = ("encode_settings", "input_display")
+
+    def __init__(self, encode_settings, input_display):
+        self.encode_settings = encode_settings
+        self.input_display = input_display
+
+    @property
+    def type(self):
+        return TIMELINE_GHOST_ONLY

@@ -60,10 +60,11 @@ resolution_string_to_dolphin_enum = {
 }
 
 timeline_setting_to_lua_mode = {
-    TIMELINE_NO_ENCODE: LUA_MODE_RECORD_GHOST_NO_ENCODE,
+    TIMELINE_NO_ENCODE: LUA_MODE_RECORD_GHOST_ONLY,
     TIMELINE_FROM_TT_GHOST_SELECTION: LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT,
-    TIMELINE_FROM_TOP_10_LEADERBOARD: LUA_MODE_RECORD_GHOST_FOR_TOP_10,
-    TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN: LUA_MODE_RECORD_GHOST_FOR_TOP_10
+    TIMELINE_FROM_TOP_10_LEADERBOARD: LUA_MODE_RECORD_GHOST_ONLY,
+    TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN: LUA_MODE_RECORD_GHOST_ONLY,
+    TIMELINE_GHOST_ONLY: LUA_MODE_RECORD_GHOST_ONLY    
 }
 
 CHECKPOINT_NONE = -1
@@ -134,7 +135,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     if dolphin_resolution_as_enum is None:
         raise RuntimeError(f"Unknown Dolphin resolution \"{dolphin_resolution}\"!")
 
-    if timeline_settings.type in (TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
+    if timeline_settings.type in (TIMELINE_GHOST_ONLY, TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
         timeline_settings.input_display.set_rkg_file_or_data(rkg_file_main)
 
     checkpoint = read_checkpoint(checkpoint_filename)
@@ -294,7 +295,8 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
     "noencode": TIMELINE_NO_ENCODE,
     "ghostselect": TIMELINE_FROM_TT_GHOST_SELECTION,
     "mkchannel": TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN,
-    "top10": TIMELINE_FROM_TOP_10_LEADERBOARD
+    "top10": TIMELINE_FROM_TOP_10_LEADERBOARD,
+    "ghostonly": TIMELINE_GHOST_ONLY
 })
 
 input_display_enum_arg_table = enumarg.EnumArgTable({
@@ -333,7 +335,7 @@ def main():
     ap.add_argument("-c", "--comparison-ghost-filename", dest="comparison_ghost_filename", default=None, help="Filename of the comparison ghost. This cannot be specified with -ccg/--chadsoft-comparison-ghost-page.")
     ap.add_argument("-s", "--szs-filename", dest="szs_filename", default=None, help="Filename of the szs file corresponding to the ghost file. Omit this for a regular track (or if the track was already replaced in the ISO)")
     ap.add_argument("-kw", "--keep-window", dest="keep_window", action="store_true", default=False, help="By default, the Dolphin executable used to record the ghost is hidden to prevent accidental interaction with the window. Enabling this option will keep the window open, e.g. for debugging.")
-    ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Possible options are \"noencode\" (fastest to dump, just packages the raw frame and audio dump into an mkv file, no support for editing), \"ghostselect\" (records starting from the Time Trial Ghost Select Screen), \"mkchannel\" (records from the Mario Kart Channel Race Ghost Screen), and \"top10\" (records a Custom Top 10 into the Mario Kart Channel Race Ghost Screen. Default is noencode.")
+    ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Possible options are \"noencode\" (race footage only, fastest to dump, just packages the raw frame and audio dump into an mkv file, no support for editing), \"ghostonly\" (race footage only, but supports all the editing options available for the race, e.g. fade in/out, input display), \"ghostselect\" (records starting from the Time Trial Ghost Select Screen), \"mkchannel\" (records from the Mario Kart Channel Race Ghost Screen), and \"top10\" (records a Custom Top 10 into the Mario Kart Channel Race Ghost Screen). Default is noencode.")
     ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
     ap.add_argument("-fp", "--ffprobe-filename", dest="ffprobe_filename", default="ffprobe", help="Path to the ffprobe executable to use. Default is ffprobe (use system ffprobe).")
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
@@ -542,6 +544,8 @@ def main():
 
         if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
             timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings, input_display)
+        elif timeline == TIMELINE_GHOST_ONLY:
+            timeline_settings = GhostOnlyTimelineSettings(encode_settings, input_display)
         elif timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
             if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
                 raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")

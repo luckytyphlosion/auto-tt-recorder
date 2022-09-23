@@ -1,0 +1,31 @@
+unbuffered-output: true
+iso-filename: "../../RMCE 01/RMCP01.wbfs"
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/0D/9C/CB2D3716FABA1F416D3CFD8617431D2C3587.html
+chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/5C/56/66E5962355AE7A4CBF601EB22AA47436F92A.html
+output-video-filename: test_150cc_ghostselect_comparison.mp4
+track-name: Envenom Snowstorm
+input-display: gcn
+hq-textures: true
+
+timeline: ghostselect
+
+encode-type: crf
+video-codec: libx264
+audio-codec: libopus
+crf-value: 15
+youtube-settings: true
+keep-window: true
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+encode-only: false
+input-display-dont-create: false
+dolphin-resolution: 480p
+h26x-preset: veryfast
+game-volume: 1
+music-volume: 1
+output-width: null
+
+speedometer: regular
+speedometer-metric: xz
+speedometer-decimal-places: 2
+music-filename: bgm
