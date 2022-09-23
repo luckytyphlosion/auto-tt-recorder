@@ -1,7 +1,7 @@
 # The filename of the video to create. For best results this should end in .mp4
 output-video-filename: moo_moo_meadows_logan_6th.mp4
 
-# The filename of the ISO to use. Only NTSC-U is currently supported.
+# The filename of the ISO or WBFS to use. All regions are supported, including NTSC-K.
 # This can also be a full path name, e.g. "C:/Users/User/Documents/RMCE 01/RMCE01.iso"
 # You MUST replace \ with /
 iso-filename: C:/Users/User/Documents/RMCE 01/RMCE01.iso
