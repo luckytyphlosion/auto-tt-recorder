@@ -46,7 +46,7 @@ def main():
     print("Building record_ghost.exe!")
     package_type_flag = "-D" if for_gui else "-F"
 
-    subprocess.run(("pyinstaller", package_type_flag, "record_ghost.py", "--paths", "virt_win/Lib/site-packages"), check=True)
+    subprocess.run(("pyinstaller", package_type_flag, "--noconfirm", "record_ghost.py", "--paths", "virt_win/Lib/site-packages"), check=True)
 
     dolphin_lua_core_dirname = release_config["dolphin_lua_core_dirname"]
     release_name = release_config["release_name"]
