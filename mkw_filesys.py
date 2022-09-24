@@ -52,6 +52,33 @@ def add_fancy_km_h_race_szs_if_necessary(speedometer, region):
     else:
         dolphin_nand_race_szs_filepath.unlink(missing_ok=True)
 
+extended_region_src_files_by_region = {
+    "PAL": (
+        "Channel.szs", "MenuSingle.szs"
+    ),
+    "NTSC-U": (
+        "Channel.szs", "MenuSingle.szs"
+    ),
+    "NTSC-J": (
+        "Channel.szs", "MenuSingle.szs"
+    ),
+    "NTSC-K": (
+        "Channel_R.szs", "MenuSingle_R.szs"
+    )
+}
+
+def add_extended_region_files(region):
+    dolphin_nand_scene_ui_dirpath = pathlib.Path("dolphin/User/Wii/RMCX01/Scene/UI")
+    dolphin_nand_scene_ui_dirpath.mkdir(parents=True, exist_ok=True)
+
+    extended_region_src_files = extended_region_src_files_by_region[region.name]
+    for extended_region_src_file in extended_region_src_files:
+        extended_region_src_filepath = pathlib.Path(f"data/extended_regions/{extended_region_src_file}")
+        extended_region_dest_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Scene/UI/{extended_region_src_file}")
+
+        if not extended_region_dest_filepath.is_file():
+            shutil.copy(extended_region_src_filepath, extended_region_dest_filepath)
+
 hq_textures_src_filenames = (
     "data/tex1_64x64_8b7aa8aaa750b196_5.png",
     "data/tex1_64x64_a23e5f789681e0b3_5.png",

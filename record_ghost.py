@@ -140,6 +140,8 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
     checkpoint = read_checkpoint(checkpoint_filename)
 
+    mkw_filesys.add_extended_region_files(mkw_iso.region)
+
     if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN) and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TOP_10):
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
             f"data/{mkw_iso.region.title_id}/rksys.dat", rkg_file_main,
