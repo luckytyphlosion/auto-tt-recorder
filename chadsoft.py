@@ -20,6 +20,8 @@ import pathlib
 import json
 import time
 import re
+import os
+
 import identifiers
 import chadsoft
 import chadsoft_config
@@ -107,6 +109,49 @@ def get_in_loop_code(endpoint, params, is_binary, read_cache, write_cache, rate_
         time.sleep(1)
 
     return data, r.status_code
+
+duration_regex = re.compile(r"^(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s?)?$")
+
+def parse_duration(duration):
+    match_obj = duration_regex.match(duration.strip())
+    if match_obj:
+        hours = match_obj.group(1)
+        minutes = match_obj.group(2)
+        seconds = match_obj.group(3)
+        if hours is None and minutes is None and seconds is None:
+            raise RuntimeError(f"Invalid duration \"{expiry_time}\" provided for expiry time!")
+
+        if hours is None:
+            hours = 0
+        if minutes is None:
+            minutes = 0
+        if seconds is None:
+            seconds = 0
+
+        try:
+            duration_as_seconds = int(hours) * 3600 + int(minutes) * 60 + int(seconds)
+        except ValueError:
+            raise RuntimeError(f"At least one of hours, seconds, and minutes not an integer!")
+    else:
+        raise RuntimeError(f"Invalid duration \"{expiry_time}\" provided for expiry time!")
+
+    return duration_as_seconds
+
+def purge_cache(expiry_time_as_str):
+    expiry_time = parse_duration(expiry_time_as_str)
+    if expiry_time == 0:
+        return
+
+    num_files_purged = 0
+
+    for cache_basename in os.listdir("chadsoft_cached/"):
+        cache_filename = f"chadsoft_cached/{cache_basename}"
+        if os.path.isfile(cache_filename) and os.path.getmtime(cache_filename) + expiry_time < time.time():
+            os.remove(cache_filename)
+            num_files_purged += 1
+
+    if num_files_purged > 0:
+        print(f"Purged {num_files_purged} cache file{'s' if num_files_purged != 1 else ''}")
 
 def get_lb_from_href(endpoint, start=0, limit=1, continent=None, vehicle=None, times="pb", override_cache=None, read_cache=False, write_cache=True, rate_limit=chadsoft_config.RATE_LIMIT):
     return get_lb_from_href_with_status(endpoint, start, limit, continent, vehicle, times, override_cache, read_cache, write_cache, rate_limit)[0]
