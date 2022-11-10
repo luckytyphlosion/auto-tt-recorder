@@ -144,6 +144,9 @@ def purge_cache(expiry_time_as_str):
 
     num_files_purged = 0
 
+    if not os.path.isdir("chadsoft_cached/"):
+        return
+
     for cache_basename in os.listdir("chadsoft_cached/"):
         cache_filename = f"chadsoft_cached/{cache_basename}"
         if os.path.isfile(cache_filename) and os.path.getmtime(cache_filename) + expiry_time < time.time():
