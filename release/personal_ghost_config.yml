@@ -93,6 +93,9 @@ hq-textures: true
 # See the list of valid locations in locations.txt
 top-10-location: ww
 
+# The text which appears on the top left of the Mario Kart Channel Race Ghost Screen.
+mk-channel-ghost-description: World Champion
+
 # The message that appears at the end of the video.
 # If you want to keep in Auto-TT-Recorder credit but also mention your name, do something like:
 # "Video recorded by yourname w/ Auto TT Recorder" or "Video recorded by yourname x Auto TT Recorder"
