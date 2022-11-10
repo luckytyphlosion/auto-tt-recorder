@@ -1,0 +1,36 @@
+##############################
+# A GUIDE ON AUDIO BALANCING #
+##############################
+
+# Step 1:
+# In config.yml, replace the following settings to these values (DO NOT REPLACE THEM HERE, IT WILL DO NOTHING)
+encode-only: false
+input-display-dont-create: false
+dolphin-resolution: 480p
+h26x-preset: ultrafast
+game-volume: 0.6
+music-volume: 1.0
+output-width: null
+
+# Step 2:
+# View the output video. If you are content with the audio balancing, proceed to Step 3.
+# Otherwise, do the following:
+# - Change the value of encode-only to true
+# - Change the value of input-display-dont-create to true
+# - Adjust the values of game-volume and music-volume
+#   - These values are just multipliers, e.g. 0.5 makes the volume half as loud.
+# Then, run the script again, and repeat the above steps until you are content with the audio balancing.
+
+# Step 3:
+# Change the following settings:
+# - encode-only to false
+# - dolphin-resolution to your desired resolution
+#   - Valid values are: 480p, 720p, 1080p, 1440p, 2160p
+# - h26x-preset to slow
+# - output-width to the width of the output video:
+#   - For 2160p, set this to 3840
+#   - For 1440p, set this to 2560
+#   - For 1080p, set this to 1920
+#   - For 720p, set this to 1280
+#   - For 480p, set this to 854
+# Then, run the script again.

@@ -96,65 +96,45 @@ top-10-location: ww
 # The text which appears on the top left of the Mario Kart Channel Race Ghost Screen.
 mk-channel-ghost-description: World Champion
 
+# The message that appears at the end of the video.
+# If you want to keep in Auto-TT-Recorder credit but also mention your name, do something like:
+# "Video recorded by yourname w/ Auto TT Recorder" or "Video recorded by yourname x Auto TT Recorder"
+ending-message: Video recorded by Auto TT Recorder
+
 # Keep these settings as is
 encode-type: crf
 video-codec: libx264
 audio-codec: libopus
-crf-value: 15
+h26x-preset: slow
 youtube-settings: true
+encode-only: false
+input-display-dont-create: false
+
+# Volume settings for game audio and music audio.
+# These are just multipliers, e.g. game-volume: 0.5 makes the game volume half as loud
+game-volume: 0.6
+music-volume: 1.0
+
+# Specify video quality
+# Lower values increase quality at the cost of increased size
+crf-value: 15
+
+# Output settings
+# Set dolphin-resolution to one of the following: 480p, 720p, 1080p, 1440p, 2160p
+# Set output-width to the width of the output video:
+#   - For 2160p, set this to 3840
+#   - For 1440p, set this to 2560
+#   - For 1080p, set this to 1920
+#   - For 720p, set this to 1280
+#   - For 480p, set this to 854, or alternatively, set this to null if you aren't uploading this anywhere
+dolphin-resolution: 1440p
+output-width: 2560
 
 # Whether to keep the Dolphin window as an interactable window.
 # This setting might be useful to see recording progress.
 keep-window: true
 
-##############################
-# A GUIDE ON AUDIO BALANCING #
-##############################
-
-# First, run the script with the following settings
-chadsoft-read-cache: false
+# These options will make auto-tt-recorder only download files from chadsoft every 24 hours
+chadsoft-read-cache: true
 chadsoft-write-cache: true
-encode-only: false
-input-display-dont-create: false
-dolphin-resolution: 480p
-h26x-preset: ultrafast
-game-volume: 1.0
-music-volume: 1.0
-output-width: null
-
-# Then, view the output video. If you are content with the audio balancing, proceed to Step 3.
-# Otherwise, do the following:
-# - Change the value of chadsoft-read-cache to true
-# - Change the value of encode-only to true
-# - Change the value of input-display-dont-create to true
-# - Adjust the values of game-volume and music-volume
-#   - These values are just multipliers, e.g. 0.5 makes the volume half as loud.
-# Then, run the script again, and repeat the above steps until you are content with the audio balancing.
-
-# Step 3:
-# Change the following settings:
-# - encode-only to false
-# - dolphin-resolution to your desired resolution
-#   - Valid values are: 480p, 720p, 1080p, 1440p, 2160p
-# - h26x-preset to slow
-# - output-width to the width of the output video:
-#   - For 2160p, set this to 3840
-#   - For 1440p, set this to 2560
-#   - For 1080p, set this to 1920
-#   - For 720p, set this to 1280
-#   - For 480p, set this to 854
-# Then, run the script again.
-
-# Step 4
-# Change the settings back to the default values (for next time)
-# The default values are repeated below
-
-# chadsoft-read-cache: false
-# chadsoft-write-cache: true
-# encode-only: false
-# input-display-dont-create: false
-# dolphin-resolution: 480p
-# h26x-preset: ultrafast
-# game-volume: 0.6
-# music-volume: 1.0
-# output-width: null
+chadsoft-cache-expiry: 24h
