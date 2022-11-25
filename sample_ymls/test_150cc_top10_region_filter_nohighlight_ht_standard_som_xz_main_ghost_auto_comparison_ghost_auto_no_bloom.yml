@@ -38,3 +38,5 @@ output-width: null
 speedometer: standard
 speedometer-metric: xz
 music-filename: bgm
+
+no-bloom: true

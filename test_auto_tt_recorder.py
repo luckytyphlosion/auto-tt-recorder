@@ -3,12 +3,12 @@ import subprocess
 import pathlib
 
 test_config_filenames = (
-    #"test_150cc_default_drift_standard_som_no_bgm_lapmod.yml",
-    #"test_150cc_top10_region_filter_nohighlight_ht_standard_som_xz_main_ghost_auto_comparison_ghost_auto.yml",
-    #"test_200cc_regular_som_d0_comparison.yml",
-    "test_200cc_top10_3rd_comparison_censors_regular_xyz_som_malaysia.yml",
+    "test_150cc_top10_region_filter_nohighlight_ht_standard_som_xz_main_ghost_auto_comparison_ghost_auto_no_bloom.yml",
+    "test_200cc_regular_som_d0_comparison_no_blur.yml",
+    "test_200cc_top10_3rd_comparison_censors_regular_xyz_som_malaysia_no_bloom_no_blur.yml",
+    "test_150cc_default_drift_standard_som_no_bgm_lapmod.yml",
     "test_200cc_fancy_som_d0.yml",
-    #"test_comparison_fancy_xz_som_d1.yml"
+    "test_comparison_fancy_xz_som_d1.yml"
 )
 
 class RegionFilenameAndName:

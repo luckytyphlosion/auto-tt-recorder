@@ -32,6 +32,9 @@ game-volume: 1
 music-volume: 1
 output-width: null
 
+no-bloom: true
+no-background-blur: true
+
 speedometer: regular
 speedometer-metric: xyz
 music-filename: bgm

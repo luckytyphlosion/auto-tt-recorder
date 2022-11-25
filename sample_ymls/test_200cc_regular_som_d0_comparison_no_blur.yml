@@ -25,6 +25,8 @@ game-volume: 1
 music-volume: 1
 output-width: null
 
+no-background-blur: true
+
 speedometer: regular
 speedometer-metric: engine
 speedometer-decimal-places: 0

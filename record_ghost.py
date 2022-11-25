@@ -108,7 +108,7 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -181,7 +181,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
-    params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc, mkw_iso.region)
+    params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc, mkw_iso.region, no_background_blur, no_bloom)
     gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"dolphin/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
@@ -360,6 +360,8 @@ def main():
     ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
     ap.add_argument("-o2", "--on-200cc", dest="on_200cc", action="store_true", default=False, help="Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
+    ap.add_argument("-nbb", "--no-background-blur", dest="no_background_blur", action="store_true", default=False, help="If enabled, on most tracks, the blurry/fuzzy background images are now sharp and clear.")
+    ap.add_argument("-nb", "--no-bloom", dest="no_bloom", action="store_true", default=False, help="If enabled, disables the \"bloom\" effect (see https://en.wikipedia.org/wiki/Bloom_(shader_effect)). The effect is notable for not rendering properly on resolutions higher than 480p. Disabling bloom will cause graphics to look sharper however textures will have increased contrast which some might not like.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
@@ -608,7 +610,7 @@ def main():
     else:
         on_200cc = True
 
-    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
