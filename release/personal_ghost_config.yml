@@ -101,6 +101,13 @@ mk-channel-ghost-description: World Champion
 # "Video recorded by yourname w/ Auto TT Recorder" or "Video recorded by yourname x Auto TT Recorder"
 ending-message: Video recorded by Auto TT Recorder
 
+# No background blur will cause background images to become sharp and clear
+# No bloom will cause rendered 3d to look sharper but with more contrast (might not look good on certain tracks).
+# No bloom will usually make the video look less compressed on YouTube. 
+# See https://www.youtube.com/watch?v=ybCsmPKCT2o for both settings enabled
+no-background-blur: true
+no-bloom: false
+
 # Keep these settings as is
 encode-type: crf
 video-codec: libx264
