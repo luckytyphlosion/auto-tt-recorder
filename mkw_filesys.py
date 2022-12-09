@@ -18,11 +18,12 @@ import pathlib
 import identifiers
 import shutil
 import os
+import dir_config
 
 from stateclasses.speedometer import *
 
 def make_empty_nand_course_dir():
-    dolphin_nand_course_dir_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Race/Course")
+    dolphin_nand_course_dir_filepath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Wii/RMCX01/Race/Course")
     dolphin_nand_course_dir_filepath.mkdir(parents=True, exist_ok=True)
     with os.scandir(dolphin_nand_course_dir_filepath) as entries:
         for dir_entry in entries:
@@ -38,14 +39,14 @@ def replace_track(szs_filename, rkg):
 
     szs_filepath = pathlib.Path(szs_filename)
     track_filename = identifiers.track_filenames[rkg.track_by_human_id]
-    dolphin_nand_course_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Race/Course/{track_filename}")
+    dolphin_nand_course_filepath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Wii/RMCX01/Race/Course/{track_filename}")
     shutil.copy(szs_filepath, dolphin_nand_course_filepath)
 
 def add_fancy_km_h_race_szs_if_necessary(speedometer, region):
-    dolphin_nand_scene_ui_dirpath = pathlib.Path("dolphin/User/Wii/RMCX01/Scene/UI")
+    dolphin_nand_scene_ui_dirpath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Wii/RMCX01/Scene/UI")
     dolphin_nand_scene_ui_dirpath.mkdir(parents=True, exist_ok=True)
     # todo localize this
-    dolphin_nand_race_szs_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Scene/UI/Race_{region.default_language_suffix}.szs")
+    dolphin_nand_race_szs_filepath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Wii/RMCX01/Scene/UI/Race_{region.default_language_suffix}.szs")
 
     if speedometer.style == SOM_FANCY_KM_H:
         shutil.copy("data/Race_U.szs", dolphin_nand_race_szs_filepath)
@@ -68,13 +69,13 @@ extended_region_src_files_by_region = {
 }
 
 def add_extended_region_files(region):
-    dolphin_nand_scene_ui_dirpath = pathlib.Path("dolphin/User/Wii/RMCX01/Scene/UI")
+    dolphin_nand_scene_ui_dirpath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Wii/RMCX01/Scene/UI")
     dolphin_nand_scene_ui_dirpath.mkdir(parents=True, exist_ok=True)
 
     extended_region_src_files = extended_region_src_files_by_region[region.name]
     for extended_region_src_file in extended_region_src_files:
         extended_region_src_filepath = pathlib.Path(f"data/extended_regions/{extended_region_src_file}")
-        extended_region_dest_filepath = pathlib.Path(f"dolphin/User/Wii/RMCX01/Scene/UI/{extended_region_src_file}")
+        extended_region_dest_filepath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Wii/RMCX01/Scene/UI/{extended_region_src_file}")
 
         if not extended_region_dest_filepath.is_file():
             shutil.copy(extended_region_src_filepath, extended_region_dest_filepath)
@@ -93,12 +94,12 @@ def copy_hq_textures_if_necessary(hq_textures, region):
     if not hq_textures:
         return
 
-    dolphin_hq_textures_dest_dir = pathlib.Path(f"dolphin/User/Load/Textures/{region.title_id}")
+    dolphin_hq_textures_dest_dir = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Load/Textures/{region.title_id}")
     dolphin_hq_textures_dest_dir.mkdir(parents=True, exist_ok=True)
 
     for hq_texture_src_filename in hq_textures_src_filenames:
         hq_texture_src_filepath = pathlib.Path(hq_texture_src_filename)
-        hq_texture_dest_filepath = pathlib.Path(f"dolphin/User/Load/Textures/{region.title_id}/{hq_texture_src_filepath.name}")
+        hq_texture_dest_filepath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Load/Textures/{region.title_id}/{hq_texture_src_filepath.name}")
 
         if not hq_texture_dest_filepath.is_file():
             shutil.copy(hq_texture_src_filepath, hq_texture_dest_filepath)

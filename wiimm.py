@@ -16,6 +16,7 @@
 
 import platform
 import subprocess
+import dir_config
 
 wit_filename = None
 wszst_filename = None
@@ -28,11 +29,11 @@ def get_wit_wszst_filename():
     if wit_filename is None and wszst_filename is None:
         platform_system_lower = platform.system().lower()
         if platform_system_lower == "linux":
-            wit_filename = "bin/wiimm/linux/wit"
-            wszst_filename = "bin/wiimm/linux/wszst"
+            wit_filename = f"{dir_config.wiimm_dirname}/linux/wit"
+            wszst_filename = f"{dir_config.wiimm_dirname}/linux/wszst"
         elif platform_system_lower == "windows":
-            wit_filename = "bin/wiimm/cygwin64/wit.exe"
-            wszst_filename = "bin/wiimm/cygwin64/wszst.exe"
+            wit_filename = f"{dir_config.wiimm_dirname}/cygwin64/wit.exe"
+            wszst_filename = f"{dir_config.wiimm_dirname}/cygwin64/wszst.exe"
         else:
             raise RuntimeError(f"Unsupported operating system {platform.system()}!")
 
@@ -44,9 +45,9 @@ def get_wkmpt_filename():
     if wkmpt_filename is None:
         platform_system_lower = platform.system().lower()
         if platform_system_lower == "linux":
-            wkmpt_filename = "bin/wiimm/linux/wkmpt"
+            wkmpt_filename = f"{dir_config.wiimm_dirname}/linux/wkmpt"
         elif platform_system_lower == "windows":
-            wkmpt_filename = "bin/wiimm/cygwin64/wkmpt.exe"
+            wkmpt_filename = f"{dir_config.wiimm_dirname}/cygwin64/wkmpt.exe"
         else:
             raise RuntimeError(f"Unsupported operating system {platform.system()}!")
 

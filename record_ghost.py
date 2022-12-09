@@ -38,6 +38,7 @@ import mkw_filesys
 import msgeditor
 import wiimm
 import iso
+import dir_config
 
 from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
@@ -145,21 +146,21 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN) and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TOP_10):
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
             f"data/{mkw_iso.region.title_id}/rksys.dat", rkg_file_main,
-            f"dolphin/User/Wii/title/00010004/{mkw_iso.region.hex_title_id}/data/rksys.dat",
-            "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
+            f"{dir_config.dolphin_dirname}/User/Wii/title/00010004/{mkw_iso.region.hex_title_id}/data/rksys.dat",
+            f"{dir_config.dolphin_dirname}/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
             rkg_file_comparison
         )
         
         params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, mkw_iso.region)
-        gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_custom_top_10_gecko_codes_template.ini", f"dolphin/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
+        gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_custom_top_10_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
         top_10_or_mk_channel_lua_mode = LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN if timeline_settings.type == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN else LUA_MODE_RECORD_TOP_10
-        create_lua_params.create_lua_params_for_custom_top_10_or_mk_channel("dolphin/lua_config.txt", top_10_or_mk_channel_lua_mode)
+        create_lua_params.create_lua_params_for_custom_top_10_or_mk_channel(f"{dir_config.dolphin_dirname}/lua_config.txt", top_10_or_mk_channel_lua_mode)
 
         if not encode_only:
-            output_params_path = pathlib.Path("dolphin/output_params.txt")
+            output_params_path = pathlib.Path(f"{dir_config.dolphin_dirname}/output_params.txt")
             output_params_path.unlink(missing_ok=True)
 
-            framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
+            framedump_path = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi")
             framedump_path.unlink(missing_ok=True)
 
             create_dolphin_configs_if_not_exist()
@@ -167,39 +168,39 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
             dolphin_process.run_dolphin(mkw_iso, hide_window)
 
-            pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi").replace(pathlib.Path("dolphin/User/Dump/Frames/top10.avi"))
-            pathlib.Path("dolphin/User/Dump/Audio/dspdump.wav").replace(pathlib.Path("dolphin/User/Dump/Audio/top10.wav"))
+            pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi").replace(pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Frames/top10.avi"))
+            pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Audio/dspdump.wav").replace(pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Audio/top10.wav"))
 
     checkpoint = update_and_write_max_checkpoint(checkpoint_filename, checkpoint, CHECKPOINT_DUMPING_TT_REPLAY)
 
     rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
         f"data/{mkw_iso.region.title_id}/rksys.dat", rkg_file_main,
-        f"dolphin/User/Wii/title/00010004/{mkw_iso.region.hex_title_id}/data/rksys.dat",
-        "dolphin/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
+        f"{dir_config.dolphin_dirname}/User/Wii/title/00010004/{mkw_iso.region.hex_title_id}/data/rksys.dat",
+        f"{dir_config.dolphin_dirname}/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
         rkg_file_comparison
     )
 
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
     params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc, mkw_iso.region, no_background_blur, no_bloom)
-    gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"dolphin/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
+    gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
-    create_lua_params.create_lua_params(rkg, rkg_comparison, "dolphin/lua_config.txt", lua_mode)
+    create_lua_params.create_lua_params(rkg, rkg_comparison, f"{dir_config.dolphin_dirname}/lua_config.txt", lua_mode)
     mkw_filesys.replace_track(szs_filename, rkg)
     mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer, mkw_iso.region)
 
     if not encode_only and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TT_REPLAY):
-        output_params_path = pathlib.Path("dolphin/output_params.txt")
+        output_params_path = pathlib.Path(f"{dir_config.dolphin_dirname}/output_params.txt")
         output_params_path.unlink(missing_ok=True)
     
-        framedump_path = pathlib.Path("dolphin/User/Dump/Frames/framedump0.avi")
+        framedump_path = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi")
         framedump_path.unlink(missing_ok=True)
         if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
-            tt_ghost_select_framedump_path = pathlib.Path("dolphin/User/Dump/Frames/tt_ghost_select.avi")
+            tt_ghost_select_framedump_path = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Frames/tt_ghost_select.avi")
             tt_ghost_select_framedump_path.unlink(missing_ok=True)
 
-            tt_ghost_select_audiodump_path = pathlib.Path("dolphin/User/Dump/Audio/tt_ghost_select.wav")
+            tt_ghost_select_audiodump_path = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Dump/Audio/tt_ghost_select.wav")
             tt_ghost_select_audiodump_path.unlink(missing_ok=True)
 
         create_dolphin_configs_if_not_exist()
@@ -223,9 +224,9 @@ def copy_config_if_not_exist(base_config_filename, dest_config_filename):
         shutil.copyfile(base_config_filename, dest_config_filepath)
 
 def create_dolphin_configs_if_not_exist():
-    copy_config_if_not_exist("data/Dolphin.ini", "dolphin/User/Config/Dolphin.ini")
-    copy_config_if_not_exist("data/GFX.ini", "dolphin/User/Config/GFX.ini")
-    copy_config_if_not_exist("data/WiimoteNew.ini", "dolphin/User/Config/WiimoteNew.ini")
+    copy_config_if_not_exist("data/Dolphin.ini", f"{dir_config.dolphin_dirname}/User/Config/Dolphin.ini")
+    copy_config_if_not_exist("data/GFX.ini", f"{dir_config.dolphin_dirname}/User/Config/GFX.ini")
+    copy_config_if_not_exist("data/WiimoteNew.ini", f"{dir_config.dolphin_dirname}/User/Config/WiimoteNew.ini")
 
 @contextmanager
 def open_config_for_modification(config_filename):
@@ -240,9 +241,9 @@ def open_config_for_modification(config_filename):
             config.write(f)
 
 def modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures):
-    dolphin_config_filename = "dolphin/User/Config/Dolphin.ini"
-    dolphin_gfx_config_filename = "dolphin/User/Config/GFX.ini"
-    dolphin_wiimote_config_filename = "dolphin/User/Config/WiimoteNew.ini"
+    dolphin_config_filename = f"{dir_config.dolphin_dirname}/User/Config/Dolphin.ini"
+    dolphin_gfx_config_filename = f"{dir_config.dolphin_dirname}/User/Config/GFX.ini"
+    dolphin_wiimote_config_filename = f"{dir_config.dolphin_dirname}/User/Config/WiimoteNew.ini"
 
     with open_config_for_modification(dolphin_config_filename) as dolphin_config, open_config_for_modification(dolphin_gfx_config_filename) as dolphin_gfx_config, open_config_for_modification(dolphin_wiimote_config_filename) as dolphin_wiimote_config:
         turn_off_dump_frames_audio(dolphin_config)
@@ -340,6 +341,11 @@ def main():
     ap.add_argument("-t", "--timeline", dest="timeline", default="noencode", help="Choice of recording timeline to use. Possible options are \"noencode\" (race footage only, fastest to dump, just packages the raw frame and audio dump into an mkv file, no support for editing), \"ghostonly\" (race footage only, but supports all the editing options available for the race, e.g. fade in/out, input display), \"ghostselect\" (records starting from the Time Trial Ghost Select Screen), \"mkchannel\" (records from the Mario Kart Channel Race Ghost Screen), and \"top10\" (records a Custom Top 10 into the Mario Kart Channel Race Ghost Screen). Default is noencode.")
     ap.add_argument("-ff", "--ffmpeg-filename", dest="ffmpeg_filename", default="ffmpeg", help="Path to the ffmpeg executable to use. Default is ffmpeg (use system ffmpeg)")
     ap.add_argument("-fp", "--ffprobe-filename", dest="ffprobe_filename", default="ffprobe", help="Path to the ffprobe executable to use. Default is ffprobe (use system ffprobe).")
+    ap.add_argument("-df", "--dolphin-folder", dest="dolphin_folder", default="dolphin", help="Folder of the specially built Dolphin emulator used by the program. Unless if you know what you're doing, you shouldn't need to specify this at all. Default is dolphin.")
+    ap.add_argument("-sf", "--storage-folder", dest="storage_folder", default="storage", help="Folder for generated files meant for long-term storage. Currently, auto-add (related to wbz patching), wbz, and szs files are stored here. Default is storage.")
+    ap.add_argument("-tf", "--temp-folder", dest="temp_folder", default="temp", help="Folder for miscellaneous temporary files. Currently, only the input display video is stored here. Default is temp.")
+    ap.add_argument("-wf", "--wiimm-folder", dest="wiimm_folder", default="bin/wiimm", help="Folder containing the Mario Kart Wii related programs made by Wiimm. Currently, the program requires wit, wszst, and wkmpt, only the input display video is stored here. Default is temp.")
+
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
     ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
@@ -410,6 +416,8 @@ def main():
     # Specifically for auto-tt-recorder-gui, but might help those with wonky terminals
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
+
+    dir_config.set_dirnames(args.dolphin_folder, args.storage_folder, args.temp_folder, args.wiimm_folder)
 
     # Cache purging
     if args.chadsoft_read_cache:

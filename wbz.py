@@ -140,11 +140,16 @@ class WbzConverter:
 
         return output_szs_filepath
 
-    def download_wbz_convert_to_szs_get_szs_filename(self, track_id):
-        output_szs_filepath = self.get_output_szs_filepath_from_track_id(track_id)
+    def download_wbz_convert_to_szs_get_szs_filename(self, track_id, use_auto_add_containing_dirname_as_dest=False):
+        if use_auto_add_containing_dirname_as_dest:
+            dest_dirname = f"{self.auto_add_containing_dirname}/szs"
+        else:
+            dest_dirname = None
+
+        output_szs_filepath = self.get_output_szs_filepath_from_track_id(track_id, dest_dirname)
         if not output_szs_filepath.is_file():
             wbz_filepath = self.download_wbz_get_filepath(track_id)
-            output_szs_filepath = self.convert_wbz_to_szs(wbz_filepath)
+            output_szs_filepath = self.convert_wbz_to_szs(wbz_filepath, dest_dirname)
 
         return str(output_szs_filepath)
 

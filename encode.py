@@ -20,8 +20,10 @@ import os
 import re
 import pathlib
 import platform
+import dir_config
 
 import job_process
+import dir_config
 import PyRKG.VideoGenerator
 
 from stateclasses.timeline_classes import *
@@ -84,7 +86,9 @@ class Encoder:
         self.video_frame_durations = {}
         self.print_cmd = print_cmd
 
-    def get_video_frame_duration(self, video_file="dolphin/User/Dump/Frames/framedump0.avi"):
+    def get_video_frame_duration(self, video_file=None):
+        if video_file is None:
+            video_file = f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi"
         video_frame_duration = self.video_frame_durations.get(video_file)
         if video_frame_duration is not None:
             return video_frame_duration
@@ -101,7 +105,7 @@ class Encoder:
         return video_frame_duration
 
     def encode_stream_copy(self, output_video_filename):
-        ffmpeg_stream_copy_cmd = (self.ffmpeg_filename, "-y", "-i", "dolphin/User/Dump/Frames/framedump0.avi", "-i", "dolphin/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
+        ffmpeg_stream_copy_cmd = (self.ffmpeg_filename, "-y", "-i", f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi", "-i", f"{dir_config.dolphin_dirname}/User/Dump/Audio/dspdump.wav", "-c", "copy", output_video_filename)
 
         if platform_system == "Windows":
             job_process.run_subprocess_as_job(ffmpeg_stream_copy_cmd)
@@ -113,7 +117,7 @@ class Encoder:
     def gen_dynamic_filter_args(self, fade_frame_duration):
         output_params = {}
     
-        with open("dolphin/output_params.txt", "r") as f:
+        with open(f"{dir_config.dolphin_dirname}/output_params.txt", "r") as f:
             for line in f:
                 if line.strip() == "":
                     continue
@@ -140,7 +144,7 @@ class Encoder:
         video_generator = PyRKG.VideoGenerator.VideoGenerator("classic", self.timeline_settings.input_display.rkg_file_or_data)
         print("Generating input display!")
         if not self.timeline_settings.input_display.dont_create:
-            video_generator.run("temp/input_display.mov", self.ffmpeg_filename)
+            video_generator.run(f"{dir_config.temp_dirname}/input_display.mov", self.ffmpeg_filename)
         input_display_frame_duration = video_generator.inputs.get_total_frame_nr()
 
         input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
@@ -159,7 +163,7 @@ class Encoder:
             eval="init"
         ).setpts(f"PTS-STARTPTS")
 
-        input_display_in_file = ffmpeg.input("temp/input_display.mov")
+        input_display_in_file = ffmpeg.input(f"{dir_config.temp_dirname}/input_display.mov")
 
         if input_display_gfx_info.inputs_width is not None:
             scaled_input_display = ffmpeg.filter(input_display_in_file, "scale",
@@ -192,8 +196,8 @@ class Encoder:
 
         dynamic_filter_args = self.gen_dynamic_filter_args(fade_frame_duration)
 
-        video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/framedump0.avi")
-        audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/dspdump.wav")
+        video_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi")
+        audio_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Audio/dspdump.wav")
 
         if music_option.option == MUSIC_CUSTOM_MUSIC:
             music_in_file = ffmpeg.input(music_option.music_filename).audio
@@ -240,14 +244,14 @@ class Encoder:
         return final_video_stream, final_audio_stream, dynamic_filter_args
 
     def encode_from_top_10_leaderboard(self):
-        top_10_video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/top10.avi")
-        top_10_audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/top10.wav")
+        top_10_video_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Frames/top10.avi")
+        top_10_audio_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Audio/top10.wav")
 
         return self.encode_complex_common(top_10_video_in_file, top_10_audio_in_file)
 
     def encode_from_tt_ghost_select(self):
-        tt_ghost_select_video_in_file = ffmpeg.input("dolphin/User/Dump/Frames/tt_ghost_select.avi")
-        tt_ghost_select_audio_in_file = ffmpeg.input("dolphin/User/Dump/Audio/tt_ghost_select.wav")
+        tt_ghost_select_video_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Frames/tt_ghost_select.avi")
+        tt_ghost_select_audio_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Audio/tt_ghost_select.wav")
 
         return self.encode_complex_common(tt_ghost_select_video_in_file, tt_ghost_select_audio_in_file)
 
@@ -303,9 +307,9 @@ class Encoder:
         elif encode_settings.type == ENCODE_TYPE_SIZE_BASED:
             encode_size_bits = encode_settings.encode_size * 8
             if timeline_settings.type == TIMELINE_FROM_TT_GHOST_SELECTION:
-                run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration("dolphin/User/Dump/Frames/tt_ghost_select.avi")
+                run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration(f"{dir_config.dolphin_dirname}/User/Dump/Frames/tt_ghost_select.avi")
             elif timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
-                run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration("dolphin/User/Dump/Frames/top10.avi")
+                run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration(f"{dir_config.dolphin_dirname}/User/Dump/Frames/top10.avi")
             else:
                 assert False
 

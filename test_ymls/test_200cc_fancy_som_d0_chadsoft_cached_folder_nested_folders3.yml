@@ -25,6 +25,11 @@ game-volume: 1
 music-volume: 1
 output-width: null
 
+dolphin-folder: "../../auto-tt-recorder_v1.3.2/dolphin"
+storage-folder: "storing/a big store"
+temp-folder: "/mnt/c/users/user/pictures/autoTTtemp"
+wiimm-folder: "../../auto_tt_recorder/wiimm"
+
 speedometer: fancy
 speedometer-metric: engine
 speedometer-decimal-places: 0

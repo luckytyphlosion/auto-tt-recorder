@@ -25,6 +25,7 @@ import random
 import time
 
 import job_process
+import dir_config
 
 on_wsl = "microsoft" in platform.uname()[3].lower()
 dolphin_filename_regex = re.compile(r"Dolphin_[0-9]+_[0-9]+.exe")
@@ -36,10 +37,12 @@ dolphin_filename_regex = re.compile(r"Dolphin_[0-9]+_[0-9]+.exe")
 def run_dolphin(mkw_iso, hide_window, sanitize_iso_filename=True):
     iso_filename_resolved = str(pathlib.Path(mkw_iso.iso_filename).resolve())
 
-    dolphin_status_path = pathlib.Path("dolphin/status.txt")
+    dolphin_status_path = pathlib.Path(f"{dir_config.dolphin_dirname}/status.txt")
     dolphin_status_path.unlink(missing_ok=True)
 
-    os.chdir("dolphin/")
+    previous_dir = os.getcwd()
+
+    os.chdir(dir_config.dolphin_dirname)
 
     if on_wsl:
         run_dolphin_wsl(iso_filename_resolved, hide_window)
@@ -48,7 +51,7 @@ def run_dolphin(mkw_iso, hide_window, sanitize_iso_filename=True):
     else:
         run_dolphin_generic(iso_filename_resolved, hide_window)
 
-    os.chdir("..")
+    os.chdir(previous_dir)
 
     if not dolphin_status_path.is_file():
         raise RuntimeError("User terminated Dolphin before completion!")
@@ -121,7 +124,7 @@ def run_dolphin_wsl(iso_filename_resolved, hide_window):
     good_dolphin_filenames = [name for name in glob.iglob("Dolphin*.exe") if name in ("Dolphin.exe", "DolphinR.exe") or dolphin_filename_regex.match(name)]
 
     if len(good_dolphin_filenames) != 1:
-        raise RuntimeError("Multiple different Dolphin executables in dolphin/!")
+        raise RuntimeError("Multiple different Dolphin executables in the Dolphin folder!")
 
     dolphin_filename = good_dolphin_filenames[0]
     dolphin_filepath = pathlib.Path(dolphin_filename)

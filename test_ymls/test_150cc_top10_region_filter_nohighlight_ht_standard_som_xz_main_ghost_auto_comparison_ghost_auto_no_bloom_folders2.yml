@@ -35,6 +35,11 @@ game-volume: 1
 music-volume: 1
 output-width: null
 
+dolphin-folder: "test_dolphin"
+storage-folder: "/mnt/c/users/user/documents/auto-tt-recorder-gui-v0.2.1-win32-x64/resources/app/auto-tt-recorder_v1.3.1_for_gui/storage"
+temp-folder: "../../auto-tt-recorder_v1.3.2/temp"
+wiimm-folder: "/mnt/c/users/user/documents/RMCE 01/bin ary"
+
 speedometer: standard
 speedometer-metric: xz
 music-filename: bgm

@@ -24,6 +24,10 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
+dolphin-folder: "/mnt/c/users/user/documents/auto_tt_recorder/test_dolphin"
+storage-folder: "../../auto-tt-rec-test_storage"
+temp-folder: "temp2"
+wiimm-folder: "bin2/wiimm2"
 
 speedometer: fancy
 speedometer-metric: xz

@@ -134,6 +134,7 @@ dolphin/Sys/*
 dolphin/User
 dolphin/User2
 dolphin/User3
+
 *.dat
 !data/RMC*01/rksys.dat
 *.rkg
@@ -174,3 +175,7 @@ legacy_records_cached/
 legacy_records.yml
 music_cached/
 *.7z
+
+test_dolphin/
+bin2/
+storing/

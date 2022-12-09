@@ -27,6 +27,7 @@ import chadsoft
 import chadsoft_config
 import wbz
 import wiimm
+import dir_config
 
 API_URL = "https://tt.chadsoft.co.uk"
 
@@ -302,13 +303,13 @@ def get_szs_common(iso_filename, track_id):
 
     wbz_converter = wbz.WbzConverter(
         iso_filename=iso_filename,
-        original_track_files_dirname="storage/original-race-course",
+        original_track_files_dirname=f"{dir_config.storage_dirname}/original-race-course",
         wit_filename=wit_filename,
         wszst_filename=wszst_filename,
-        auto_add_containing_dirname="storage"
+        auto_add_containing_dirname=dir_config.storage_dirname
     )
 
-    szs_filename = wbz_converter.download_wbz_convert_to_szs_get_szs_filename(track_id)
+    szs_filename = wbz_converter.download_wbz_convert_to_szs_get_szs_filename(track_id, use_auto_add_containing_dirname_as_dest=True)
     return szs_filename
 
 class GhostPage:
