@@ -126,14 +126,14 @@ class CustomTop10AndGhostDescription:
         self.highlight_index = highlight_index
 
     @classmethod
-    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, read_cache, write_cache):
+    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, cache_settings):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
 
-        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10, read_cache, write_cache)
+        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10, cache_settings)
         leaderboard.download_info_and_ghosts()
 
         top_10_entries = []
@@ -152,7 +152,7 @@ class CustomTop10AndGhostDescription:
                 if lb_entry["playerId"] in censored_players_as_set:
                     top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry, censor=True)
                 else:
-                    top_10_entry = Top10Entry.from_rkg(rkg, lb_entry["playerId"], read_cache, write_cache)
+                    top_10_entry = Top10Entry.from_rkg(rkg, lb_entry["playerId"], cache_settings=cache_settings)
 
             else:
                 top_10_entry = Top10Entry.from_rkgless_lb_entry(lb_entry)
@@ -215,10 +215,10 @@ class Top10Entry:
         self.partial_mii = partial_mii
 
     @classmethod
-    def from_rkg(cls, rkg, player_id=None, read_cache=False, write_cache=True):
+    def from_rkg(cls, rkg, player_id=None, cache_settings=None):
         country_code = rkg.country_code
         if country_code == 255 and player_id is not None:
-            country_code = chadsoft.get_player_from_player_id(player_id, read_cache=read_cache, write_cache=write_cache).get("country", 255)
+            country_code = chadsoft.get_player_from_player_id(player_id, cache_settings=cache_settings).get("country", 255)
 
         country = countries_by_code[country_code]
         finish_time = rkg.finish_time

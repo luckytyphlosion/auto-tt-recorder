@@ -1,12 +1,11 @@
 timeline: mkchannel
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
-chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DD/1D/33C44566CB46AE69772D08BBDEEAEE63F33B.html
-chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/E7/BB/C8276CB4A7DA384F141B7B44AD567B8D64A4.html
-output-video-filename: test_200cc_regular_som_d0_comparison_out.mp4
-track-name: GCN Mario Circuit
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
+output-video-filename: mp4
+track-name: Delfino Island
 input-display: gcn
-hq-textures: true
+hq-textures: false
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
 encode-type: crf
@@ -17,6 +16,7 @@ youtube-settings: true
 keep-window: true
 chadsoft-read-cache: true
 chadsoft-write-cache: true
+chadsoft-cache-folder: one_folder/cache_dir_chadsoft
 encode-only: false
 input-display-dont-create: false
 dolphin-resolution: 480p
@@ -25,9 +25,7 @@ game-volume: 1
 music-volume: 1
 output-width: null
 
-no-background-blur: true
-
-speedometer: regular
+speedometer: fancy
 speedometer-metric: engine
 speedometer-decimal-places: 0
 music-filename: bgm

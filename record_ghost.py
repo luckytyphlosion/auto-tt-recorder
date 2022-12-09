@@ -357,6 +357,8 @@ def main():
     ap.add_argument("-crc", "--chadsoft-read-cache", dest="chadsoft_read_cache", action="store_true", default=False, help="Whether to read any data downloaded from Chadsoft and saved to a local cache folder. Cache purging is disabled if this option is false.")
     ap.add_argument("-cwc", "--chadsoft-write-cache", dest="chadsoft_write_cache", action="store_true", default=False, help="Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.")
     ap.add_argument("-cce", "--chadsoft-cache-expiry", dest="chadsoft_cache_expiry", default="24h", help="Duration until data downloaded from Chadsoft expires and is purged. Example formats: 1h23m46s, 24h, 3h30m, 1000 (seconds implied), 90m100s. The duration is applied on a per-file basis, so if the expiry time is 24h, each file will be deleted 24h after the specific file was downloaded. Note that the cache is purged when the program is run regardless of whether the purged files would have been requested or not. Default is 24h. Cache purging can be disabled if this option evaluates to 0 or if -crc/--chadsoft-read-cache is unspecified or false.")
+    ap.add_argument("-ccf", "--chadsoft-cache-folder", dest="chadsoft_cache_folder", default="chadsoft_cached", help="Folder to temporarily store data downloaded from Chadsoft. Default folder is chadsoft_cached")
+
     ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
     ap.add_argument("-o2", "--on-200cc", dest="on_200cc", action="store_true", default=False, help="Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
@@ -411,7 +413,7 @@ def main():
 
     # Cache purging
     if args.chadsoft_read_cache:
-        chadsoft.purge_cache(args.chadsoft_cache_expiry)
+        chadsoft.purge_cache(args.chadsoft_cache_expiry, args.chadsoft_cache_folder)
 
     #error_occurred = False
 
@@ -438,6 +440,8 @@ def main():
     if chadsoft_ghost_page_link is not None and main_ghost_filename is not None:
         raise RuntimeError("Only one of -i/--main-ghost-filename and -cg/--chadsoft-ghost-page can be specified!")
 
+    cache_settings = chadsoft.CacheSettings(args.chadsoft_read_cache, args.chadsoft_write_cache, args.chadsoft_cache_folder)
+
     if args.main_ghost_auto is not None:
         if main_ghost_filename is not None or chadsoft_ghost_page_link is not None:
             raise RuntimeError("-mga/--main-ghost-auto cannot be specified with -i/--main-ghost-filename or -cg/--chadsoft-ghost-page!")
@@ -448,7 +452,7 @@ def main():
             main_ghost_filename = args.main_ghost_auto
 
     if chadsoft_ghost_page_link is not None:
-        ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, args.chadsoft_read_cache, args.chadsoft_write_cache)
+        ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, cache_settings)
         rkg_file_main = ghost_page.get_rkg()
 
         if cc_option == CC_UNKNOWN:
@@ -483,7 +487,7 @@ def main():
     if comparison_ghost_filename is not None:
         rkg_file_comparison = comparison_ghost_filename
     elif chadsoft_comparison_ghost_page_link is not None:
-        rkg_file_comparison = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, args.chadsoft_read_cache, args.chadsoft_write_cache).get_rkg()
+        rkg_file_comparison = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, cache_settings).get_rkg()
     else:
         rkg_file_comparison = None
 
@@ -566,8 +570,7 @@ def main():
                     args.top_10_highlight,
                     args.mk_channel_ghost_description,
                     args.top_10_censors,
-                    args.chadsoft_read_cache,
-                    args.chadsoft_write_cache,
+                    cache_settings
                 )
 
                 if rkg_file_main is None:
