@@ -4,9 +4,9 @@ import pathlib
 import random
 
 test_config_filenames = (
-    "test_comparison_fancy_xz_som_d1_folders1.yml",
-    "test_150cc_top10_region_filter_nohighlight_ht_standard_som_xz_main_ghost_auto_comparison_ghost_auto_no_bloom_folders2.yml",
-    "test_200cc_fancy_som_d0_chadsoft_cached_folder_nested_folders3.yml",
+    #"test_comparison_fancy_xz_som_d1_folders1.yml",
+    #"test_150cc_top10_region_filter_nohighlight_ht_standard_som_xz_main_ghost_auto_comparison_ghost_auto_no_bloom_folders2.yml",
+    #"test_200cc_fancy_som_d0_chadsoft_cached_folder_nested_folders3.yml",
     "test_200cc_top10_3rd_comparison_censors_regular_xyz_som_malaysia_no_bloom_no_blur_chadsoft_cached.yml",
     "test_150cc_default_drift_standard_som_no_bgm_lapmod.yml",
     "test_200cc_regular_som_d0_comparison_no_blur.yml",

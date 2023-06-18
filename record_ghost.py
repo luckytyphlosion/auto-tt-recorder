@@ -305,6 +305,7 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
 input_display_enum_arg_table = enumarg.EnumArgTable({
     "classic": INPUT_DISPLAY_CLASSIC,
     "gcn": INPUT_DISPLAY_CLASSIC,
+    #"nunchuck": INPUT_DISPLAY_NUNCHUCK,
     "none": INPUT_DISPLAY_NONE
 })
 
@@ -344,7 +345,7 @@ def main():
     ap.add_argument("-df", "--dolphin-folder", dest="dolphin_folder", default="dolphin", help="Folder of the specially built Dolphin emulator used by the program. Unless if you know what you're doing, you shouldn't need to specify this at all. Default is dolphin.")
     ap.add_argument("-sf", "--storage-folder", dest="storage_folder", default="storage", help="Folder for generated files meant for long-term storage. Currently, auto-add (related to wbz patching), wbz, and szs files are stored here. Default is storage.")
     ap.add_argument("-tf", "--temp-folder", dest="temp_folder", default="temp", help="Folder for miscellaneous temporary files. Currently, only the input display video is stored here. Default is temp.")
-    ap.add_argument("-wf", "--wiimm-folder", dest="wiimm_folder", default="bin/wiimm", help="Folder containing the Mario Kart Wii related programs made by Wiimm. Currently, the program requires wit, wszst, and wkmpt, only the input display video is stored here. Default is temp.")
+    ap.add_argument("-wf", "--wiimm-folder", dest="wiimm_folder", default="bin/wiimm", help="Folder containing the Mario Kart Wii related programs made by Wiimm. Currently, the program requires wit, wszst, and wkmpt. Default is bin/wiimm.")
 
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
     ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
@@ -540,7 +541,7 @@ def main():
                 music_option = MusicOption(MUSIC_CUSTOM_MUSIC, args.music_filename)
 
         if args.encode_preset is not None:
-            pass
+            raise RuntimeError("-ep/--encode-preset is TODO!")
         else:
             encode_type = encode_type_enum_arg_table.parse_enum_arg(args.encode_type, "Unknown encode type \"{}\"!")
             if encode_type == ENCODE_TYPE_CRF:
