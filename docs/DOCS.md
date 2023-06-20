@@ -81,7 +81,7 @@ List of types and what they mean:
 |-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
 | `no-music` | boolean | Disable BGM and don't replace it with music.
 | `music-filename` | string | Filename of the music which will replace the regular BGM. Specifying `bgm` will keep the regular BGM. Specifying an empty string or `None`/`none` will disable music altogether. The default is `bgm`.
-| `game-volume` | float | Multiplicative factor to control game volume in the output video (e.g. `0.5` to halve the game volume). Default is `0.6`
+| `game-volume` | float | Multiplicative factor to control game volume in the output video (e.g. `0.5` to halve the game volume). Default is `0.6`. Ignored if no music is specified.
 | `music-volume` | float | Multiplicative factor to control music volume in the output video (e.g. `0.5` to halve the music volume). Default is `1.0`. Ignored if no music is specified.
 |<img width=250/>| |
 
