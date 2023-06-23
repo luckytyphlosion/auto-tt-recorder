@@ -42,7 +42,7 @@ List of types and what they mean:
 | `iso-filename` | string | Filename of the Mario Kart Wii ISO or WBFS. Note that NKIT is not supported.
 | `szs-filename` | string | Filename of the szs file corresponding to the ghost file, if recording for a custom track. **You do not need to specify this if you specify `chadsoft-ghost-page` or `top-10-chadsoft` (with exceptions).** Exception: tracks are automatically downloaded from [Wiimm's Custom Track Archive](https://ct.wiimm.de/), but some tracks are not available. In that case, specifying the szs filename is required.
 | `output-video-filename` | string   | Filename of the output recorded ghost. All possible allowed formats are `mkv`, `webm`, and `mp4`. See [Encoding related commands](#encoding-related-commands) for details on restrictions.
-| `on-200cc` | boolean | Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither `on-200cc` nor `no-200cc` is set, auto-tt-recorder will automatically detect 150cc or 200cc if `chadsoft-ghost-page` `top-10-chadsoft` is specified, otherwise it will assume 150cc.
+| `on-200cc` | boolean | Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither `on-200cc` nor `no-200cc` is set, auto-tt-recorder will automatically detect 150cc or 200cc if `chadsoft-ghost-page` or `top-10-chadsoft` is specified, otherwise it will assume 150cc.
 | `no-200cc` | boolean | Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither `on-200cc` nor `no-200cc` is set, auto-tt-recorder will automatically detect 150cc or 200cc if `chadsoft-ghost-page` or `top-10-chadsoft` is specified, otherwise it will assume 150cc.
 |<img width=250/>| |
 
