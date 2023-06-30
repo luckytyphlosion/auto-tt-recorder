@@ -108,6 +108,8 @@ mk-channel-ghost-description: World Champion
 ending-message: Video recorded by Auto TT Recorder
 
 # No background blur will cause background images to become sharp and clear
+# IMPORTANT: On certain tracks, will cause output to look blurry like this: https://cdn.discordapp.com/attachments/528745839708078093/1124473696384471082/image.png
+# Known tracks: Underground Sky, Big Express City
 # No bloom will cause rendered 3d to look sharper but with more contrast (might not look good on certain tracks).
 # No bloom will usually make the video look less compressed on YouTube. 
 # See https://www.youtube.com/watch?v=ybCsmPKCT2o for both settings enabled
