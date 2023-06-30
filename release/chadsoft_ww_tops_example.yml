@@ -57,14 +57,14 @@ speedometer-decimal-places: 1
 # The name of the custom track (e.g. Desert Fort). Default is to use the track name of the track slot which the ghost is set on.
 track-name: Musical Cliff
 
-# Whether to show an input display in the output video. "auto" will automatically try to detect the controller type
-# and use the respective input display, but this only works if a chadsoft ghost link or chadsoft leaderboard is provided.
-# Otherwise, "auto" will default to gcn. It will also default to gcn
-# if the controller detected is the Wii Wheel, as it is not implemented yet. 
+# Whether to show an input display in the output video. Currently only gcn/classic and nunchuck are supported.
+# "auto" will automatically try to detect the controller type to use for the input display,
+# but this only works if a chadsoft ghost link or chadsoft leaderboard is provided.
+# Additionally, the controller detected must not be the Wii Wheel as it is not implemented.
+# Otherwise, "auto" will default to gcn.
 # You can also manually specify the input display to use.
-# Currently only gcn/classic and nunchuck are supported.
 # Put "none" for no input display.
-input-display: gcn
+input-display: auto
 
 # The filename of the music to use.
 # Specify bgm to just use game music.
