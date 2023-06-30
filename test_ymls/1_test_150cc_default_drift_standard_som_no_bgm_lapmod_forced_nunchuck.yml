@@ -4,7 +4,7 @@ iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/10/3D/3305A66DEA6FDB716D03458366A536DEAC2D.html
 output-video-filename: mp4
 track-name: Wuhu Island
-input-display: gcn
+input-display: nunchuck
 hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww

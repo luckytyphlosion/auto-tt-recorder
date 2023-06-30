@@ -5,7 +5,7 @@ chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DB/DD/200F67030284C
 chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/6E/BD/08F8173FDB9F1930514DC41EE3BD9E711B9C.html
 output-video-filename: mp4
 track-name: Kamek's Library
-input-display: gcn
+input-display: auto
 hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww

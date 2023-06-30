@@ -5,7 +5,7 @@ chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DD/1D/33C44566CB46A
 chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/E7/BB/C8276CB4A7DA384F141B7B44AD567B8D64A4.html
 output-video-filename: mp4
 track-name: GCN Mario Circuit
-input-display: gcn
+input-display: auto
 hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
