@@ -88,7 +88,7 @@ List of types and what they mean:
 ## "Overlay" related
 | Command | Type   | Description                                                                                         |
 |-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
-| `input-display` | string | Whether to include the input display in the output video. Currently supported options are `classic`, `gcn`, and `none` (for no input display). The rest of the controllers may be supported in the future. Default is `none`.
+| `input-display` | string | Whether to include the input display in the output video. Currently supported options are `auto`, `classic`, `gcn`, `nunchuck`, and `none` (for no input display). `auto` will automatically try to detect the controller type to use for the input display, but this only works if a chadsoft ghost link or chadsoft leaderboard is provided. Additionally, the controller detected must not be the Wii Wheel as it is not implemented. Otherwise, `auto` will default to `gcn`. The rest of the controllers may be supported in the future. Default is `none`.
 | `speedometer` | string | Enables speedometer and takes in an argument for the SOM display type. Possible values are below. Default is `none`.
 |               | fancy | Left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed
 |               | regular | Left aligned, "plain-looking" km/h symbol, usable at 480p, 0-2 decimal places allowed
