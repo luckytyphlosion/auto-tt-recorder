@@ -10,7 +10,7 @@ comparison-ghost-auto: 02m47s0577229 Naka GT.rkg
 
 timeline: top10
 top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/06/A1E5087B9951410F9B590FD1D6D831357167A3B6/01.html#filter-region-america"
-top-10-location: HT
+top-10-location: AQ
 top-10-title: "Icepeak Mountain (Glitch) CTGP Top 10"
 top-10-highlight: -1
 
@@ -18,7 +18,6 @@ szs-filename: "Icepeak Mountain v1.2 (boardcross_course).szs"
 
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 
-top-10-location: ww
 encode-type: crf
 video-codec: libx264
 audio-codec: libopus

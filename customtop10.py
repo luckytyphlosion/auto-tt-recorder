@@ -258,6 +258,8 @@ class CustomTop10:
         self.region_dependent_codes = custom_top_10_region_dependent_codes[iso_region]
         self.globe_location = simplify_globe_location(globe_location)
         self.globe_position = CustomTop10.get_globe_position_from_location(globe_location)
+        if self.globe_position == "":
+            self.globe_position = countries_by_name["Belgium"].globe_position
         if top_10_title is None:
             top_10_title = CustomTop10.get_default_top_10_title(globe_location)
         self.top_10_title = top_10_title
