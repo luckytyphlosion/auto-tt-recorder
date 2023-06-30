@@ -109,7 +109,7 @@ List of types and what they mean:
 | Command | Type   | Description                                                                                         |
 |-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
 | `dolphin-resolution` | string | Internal resolution for Dolphin to render at. Possible options are `480p`, `720p`, `1080p`, `1440p`, and `2160p`. Default is `480p` (966x528)
-| `no-background-blur` | boolean | If enabled, on most tracks, the blurry/fuzzy background images are now sharp and clear.
+| `no-background-blur` | boolean | If enabled, on most tracks, the blurry/fuzzy background images are now sharp and clear. **Warning:** On certain tracks, enabling this will cause the track to look blurry. Known tracks: Underground Sky, Big Express City.
 | `no-bloom` | boolean | If enabled, disables the "bloom" effect ([Wikipedia](https://en.wikipedia.org/wiki/Bloom_(shader_effect))). The effect is notable for not rendering properly on resolutions higher than 480p. Disabling bloom will cause graphics to look sharper however textures will have increased contrast which may be a negative depending on the viewer.
 | `hq-textures` | boolean | Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.
 | `use-ffv1` | boolean | Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel. This probably doesn't matter as YouTube will heavily compress uploaded videos anyway, but scientific tests haven't been done yet.
