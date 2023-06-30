@@ -15,6 +15,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 # -*- coding: utf-8 -*-
+
+from stateclasses.input_display import *
+
 vehicle_names = {
     0x00: "Standard Kart S",
     0x01: "Standard Kart M",
@@ -517,15 +520,15 @@ def replace_extended_symbols(input_str):
     return "".join(output)
 
 controller_names = {
-    0: "Wii Wheel",
-    1: "Nunchuk",
-    2: "Classic",
-    3: "GameCube",
-    15: "???"
+    CONTROLLER_WII_WHEEL: "Wii Wheel",
+    CONTROLLER_NUNCHUCK: "Nunchuk",
+    CONTROLLER_CLASSIC: "Classic",
+    CONTROLLER_GAMECUBE: "GameCube",
+    CONTROLLER_UNKNOWN: "???"
 }
 
 def get_controller_name(controller_id, is_usb_gcn):
-    if is_usb_gcn and controller_id == 3:
+    if is_usb_gcn and controller_id == CONTROLLER_GAMECUBE:
         return "USB GameCube"
     else:
         return controller_names[controller_id]

@@ -46,15 +46,6 @@ class Rectangle:
 # box_width=1060
 # box_height=681
 
-BASE_INPUTS_WIDTH = 1216
-BASE_INPUTS_HEIGHT = 769
-BASE_INPUTS_X = 148
-BASE_INPUTS_Y = 2161
-BASE_INPUT_BOX_X = 209
-BASE_INPUT_BOX_Y = 2195
-BASE_INPUT_BOX_WIDTH = 1060
-BASE_INPUT_BOX_HEIGHT = 681
-
 base_framedump_dimensions = {
     "2160p": (5793, 3168),
     "1440p": (3862, 2112),
@@ -150,11 +141,12 @@ def overlay_onto_canvas(canvas_stream, rect, ffmpeg_in_streams_info):
 
     return rect_on_canvas
 
-def calc_overlay_objs_coords_dimensions(dolphin_resolution, output_width, ffmpeg_in_streams_info):
+def calc_overlay_objs_coords_dimensions(dolphin_resolution, input_display, ffmpeg_in_streams_info):
+    input_display_geometry = input_display.geometry
     canvas_width_2160p, canvas_height_2160p = base_framedump_dimensions["2160p"]
     canvas = Rectangle("canvas", 0, 0, canvas_width_2160p, canvas_height_2160p)
-    input_box = canvas.add_child_relative_to("input_box", BASE_INPUT_BOX_X, BASE_INPUT_BOX_Y, BASE_INPUT_BOX_WIDTH, BASE_INPUT_BOX_HEIGHT)
-    inputs = input_box.add_child_relative_to("inputs", BASE_INPUTS_X - BASE_INPUT_BOX_X, BASE_INPUTS_Y - BASE_INPUT_BOX_Y, BASE_INPUTS_WIDTH, BASE_INPUTS_HEIGHT)
+    input_box = canvas.add_child_relative_to("input_box", input_display_geometry.base_input_box_x, input_display_geometry.base_input_box_y, input_display_geometry.base_input_box_width, input_display_geometry.base_input_box_height)
+    inputs = input_box.add_child_relative_to("inputs", input_display_geometry.base_inputs_x - input_display_geometry.base_input_box_x, input_display_geometry.base_inputs_y - input_display_geometry.base_input_box_y, input_display_geometry.base_inputs_width, input_display_geometry.base_inputs_height)
 
     #if output_width is not None:
     #    canvas.scale(output_width / canvas_width_2160p)

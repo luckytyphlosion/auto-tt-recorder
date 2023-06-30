@@ -143,14 +143,15 @@ class Encoder:
         return DynamicFilterArgs(adelay_frame_value, fade_start_frame, trim_start_frame, input_display_start_frame)
 
     def add_input_display_to_video_new(self, video_in_file, dynamic_filter_args):
-        video_generator = PyRKG.VideoGenerator.VideoGenerator("classic", self.timeline_settings.input_display.rkg_file_or_data)
+        input_display = self.timeline_settings.input_display
+        video_generator = PyRKG.VideoGenerator.VideoGenerator(input_display.name, input_display.rkg_file_or_data)
         print("Generating input display!")
-        if not self.timeline_settings.input_display.dont_create:
+        if not input_display.dont_create:
             video_generator.run(f"{dir_config.temp_dirname}/input_display.mov", self.ffmpeg_filename)
         input_display_frame_duration = video_generator.inputs.get_total_frame_nr()
 
-        input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
-        input_box_in_file = ffmpeg.input("data/input_box.png")
+        #input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
+        input_box_in_file = ffmpeg.input(input_display.box_filename)
 
         input_display_start_frame = dynamic_filter_args.input_display_start_frame
         input_display_end_frame = input_display_start_frame + input_display_frame_duration - 1
@@ -175,7 +176,7 @@ class Encoder:
             )
         }
 
-        video_with_input_display = transform2d.calc_overlay_objs_coords_dimensions(self.dolphin_resolution, None, ffmpeg_in_streams_info)
+        video_with_input_display = transform2d.calc_overlay_objs_coords_dimensions(self.dolphin_resolution, input_display, ffmpeg_in_streams_info)
         return video_with_input_display
 
         #box_on_video = ffmpeg.filter(
@@ -278,7 +279,7 @@ class Encoder:
         else:
             audio_combined_stream = audio_in_file
 
-        if timeline_settings.input_display.type == INPUT_DISPLAY_CLASSIC:
+        if timeline_settings.input_display.type in {INPUT_DISPLAY_CLASSIC, INPUT_DISPLAY_NUNCHUCK}:
             video_with_input_display = self.add_input_display_to_video_new(video_in_file, dynamic_filter_args)
         elif timeline_settings.input_display.type == INPUT_DISPLAY_NONE:
             video_with_input_display = video_in_file

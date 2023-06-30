@@ -199,6 +199,15 @@ class CustomTop10AndGhostDescription:
     def is_200cc(self):
         return self.leaderboard.is_200cc()
 
+    def get_controller(self, controller):
+        if self.highlight_index == -1:
+            return controller
+        elif self.highlight_index > len(self.leaderboard.lb_info_and_entries):
+            raise RuntimeError(f"Highlight index specified is out of bounds of top 10 leaderboard entries! (Leaderboard only has entry count {len(self.leaderboard.lb_info_and_entries)})")
+
+        controller = self.leaderboard.lb_info_and_entries["ghosts"][self.highlight_index - 1]["controller"]
+        return controller
+
 oMII_SYSTEM_ID = 0x1c
 oMII_SYSTEM_ID_END = 0x20
 oMII_CREATOR_NAME = 0x36

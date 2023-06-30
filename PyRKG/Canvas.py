@@ -23,7 +23,7 @@ class Canvas:
         self.draw_ctx = ImageDraw.Draw(self.canvas)
 
     def load_image(self, file_path):
-        if file_path not in self.images:
+        if file_path is not None and file_path not in self.images:
             self.images[file_path] = Image.open(os.path.join(self.layout_path, file_path))
 
     def draw_image(self, file_path, position):

@@ -302,13 +302,6 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
     "ghostonly": TIMELINE_GHOST_ONLY
 })
 
-input_display_enum_arg_table = enumarg.EnumArgTable({
-    "classic": INPUT_DISPLAY_CLASSIC,
-    "gcn": INPUT_DISPLAY_CLASSIC,
-    #"nunchuck": INPUT_DISPLAY_NUNCHUCK,
-    "none": INPUT_DISPLAY_NONE
-})
-
 #class NoEncodeTimelineArgs:
 #    __slots__ = ("no_music
 
@@ -463,12 +456,14 @@ def main():
     if chadsoft_ghost_page_link is not None:
         ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, cache_settings)
         rkg_file_main = ghost_page.get_rkg()
+        controller = ghost_page.get_controller()
 
         if cc_option == CC_UNKNOWN:
             cc_option = CC_200 if ghost_page.is_200cc() else CC_150
     else:
         ghost_page = None
         rkg_file_main = main_ghost_filename
+        controller = CONTROLLER_UNKNOWN
 
     output_video_filename = args.output_video_filename
     output_format_maybe_dot = pathlib.Path(output_video_filename).suffix
@@ -560,13 +555,22 @@ def main():
             else:
                 assert False
 
-        input_display_type = input_display_enum_arg_table.parse_enum_arg(args.input_display, "Unknown input display type \"{}\"!")
-        input_display = InputDisplay(input_display_type, args.input_display_dont_create)
 
-        if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
-            timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings, input_display)
-        elif timeline == TIMELINE_GHOST_ONLY:
-            timeline_settings = GhostOnlyTimelineSettings(encode_settings, input_display)
+        if timeline in {TIMELINE_FROM_TT_GHOST_SELECTION, TIMELINE_GHOST_ONLY, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN}:
+            input_display = InputDisplay(args.input_display, controller, args.input_display_dont_create)
+
+            if timeline == TIMELINE_FROM_TT_GHOST_SELECTION:
+                timeline_settings = FromTTGhostSelectionTimelineSettings(encode_settings, input_display)
+            elif timeline == TIMELINE_GHOST_ONLY:
+                timeline_settings = GhostOnlyTimelineSettings(encode_settings, input_display)
+            elif timeline == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN:
+                custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_mk_channel_ghost_select_only(
+                    mkw_iso.region.name,
+                    args.top_10_location,
+                    args.mk_channel_ghost_description
+                )
+                timeline_settings = FromMKChannelGhostScreenTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
+
         elif timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
             if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
                 raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
@@ -588,8 +592,14 @@ def main():
                     szs_filename = custom_top_10_and_ghost_description.get_szs(mkw_iso.iso_filename)
                 if cc_option == CC_UNKNOWN:
                     cc_option = CC_200 if custom_top_10_and_ghost_description.is_200cc() else CC_150
+                if controller == CONTROLLER_UNKNOWN:
+                    controller = custom_top_10_and_ghost_description.get_controller(controller)
+
+                input_display = InputDisplay(args.input_display, controller, args.input_display_dont_create)
 
             elif args.top_10_gecko_code_filename is not None:
+                input_display = InputDisplay(args.input_display, controller, args.input_display_dont_create)
+
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
                     args.top_10_gecko_code_filename,
                     args.top_10_location,
@@ -599,13 +609,6 @@ def main():
                 raise RuntimeError("One of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename must be specified!")
 
             timeline_settings = FromTop10LeaderboardTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
-        elif timeline == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN:
-            custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_mk_channel_ghost_select_only(
-                mkw_iso.region.name,
-                args.top_10_location,
-                args.mk_channel_ghost_description
-            )
-            timeline_settings = FromMKChannelGhostScreenTimelineSettings(encode_settings, input_display, custom_top_10_and_ghost_description)
         else:
             raise RuntimeError(f"todo timeline {timeline}")
 

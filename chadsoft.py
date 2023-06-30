@@ -352,6 +352,10 @@ class GhostPage:
 
         return self.ghost_info
 
+    def get_controller(self):
+        ghost_info = self.get_ghost_info()
+        return ghost_info["controller"]
+
     @staticmethod
     def is_ghost_page_link(ghost_page_link):
         match_obj = ghost_page_link_regex.match(ghost_page_link)
