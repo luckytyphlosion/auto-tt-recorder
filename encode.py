@@ -26,6 +26,8 @@ import job_process
 import dir_config
 import PyRKG.VideoGenerator
 
+import transform2d
+
 from stateclasses.timeline_classes import *
 from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
@@ -72,6 +74,7 @@ dolphin_resolution_to_input_display_gfx_info = {
     "1440p": InputDisplayGfxInfo("data/input_box_2k.png", 810, 516, 88, 1447, 129, 1471),
     "2160p": InputDisplayGfxInfo("data/input_box.png", 1216, 769, 148, 2161, 209, 2195),
 }
+# 2160p input box = 1060x681
 
 #ENABLE_EQUALS = 
 class Encoder:
@@ -139,6 +142,71 @@ class Encoder:
 
         return DynamicFilterArgs(adelay_frame_value, fade_start_frame, trim_start_frame, input_display_start_frame)
 
+    def add_input_display_to_video_new(self, video_in_file, dynamic_filter_args):
+        video_generator = PyRKG.VideoGenerator.VideoGenerator("classic", self.timeline_settings.input_display.rkg_file_or_data)
+        print("Generating input display!")
+        if not self.timeline_settings.input_display.dont_create:
+            video_generator.run(f"{dir_config.temp_dirname}/input_display.mov", self.ffmpeg_filename)
+        input_display_frame_duration = video_generator.inputs.get_total_frame_nr()
+
+        input_display_gfx_info = dolphin_resolution_to_input_display_gfx_info[self.dolphin_resolution]
+        input_box_in_file = ffmpeg.input("data/input_box.png")
+
+        input_display_start_frame = dynamic_filter_args.input_display_start_frame
+        input_display_end_frame = input_display_start_frame + input_display_frame_duration - 1
+
+        input_display_in_file = ffmpeg.input(f"{dir_config.temp_dirname}/input_display.mov")
+
+        #input_box_shifted = input_box_in_file#.setpts(f"PTS-STARTPTS+{input_display_start_frame}")
+
+        ffmpeg_in_streams_info = {
+            "canvas": transform2d.FFmpegInStreamInfo("canvas", video_in_file),
+            "input_box": transform2d.FFmpegInStreamInfo("input_box", input_box_in_file,
+                start_frame=input_display_start_frame,
+                end_frame=input_display_end_frame,
+                after_setpts="PTS-STARTPTS",
+                scale_flags="bicubic"
+            ),
+            "inputs": transform2d.FFmpegInStreamInfo("inputs", input_display_in_file,
+                start_frame=input_display_start_frame,
+                end_frame=input_display_end_frame,
+                before_setpts=f"PTS-STARTPTS+{input_display_start_frame/FPS}/TB",
+                eof_action="pass"
+            )
+        }
+
+        video_with_input_display = transform2d.calc_overlay_objs_coords_dimensions(self.dolphin_resolution, None, ffmpeg_in_streams_info)
+        return video_with_input_display
+
+        #box_on_video = ffmpeg.filter(
+        #    (video_in_file, input_box_in_file),
+        #    "overlay",
+        #    enable=f"between(t,{input_display_start_frame/FPS},{input_display_end_frame/FPS})",
+        #    x=input_display_gfx_info.box_x, y=input_display_gfx_info.box_y,
+        #    eval="init"
+        #).setpts("PTS-STARTPTS")
+        #
+        #
+        #if input_display_gfx_info.inputs_width is not None:
+        #    scaled_input_display = ffmpeg.filter(input_display_in_file, "scale",
+        #        input_display_gfx_info.inputs_width, input_display_gfx_info.inputs_height, flags="bicubic"
+        #    )
+        #else:
+        #    scaled_input_display = input_display_in_file
+        #
+        ## +{input_display_start_frame/60}/TB
+        ## {input_display_start_frame}
+        #print(f"input_display_start_frame: {input_display_start_frame}")
+        #scaled_input_display_shifted = scaled_input_display.setpts(f"PTS-STARTPTS+{input_display_start_frame/FPS}/TB")
+        #video_with_input_display = ffmpeg.filter(
+        #    (box_on_video, scaled_input_display_shifted),
+        #    "overlay",
+        #    enable=f"between(t,{input_display_start_frame/FPS},{input_display_end_frame/FPS})",
+        #    x=input_display_gfx_info.inputs_x, y=input_display_gfx_info.inputs_y,
+        #    eof_action="pass", eval="init"
+        #)
+        #
+        #return video_with_input_display
 
     def add_input_display_to_video(self, video_in_file, dynamic_filter_args):
         video_generator = PyRKG.VideoGenerator.VideoGenerator("classic", self.timeline_settings.input_display.rkg_file_or_data)
@@ -211,7 +279,7 @@ class Encoder:
             audio_combined_stream = audio_in_file
 
         if timeline_settings.input_display.type == INPUT_DISPLAY_CLASSIC:
-            video_with_input_display = self.add_input_display_to_video(video_in_file, dynamic_filter_args)
+            video_with_input_display = self.add_input_display_to_video_new(video_in_file, dynamic_filter_args)
         elif timeline_settings.input_display.type == INPUT_DISPLAY_NONE:
             video_with_input_display = video_in_file
         else:
@@ -303,6 +371,8 @@ class Encoder:
                 ffmpeg_final_command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
                 job_process.run_subprocess_as_job(ffmpeg_final_command)
             else:
+                ffmpeg_final_command = ffmpeg.compile(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
+                print(f"ffmpeg_final_command: {ffmpeg_final_command}")
                 ffmpeg.run(output_stream, cmd=self.ffmpeg_filename, overwrite_output=True)
         elif encode_settings.type == ENCODE_TYPE_SIZE_BASED:
             encode_size_bits = encode_settings.encode_size * 8
