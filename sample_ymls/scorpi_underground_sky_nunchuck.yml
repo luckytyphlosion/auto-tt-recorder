@@ -1,0 +1,144 @@
+# The filename of the video to create. For best results this should end in .mp4
+output-video-filename: scorpi_underground_sky_nunchuck.webm
+
+# The filename of the ISO or WBFS to use. All regions are supported, including NTSC-K.
+# This can also be a full path name, e.g. "C:/Users/User/Documents/RMCE 01/RMCE01.iso"
+# You MUST replace \ with /
+iso-filename: "/mnt/c/Users/User/Documents/RMCE 01/RMCE01.wbfs"
+
+# Keep these as is
+ffmpeg-filename: bin/ffmpeg.exe
+ffprobe-filename: bin/ffprobe.exe
+
+######################################################################
+##### Do one of the following                                    #####
+##### - Specify "chadsoft-ghost-page"                            #####
+##### OR                                                         #####
+##### - Specify both "main-ghost-filename" and "szs-filename"    #####
+##### Add # at the start of each option which you do not fill in #####
+######################################################################
+
+# Link to the chadsoft ghost page of your run, e.g. https://www.chadsoft.co.uk/time-trials/rkgd/1C/A7/2D4E76364B1326ADD9E68A3B1992EB46CC36.html
+chadsoft-comparison-ghost-page: https://www.chadsoft.co.uk/time-trials/rkgd/6F/8C/BEEAEC69AEE40B43EBA59111685D634C788B.html
+# IMPORTANT NOTE: Sometimes Wiimm's archive does not have the custom track
+# If that happens, download the szs manually, remove the # at the start of #szs-filename
+# and include the filename of the szs below
+#szs-filename: <your szs here>
+
+######################################################################
+##### Do one of the following                                    #####
+##### - Specify "chadsoft-comparison-ghost-page"                 #####
+##### OR                                                         #####
+##### - Specify "comparison-ghost-filename"                      #####
+##### Add # at the start of each option which you do not fill in #####
+######################################################################
+
+######################################################################
+######################################################################
+
+# Keep this setting as is
+timeline: top10
+
+# The "style" of the speedometer. Valid values are as follows (without quotes):
+# "fancy" (looks like this: https://cdn.discordapp.com/attachments/543944508295872512/927372195297128538/CTGP_WR_Six_King_Labyrinth_No-shortcut_-_3_15.png)
+# "regular" (looks like this: https://cdn.discordapp.com/attachments/543944508295872512/927372194701529099/unknown.png)
+# "standard" (looks like this: https://cdn.discordapp.com/attachments/543944508295872512/927372195544588398/unknown.png)
+speedometer: regular
+
+# The metric of speed which the speedometer reports. Possible options are (without quotes):
+# "engine": The speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers)
+# "xyz": The norm of the current position minus the previous position.
+# "xz": The norm of the current position minus the previous position, excluding any y-axis movement. Essentially measures straight-forward speed, and is the most accurate measure in airtime.
+speedometer-metric: engine
+
+# The number of decimal places in the speedometer. Allowed values depend on the style of the speedometer. These are:
+# "fancy": 0-1
+# "regular": 0-2
+# "standard": 2 (the option is actually ignored)
+speedometer-decimal-places: 2
+
+# The name of the custom track (e.g. Desert Fort). Default is to use the track name of the track slot which the ghost is set on.
+track-name: Underground Sky
+
+# Whether to show an input display in the output video.
+# Currently only gcn/classic is supported.
+# Put "none" for no input display.
+input-display: auto
+
+# The filename of the music to use.
+# Specify bgm to just use game music.
+# Specify none to use no music (but with SFX).
+music-filename: bgm
+
+# Whether to use HQ textures. Current supported textures are HQ Mushrooms. Looks bad at 480p.
+hq-textures: false
+
+top-10-chadsoft: https://www.chadsoft.co.uk/time-trials/leaderboard/13/447D3466B683E8EAE98930DDD9ED2ED1DAB0E474/00.html
+
+# The entry to highlight in the Top 10 Leaderboard. Can be between 1 and 10.
+# This also controls which ghost to use from the leaderboard.
+top-10-highlight: 1
+
+# The title that shows at the top of the Top 10 Leaderboard.
+# e.g. "GBA Peach Circuit (v1.1) Worldwide Top 10"
+top-10-title: Underground Sky Worldwide Top 10
+
+# The background of the Mario Kart Channel Race Ghost Screen. Allowed values are:
+# ww: The background is the 3D globe.
+# <Continent or country>: The location of that continent or country on the 2D globe.
+# See the list of valid locations in locations.txt
+top-10-location: ww
+
+# The text which appears on the top left of the Mario Kart Channel Race Ghost Screen.
+mk-channel-ghost-description: World Champion
+
+# The message that appears at the end of the video.
+# If you want to keep in Auto-TT-Recorder credit but also mention your name, do something like:
+# "Video recorded by yourname w/ Auto TT Recorder" or "Video recorded by yourname x Auto TT Recorder"
+ending-message: Video recorded by Auto TT Recorder
+
+# No background blur will cause background images to become sharp and clear
+# No bloom will cause rendered 3d to look sharper but with more contrast (might not look good on certain tracks).
+# No bloom will usually make the video look less compressed on YouTube. 
+# See https://www.youtube.com/watch?v=ybCsmPKCT2o for both settings enabled
+no-background-blur: false
+no-bloom: false
+
+# Keep these settings as is
+encode-type: size
+video-codec: libvpx-vp9
+audio-codec: libopus
+encode-size: 26214400
+h26x-preset: ultrafast
+youtube-settings: true
+encode-only: false
+input-display-dont-create: false
+
+# Volume settings for game audio and music audio.
+# These are just multipliers, e.g. game-volume: 0.5 makes the game volume half as loud
+game-volume: 0.6
+music-volume: 1.0
+
+# Specify video quality
+# Lower values increase quality at the cost of increased size
+crf-value: 15
+
+# Output settings
+# Set dolphin-resolution to one of the following: 480p, 720p, 1080p, 1440p, 2160p
+# Set output-width to the width of the output video:
+#   - For 2160p, set this to 3840
+#   - For 1440p, set this to 2560
+#   - For 1080p, set this to 1920
+#   - For 720p, set this to 1280
+#   - For 480p, set this to 854, or alternatively, set this to null if you aren't uploading this anywhere
+dolphin-resolution: 480p
+output-width: null
+
+# Whether to keep the Dolphin window as an interactable window.
+# This setting might be useful to see recording progress.
+keep-window: true
+
+# These options will make auto-tt-recorder only download files from chadsoft every 24 hours
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+chadsoft-cache-expiry: 24h
