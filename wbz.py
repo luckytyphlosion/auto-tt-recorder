@@ -97,6 +97,7 @@ class WbzConverter:
         if dest_dirname is None:
             output_szs_filepath = input_wbz_filepath.with_suffix(".szs")
         else:
+            pathlib.Path(dest_dirname).mkdir(parents=True, exist_ok=True)
             output_szs_filepath = pathlib.Path(f"{dest_dirname}/{input_wbz_filepath.with_suffix('.szs').name}")
 
         return output_szs_filepath
