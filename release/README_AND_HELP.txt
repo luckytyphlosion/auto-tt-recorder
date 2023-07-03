@@ -6,6 +6,7 @@ Run the file called record_ghost.bat to record your ghost.
 
 If you don't have a fancy text editor installed, then you should install one. Notepad++ works for this purpose (download here https://notepad-plus-plus.org/downloads/ )
 
+Discord: https://discord.gg/6FqfpnqP57
 
 Credits:
 - luckytyphlosion, the main writer of this program
