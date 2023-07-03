@@ -89,6 +89,15 @@ input-display: auto
 # Specify none to use no music (but with SFX).
 music-filename: Megalovania (Undertale; 2nd cover) - A Philosopher's Covers HARMONY-8qvdq68tlOE.webm
 
+# Whether to start music at the start of the video instead of at the start of the time trial.
+start-music-at-beginning: false
+# Whether to fade in at the start of the video.
+fade-in-at-start: false
+# Whether to disable music on the Mario Kart Channel. Ignored if start-music-at-beginning is true
+no-music-mkchannel: false
+# How many frames to wait after the race ends.
+ending-delay: 600
+
 # Whether to use HQ textures. Current supported textures already included in auto-tt-recorder are HQ Mushrooms. Looks bad at 480p.
 hq-textures: true
 

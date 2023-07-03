@@ -162,6 +162,8 @@ storage/
 *.mov
 *.temp
 *.opus
+*.ogg
+
 temp/
 
 !data/Race_U.szs
