@@ -33,6 +33,11 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
+start-music-at-beginning: true
+no-music-mkchannel: false
+
+encode-only: false
+input-display-dont-create: false
 
 dolphin-folder: "test_dolphin"
 storage-folder: "/mnt/c/users/user/documents/auto-tt-recorder-gui-v0.2.1-win32-x64/resources/app/auto-tt-recorder_v1.3.1_for_gui/storage"
@@ -41,6 +46,6 @@ wiimm-folder: "/mnt/c/users/user/documents/RMCE 01/bin ary"
 
 speedometer: standard
 speedometer-metric: xz
-music-filename: bgm
+music-filename: "38 Grasslands, All the Way.mp3"
 
 no-bloom: true

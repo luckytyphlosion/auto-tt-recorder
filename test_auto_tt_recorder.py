@@ -4,8 +4,11 @@ import pathlib
 import random
 import glob
 
-test_config_indices = {
+test_config_include_indices = {
 
+}
+test_config_exclude_indices = {
+    1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14
 }
 
 class RegionFilenameAndName:
@@ -27,12 +30,14 @@ TEST_MULTIPLE_REGIONS = False
 def main():
     pathlib.Path("temp").mkdir(exist_ok=True)
     pathlib.Path("test_vids").mkdir(exist_ok=True)
-    test_config_indices_len = len(test_config_indices)
+    test_config_include_indices_len = len(test_config_include_indices)
 
     for config_filename in glob.glob("test_ymls/*.yml"):
         config_basename = pathlib.Path(config_filename).name
         config_index = int(config_basename.split("_", maxsplit=1)[0])
-        if test_config_indices_len != 0 and config_index not in test_config_indices:
+        if test_config_include_indices_len != 0 and config_index not in test_config_include_indices:
+            continue
+        elif config_index in test_config_exclude_indices:
             continue
 
         with open(config_filename, "r") as f:
@@ -66,7 +71,8 @@ def main():
             if completed_process.returncode == 0:
                 print(f"SUCCESS: region {region_filename_and_name.name}, config {config_basename}")
             else:
-                print(f"FAILURE: region {region_filename_and_name.name}, config {config_basename}")                
+                print(f"FAILURE: region {region_filename_and_name.name}, config {config_basename}")
+
 
 if __name__ == "__main__":
     main()

@@ -28,13 +28,16 @@ encode-only: false
 input-display-dont-create: false
 dolphin-resolution: 480p
 h26x-preset: veryfast
-game-volume: 1
+game-volume: 0.1
 music-volume: 1
 output-width: null
+start-music-at-beginning: true
+fade-in-at-start: true
+no-music-mkchannel: false
 
 no-bloom: true
 no-background-blur: true
 
 speedometer: regular
 speedometer-metric: xyz
-music-filename: bgm
+music-filename: 22 The Ending.mp3

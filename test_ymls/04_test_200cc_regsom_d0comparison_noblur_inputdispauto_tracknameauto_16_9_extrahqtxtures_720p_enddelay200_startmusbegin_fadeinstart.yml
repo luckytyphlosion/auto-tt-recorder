@@ -1,10 +1,11 @@
 timeline: mkchannel
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
-chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DD/1D/33C44566CB46AE69772D08BBDEEAEE63F33B.html
+chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/E7/BB/C8276CB4A7DA384F141B7B44AD567B8D64A4.html
 output-video-filename: mp4
 track-name: auto
-input-display: gcn
+input-display: auto
 hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
@@ -16,23 +17,25 @@ youtube-settings: true
 keep-window: true
 chadsoft-read-cache: true
 chadsoft-write-cache: true
-chadsoft-cache-folder: one_folder/cache_dir_chadsoft
 encode-only: false
 input-display-dont-create: false
-dolphin-resolution: 480p
+dolphin-resolution: 720p
 h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
-output-width: 1280
+output-width: null
+aspect-ratio-16-by-9: true
+ending-delay: 200
+start-music-at-beginning: true
+fade-in-at-start: true
 
-dolphin-folder: "../../auto-tt-recorder_v1.3.2/dolphin"
-storage-folder: "storing/a big store"
-temp-folder: "/mnt/c/users/user/pictures/autoTTtemp"
-wiimm-folder: "../../auto_tt_recorder/wiimm"
+no-background-blur: true
 
-speedometer: fancy
+extra-hq-textures-folder: hq_textures
+
+speedometer: regular
 speedometer-metric: engine
 speedometer-decimal-places: 0
-music-filename: bgm
+music-filename: 16 The Beyond.mp3
 
 
