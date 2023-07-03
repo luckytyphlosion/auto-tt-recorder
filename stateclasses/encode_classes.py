@@ -70,9 +70,9 @@ size_based_encode_default_audio_bitrate_table = {
 }
 
 class CrfEncodeSettings(EncodeSettings):
-    __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate", "output_width", "fade_frame_duration", "game_volume", "pix_fmt", "music_volume", "youtube_settings")
+    __slots__ = ("crf", "h26x_preset", "video_codec", "audio_codec", "audio_bitrate", "output_width", "fade_frame_duration", "game_volume", "pix_fmt", "music_volume", "youtube_settings", "aspect_ratio_16_by_9")
 
-    def __init__(self, output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt, youtube_settings, game_volume, music_volume):
+    def __init__(self, output_format, crf, h26x_preset, video_codec, audio_codec, audio_bitrate, output_width, pix_fmt, youtube_settings, game_volume, music_volume, aspect_ratio_16_by_9):
         if output_format not in ("mkv", "mp4"):
             raise RuntimeError(f"Invalid output format \"{output_format}\" for crf encode!")
         super().__init__(output_format)
@@ -100,15 +100,16 @@ class CrfEncodeSettings(EncodeSettings):
         self.music_volume = music_volume
         self.pix_fmt = pix_fmt
         self.youtube_settings = youtube_settings
+        self.aspect_ratio_16_by_9 = aspect_ratio_16_by_9
 
     @property
     def type(self):
         return ENCODE_TYPE_CRF
 
 class SizeBasedEncodeSettings(EncodeSettings):
-    __slots__ = ("video_codec", "audio_codec", "audio_bitrate", "encode_size", "output_width", "fade_frame_duration", "game_volume", "pix_fmt", "music_volume")
+    __slots__ = ("video_codec", "audio_codec", "audio_bitrate", "encode_size", "output_width", "fade_frame_duration", "game_volume", "pix_fmt", "music_volume", "aspect_ratio_16_by_9")
 
-    def __init__(self, output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt, game_volume, music_volume):
+    def __init__(self, output_format, video_codec, audio_codec, audio_bitrate, encode_size, output_width, pix_fmt, game_volume, music_volume, aspect_ratio_16_by_9):
         if output_format not in ("mkv", "mp4", "webm"):
             raise RuntimeError(f"Invalid output format \"{output_format}\" for size based encode!")
         super().__init__(output_format)
@@ -143,6 +144,7 @@ class SizeBasedEncodeSettings(EncodeSettings):
         self.music_volume = music_volume
 
         self.pix_fmt = pix_fmt
+        self.aspect_ratio_16_by_9 = aspect_ratio_16_by_9
 
     @property
     def type(self):

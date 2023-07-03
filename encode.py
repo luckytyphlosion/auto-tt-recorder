@@ -176,7 +176,7 @@ class Encoder:
             )
         }
 
-        video_with_input_display = transform2d.calc_overlay_objs_coords_dimensions(self.dolphin_resolution, input_display, ffmpeg_in_streams_info)
+        video_with_input_display = transform2d.calc_overlay_objs_coords_dimensions(self.dolphin_resolution, input_display, self.timeline_settings.encode_settings.aspect_ratio_16_by_9, ffmpeg_in_streams_info)
         return video_with_input_display
 
         #box_on_video = ffmpeg.filter(

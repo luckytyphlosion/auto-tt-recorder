@@ -341,6 +341,7 @@ def main():
     ap.add_argument("-wf", "--wiimm-folder", dest="wiimm_folder", default="bin/wiimm", help="Folder containing the Mario Kart Wii related programs made by Wiimm. Currently, the program requires wit, wszst, and wkmpt. Default is bin/wiimm.")
 
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
+    ap.add_argument("-arsn", "--aspect-ratio-16-by-9", dest="aspect_ratio_16_by_9", action="store_true", default=False, help="Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. If uploading to discord or recording for offline purposes, there is no point in setting this.")
     ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
     ap.add_argument("-smt", "--speedometer-metric", dest="speedometer_metric", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), xyz, the norm of the current position minus the previous position, and xz, which is like xyz except the vehicle's y position is not taken into account. Default is engine.")
@@ -387,7 +388,7 @@ def main():
     ap.add_argument("-yt", "--youtube-settings", dest="youtube_settings", action="store_true", default=False, help="Add some encoding settings recommended by YouTube. This might increase quality on YouTube's end. Ignored for size based encodes.")
     ap.add_argument("-gv", "--game-volume", dest="game_volume", type=float, default=0.6, help="Multiplicative factor to control game volume in the output video (e.g. 0.5 to halve the game volume). Default is 0.6")
     ap.add_argument("-mv", "--music-volume", dest="music_volume", type=float, default=1.0, help="Multiplicative factor to control music volume in the output video (e.g. 0.5 to halve the music volume). Default is 1.0. Ignored if no music is specified.")
-    ap.add_argument("-id", "--input-display", dest="input_display", default="none", help="Whether to include the input display in the output video. Currently supported options are classic, gcn, and none (for no input display). The rest of the controllers may be supported in the future.")
+    ap.add_argument("-id", "--input-display", dest="input_display", default="none", help="Whether to include the input display in the output video. Currently supported options are auto, classic, gcn, nunchuck, and none (for no input display). auto will automatically try to detect the controller type to use for the input display, but this only works if a chadsoft ghost link or chadsoft leaderboard is provided. Additionally, the controller detected must not be the Wii Wheel as it is not implemented. Otherwise, auto will default to gcn. The rest of the controllers may be supported in the future.")
     ap.add_argument("-idd", "--input-display-dont-create", dest="input_display_dont_create", action="store_true", default=False, help="If enabled, assumes that the video file for the input display has already been created. Only relevant for debugging.")
     # specific to custom top 10
     ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This will also use the ghost specified by -tth/--top-10-highlight as the ghost to record if it is not already specified by -i/--main-ghost-filename, and the szs file to use if it is not already specified by -s/--szs-filename. This cannot be specified with -ttg/--top-10-gecko-code-filename or -cg/--chadsoft-ghost-page.")
@@ -544,13 +545,13 @@ def main():
                     output_format, args.crf, args.h26x_preset,
                     args.video_codec, args.audio_codec, args.audio_bitrate,
                     args.output_width, args.pix_fmt, args.youtube_settings,
-                    args.game_volume, args.music_volume
+                    args.game_volume, args.music_volume, args.aspect_ratio_16_by_9
                 )
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
                 encode_settings = SizeBasedEncodeSettings(
                     output_format, args.video_codec, args.audio_codec,
                     args.audio_bitrate, args.encode_size, args.output_width,
-                    args.pix_fmt, args.game_volume, args.music_volume
+                    args.pix_fmt, args.game_volume, args.music_volume, args.aspect_ratio_16_by_9
                 )
             else:
                 assert False

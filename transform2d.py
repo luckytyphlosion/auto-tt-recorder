@@ -1,50 +1,97 @@
 import ffmpeg
 
 class Rectangle:
-    __slots__ = ("name", "original_x", "original_y", "original_width", "original_height", "final_x", "final_y", "final_width", "final_height", "children")
+    __slots__ = ("name", "x_offset", "y_offset", "width", "height", "final_x", "final_y", "final_width", "final_height", "vertical_stretch_factor", "children", "scale_factor", "final_width_override", "final_height_override", "parent", "parent_vertical_stretch_new_y_offset_callback")
 
-    def __init__(self, name, x, y, width, height):
+    def __init__(self, name, x_offset, y_offset, width, height, parent=None, scale_factor=1, vertical_stretch_factor=1, final_width_override=None, final_height_override=None, parent_vertical_stretch_new_y_offset_callback=None):
         self.name = name
-        self.original_x = x
-        self.original_y = y
-        self.original_width = width
-        self.original_height = height
-        self.final_x = x
-        self.final_y = y
+        #self.original_x = x
+        #self.original_y = y
+        #self.original_width = width
+        #self.original_height = height
+
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        self.width = width
+        self.height = height
+
+        self.final_x = x_offset
+        self.final_y = y_offset
         self.final_width = width
         self.final_height = height
+
+        self.parent = parent
+
+        self.scale_factor = 1
+        self.vertical_stretch_factor = 1
+        self.final_width_override = final_width_override
+        self.final_height_override = final_height_override
+        if parent_vertical_stretch_new_y_offset_callback is not None:
+            self.parent_vertical_stretch_new_y_offset_callback = parent_vertical_stretch_new_y_offset_callback
+        else:
+            self.parent_vertical_stretch_new_y_offset_callback = lambda rect, vertical_stretch_factor: rect.y_offset
+
         self.children = []
 
-    def add_child_relative_to(self, name, x_offset, y_offset, width, height):
-        child_rect = Rectangle(name, self.final_x + x_offset, self.final_y + y_offset, width, height)
+    def add_child_relative_to(self, name, x_offset, y_offset, width, height, parent_vertical_stretch_new_y_offset_callback=None):
+        child_rect = Rectangle(name, x_offset, y_offset, width, height, parent=self, parent_vertical_stretch_new_y_offset_callback=parent_vertical_stretch_new_y_offset_callback)
         #child_rect = Rectangle(name, x_offset, y_offset, width, height)
         self.children.append(child_rect)
         return child_rect
 
-    def scale(self, multiplier):
-        self.final_x *= multiplier
-        self.final_y *= multiplier
-        self.final_width *= multiplier
-        self.final_height *= multiplier
-        for child in self.children:
-            child.scale(multiplier)
+    def stretch_vertical(self, multiplier):
+        self.vertical_stretch_factor = multiplier
 
-    def scale_manual_dimensions(self, multiplier, width, height):
-        self.final_x *= multiplier
-        self.final_y *= multiplier
-        self.final_width = width
-        self.final_height = height
-        for child in self.children:
-            child.scale(multiplier)
+    def scale(self, scale_factor):
+        self.scale_factor = scale_factor
 
-# inputs_width=1216
-# inputs_height=769
-# inputs_x=148
-# inputs_y=2161
-# box_x=209
-# box_y=2195
-# box_width=1060
-# box_height=681
+        for child in self.children:
+            child.scale(scale_factor)
+
+    def scale_manual_dimensions(self, scale_factor, width, height):
+        self.scale_factor = scale_factor
+        self.final_width_override = width
+        self.final_height_override = height
+
+        for child in self.children:
+            child.scale(scale_factor)
+
+    def calculate_final_dimensions(self):
+        if self.final_width_override is not None:
+            self.width = self.final_width_override
+        elif self.scale_factor != 1:
+            self.width = self.width * self.scale_factor
+
+        if self.final_height_override is not None:
+            self.height = self.final_height_override
+        elif self.scale_factor != 1:
+            self.height = self.height * self.scale_factor
+
+        if self.vertical_stretch_factor != 1:
+            self.height = self.height * self.vertical_stretch_factor
+            for child in self.children:
+                child_old_y_offset = child.y_offset
+                child.y_offset *= self.vertical_stretch_factor
+                child.y_offset += (child.height * (self.vertical_stretch_factor - 1))/2
+                #print(f"vertical stretch child {child.name} y_offset: old: {child_old_y_offset}, new: {child.y_offset}")
+
+        if self.scale_factor != 1:
+            print(f"scaling {self.name}")
+            if self.parent is None:
+                self.x_offset = self.x_offset * self.scale_factor
+                self.y_offset = self.y_offset * self.scale_factor
+            else:
+                self.x_offset = self.parent.x_offset + self.x_offset * self.scale_factor
+                self.y_offset = self.parent.y_offset + self.y_offset * self.scale_factor
+
+        self.final_x = self.x_offset
+        self.final_y = self.y_offset
+        #print(f"{self.name} final_y: {self.final_y}")
+        self.final_height = self.height
+        self.final_width = self.width
+
+        for child in self.children:
+            child.calculate_final_dimensions()
 
 base_framedump_dimensions = {
     "2160p": (5793, 3168),
@@ -65,9 +112,9 @@ framedump_scale_factors_from_2160p = {
 # 4k canvas dimensions: 5793x3168
 
 class FFmpegInStreamInfo:
-    __slots__ = ("name", "stream", "start_frame", "end_frame", "before_setpts", "after_setpts", "eof_action", "scale_flags")
+    __slots__ = ("name", "stream", "start_frame", "end_frame", "before_setpts", "after_setpts", "eof_action", "scale_flags", "apply_stretch")
 
-    def __init__(self, name, stream, start_frame=None, end_frame=None, before_setpts=None, after_setpts=None, eof_action="repeat", scale_flags="bicubic"):
+    def __init__(self, name, stream, start_frame=None, end_frame=None, before_setpts=None, after_setpts=None, eof_action="repeat", scale_flags="bicubic", apply_stretch=False):
         self.name = name
         self.stream = stream
         self.start_frame = start_frame
@@ -76,20 +123,28 @@ class FFmpegInStreamInfo:
         self.after_setpts = after_setpts
         self.eof_action = eof_action
         self.scale_flags = scale_flags
+        self.apply_stretch = apply_stretch
 
 FPS = 59.94005994006
 
 def apply_ffmpeg_filters(canvas, ffmpeg_in_streams_info):
-    apply_ffmpeg_scale_filters(canvas, ffmpeg_in_streams_info, do_not_scale=True)
+    apply_ffmpeg_scale_filters(canvas, ffmpeg_in_streams_info, is_canvas=True)
 
     return apply_ffmpeg_overlay_filters(canvas, ffmpeg_in_streams_info)
 
-def apply_ffmpeg_scale_filters(rect, ffmpeg_in_streams_info, do_not_scale=False):
+#def apply_ffmpeg_stretch_filters(canvas, ffmpeg_in_streams_info)
+#    rect_stream_info = ffmpeg_in_streams_info[rect.name]
+#    if rect_stream_info.apply_stretch:
+#        rect_stream_info.stream = ffmpeg.filter(rect_stream_info.stream, "scale", rect.final_width, rect.final_height, flags=rect_stream_info.scale_flags)
+def apply_ffmpeg_scale_filters(rect, ffmpeg_in_streams_info, is_canvas=False):
 
     rect_stream_info = ffmpeg_in_streams_info[rect.name]
 
-    if not do_not_scale:
+    if not is_canvas or (rect.vertical_stretch_factor != 1):
+        print(f"{rect.name} final dims: ({rect.final_width}x{rect.final_height})")
         rect_stream_info.stream = ffmpeg.filter(rect_stream_info.stream, "scale", rect.final_width, rect.final_height, flags=rect_stream_info.scale_flags)
+        if is_canvas:
+            rect_stream_info.stream = ffmpeg.filter(rect_stream_info.stream, "setsar", 1, 1)
 
     for child in rect.children:
         apply_ffmpeg_scale_filters(child, ffmpeg_in_streams_info)
@@ -141,19 +196,28 @@ def overlay_onto_canvas(canvas_stream, rect, ffmpeg_in_streams_info):
 
     return rect_on_canvas
 
-def calc_overlay_objs_coords_dimensions(dolphin_resolution, input_display, ffmpeg_in_streams_info):
+def calc_overlay_objs_coords_dimensions(dolphin_resolution, input_display, aspect_ratio_16_by_9, ffmpeg_in_streams_info):
     input_display_geometry = input_display.geometry
     canvas_width_2160p, canvas_height_2160p = base_framedump_dimensions["2160p"]
     canvas = Rectangle("canvas", 0, 0, canvas_width_2160p, canvas_height_2160p)
-    input_box = canvas.add_child_relative_to("input_box", input_display_geometry.base_input_box_x, input_display_geometry.base_input_box_y, input_display_geometry.base_input_box_width, input_display_geometry.base_input_box_height)
+
+    input_box = canvas.add_child_relative_to("input_box", input_display_geometry.base_input_box_x, input_display_geometry.base_input_box_y, input_display_geometry.base_input_box_width, input_display_geometry.base_input_box_height, parent_vertical_stretch_new_y_offset_callback=input_display_geometry.input_box_vertical_stretch_y_offset_callback)
     inputs = input_box.add_child_relative_to("inputs", input_display_geometry.base_inputs_x - input_display_geometry.base_input_box_x, input_display_geometry.base_inputs_y - input_display_geometry.base_input_box_y, input_display_geometry.base_inputs_width, input_display_geometry.base_inputs_height)
 
-    #if output_width is not None:
-    #    canvas.scale(output_width / canvas_width_2160p)
-    #else:
     canvas_width, canvas_height = base_framedump_dimensions[dolphin_resolution]
+
+    if aspect_ratio_16_by_9:
+        vertical_stretch_factor = (canvas_width*9)/(canvas_height*16)
+    else:
+        vertical_stretch_factor = 1
+
+    #canvas_height *= vertical_stretch_factor
+    print(f"canvas_height: {canvas_height}")
+
     canvas.scale_manual_dimensions(framedump_scale_factors_from_2160p[dolphin_resolution], canvas_width, canvas_height)
-    #canvas.scale(framedump_scale_factors_from_2160p[dolphin_resolution])
+    canvas.stretch_vertical(vertical_stretch_factor)
+
+    canvas.calculate_final_dimensions()
 
     final_base_stream = apply_ffmpeg_filters(canvas, ffmpeg_in_streams_info)
 
