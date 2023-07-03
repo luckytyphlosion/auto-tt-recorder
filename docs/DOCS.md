@@ -131,6 +131,11 @@ List of types and what they mean:
 | `youtube-settings` | boolean | Add some encoding settings recommended by YouTube. This might increase quality on YouTube's end. Ignored for size based encodes.
 |<img width=250/>| |
 
+# Enhancement related commands
+| Command | Type   | Description                                                                                         |
+|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| `extra-gecko-codes-filename` | string | The filename of the file containing any extra gecko codes you want when recording. Not enabled during the `top 10`/`mkchannel` screen. It is your responsibility to make sure the gecko codes file is formatted correctly (this might change in the future) as well as to not specify any conflicting codes. Specifying the MSG Editor gecko code will probably cause issues as only one code can be used at a time. Omit this if you don't want any extra gecko codes.
+
 # Misc/debug commands
 | Command | Type   | Description                                                                                         |
 |-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
