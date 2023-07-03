@@ -83,6 +83,8 @@ List of types and what they mean:
 | `music-filename` | string | Filename of the music which will replace the regular BGM. Specifying `bgm` will keep the regular BGM. Specifying an empty string or `None`/`none` will disable music altogether. The default is `bgm`.
 | `game-volume` | float | Multiplicative factor to control game volume in the output video (e.g. `0.5` to halve the game volume). Default is `0.6`. Ignored if no music is specified.
 | `music-volume` | float | Multiplicative factor to control music volume in the output video (e.g. `0.5` to halve the music volume). Default is `1.0`. Ignored if no music is specified.
+| `start-music-at-beginning` | boolean | Whether to start music at the start of the video instead of at the start of the time trial. Only applicable for `mkchannel`, `top10`, and `ghostselect` timelines. Default is `false`.
+| `no-music-mkchannel` | boolean | Whether to disable game background music in the Mario Kart Channel. Only applicable for `mkchannel` and `top10` timelines. Ignored if `start-music-at-beginning` is `true`. Default is `false`.
 |<img width=250/>| |
 
 ## "Overlay" related
@@ -104,6 +106,12 @@ List of types and what they mean:
 |                              | standard | Ignored (always forced to 2)
 | `ending-message` | string | The ending message that shows on the bottom left after completing a time trial. Default is `Video recorded by Auto TT Recorder`.
 |<img width=250/>| |
+
+## Presentation related
+| Command | Type   | Description                                                                                         |
+|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| `fade-in-at-start` | boolean | Whether to fade in at the start of the video. Only applicable for `mkchannel`, `top10`, and `ghostselect` timelines. Default is `false`.
+| `ending-delay` | int | How many frames to wait after the race ends. Default is 600.
 
 ## "High quality" related
 | Command | Type   | Description                                                                                         |
