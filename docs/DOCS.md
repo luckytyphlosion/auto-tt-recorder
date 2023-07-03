@@ -127,8 +127,14 @@ List of types and what they mean:
 | `audio-bitrate` | string | Audio bitrate for encodes. Higher bitrate means better audio quality. Specified value can be an integer or an integer followed by k (multiplies by 1000). For crf-based encodes, the default is `128k` for libopus, and `384k` for aac. For constrained size-based encodes, the default is `64k` for libopus, and `128k` for aac.
 | `pixel-format` | string | Pixel format of the output video. Default is `yuv420p`. This input is not validated against! If unsure, don't specify this option.
 | `output-width` | int | Width of the output video. If omitted, don't rescale the video at all.
+| `aspect-ratio-16-by-9` | boolean | Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. Not recommended if uploading to Discord or recording for offline purposes. Default is `true` for crf-based encodes and `false` for size-based encodes. Specifying `null` also enables this behaviour.
 | `youtube-settings` | boolean | Add some encoding settings recommended by YouTube. This might increase quality on YouTube's end. Ignored for size based encodes.
 |<img width=250/>| |
+
+# Enhancement related commands
+| Command | Type   | Description                                                                                         |
+|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| `extra-gecko-codes-filename` | string | The filename of the file containing any extra gecko codes you want when recording. Not enabled during the `top 10`/`mkchannel` screen. It is your responsibility to make sure the gecko codes file is formatted correctly (this might change in the future) as well as to not specify any conflicting codes. Specifying the MSG Editor gecko code will probably cause issues as only one code can be used at a time. Omit this if you don't want any extra gecko codes.
 
 # Misc/debug commands
 | Command | Type   | Description                                                                                         |
