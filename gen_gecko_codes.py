@@ -59,7 +59,22 @@ class GeckoSubst:
     def sub(self, line):
         return line.replace(self.name, self.value)
 
-def create_gecko_code_file(template_file, out_file, params):
+def create_gecko_code_file(template_file, out_file, params, extra_gecko_codes_filename):
+    extra_gecko_codes_contents = []
+    extra_gecko_codes_enabled = ""
+    if extra_gecko_codes_filename is not None:
+        with open(extra_gecko_codes_filename, "r") as f:
+            for line in f:
+                if line[0] == "[":
+                    if line.startswith("[Gecko_Enabled]"):
+                        break
+                    elif line.startswith("[Gecko]"):
+                        continue
+
+                extra_gecko_codes_contents.append(line)
+
+            extra_gecko_codes_enabled = f.read()
+
     with open(template_file, "r") as f:
         template_lines = f.readlines()
 
@@ -71,8 +86,11 @@ def create_gecko_code_file(template_file, out_file, params):
             continue
         elif line[0] in ("[", "$", "*"):
             if line.startswith("[Gecko_Enabled]"):
-                template_lines[i] = "\n".join(dynamic_code.format() for dynamic_code in params.dynamic_codes) + "\n[Gecko_Enabled]\n"
+                template_lines[i] = "\n".join(dynamic_code.format() for dynamic_code in params.dynamic_codes) + f"\n[Gecko_Enabled]\n{extra_gecko_codes_enabled}\n"
 
+            elif line.startswith("[Gecko]"):
+                template_lines[i] += f"{''.join(extra_gecko_codes_contents)}\n"
+                
             continue
 
         # dumb algorithm but whatever

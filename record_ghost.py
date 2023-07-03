@@ -109,7 +109,7 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes_filename=None):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -152,7 +152,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
         )
         
         params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, mkw_iso.region)
-        gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_custom_top_10_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
+        gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_custom_top_10_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params, None)
         top_10_or_mk_channel_lua_mode = LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN if timeline_settings.type == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN else LUA_MODE_RECORD_TOP_10
         create_lua_params.create_lua_params_for_custom_top_10_or_mk_channel(f"{dir_config.dolphin_dirname}/lua_config.txt", top_10_or_mk_channel_lua_mode)
 
@@ -183,7 +183,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
     params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc, mkw_iso.region, no_background_blur, no_bloom)
-    gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params)
+    gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params, extra_gecko_codes_filename)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
     create_lua_params.create_lua_params(rkg, rkg_comparison, f"{dir_config.dolphin_dirname}/lua_config.txt", lua_mode)
@@ -359,7 +359,7 @@ def main():
     ap.add_argument("-cwc", "--chadsoft-write-cache", dest="chadsoft_write_cache", action="store_true", default=False, help="Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.")
     ap.add_argument("-cce", "--chadsoft-cache-expiry", dest="chadsoft_cache_expiry", default="24h", help="Duration until data downloaded from Chadsoft expires and is purged. Example formats: 1h23m46s, 24h, 3h30m, 1000 (seconds implied), 90m100s. The duration is applied on a per-file basis, so if the expiry time is 24h, each file will be deleted 24h after the specific file was downloaded. Note that the cache is purged when the program is run regardless of whether the purged files would have been requested or not. Default is 24h. Cache purging can be disabled if this option evaluates to 0 or if -crc/--chadsoft-read-cache is unspecified or false.")
     ap.add_argument("-ccf", "--chadsoft-cache-folder", dest="chadsoft_cache_folder", default="chadsoft_cached", help="Folder to temporarily store data downloaded from Chadsoft. Default folder is chadsoft_cached")
-    ap.add_argument("-egc", "--extra-gecko-codes-filename", dest="extra_gecko_codes_filename", default=None, help="The filename of the file containing any extra gecko codes you want when recording. Not enabled during the top 10/mkchannel screen. It is your responsibility to not specify any conflicting codes. Specifying the MSG Editor gecko code will probably cause issues as only one code can be used at a time.")
+    ap.add_argument("-egc", "--extra-gecko-codes-filename", dest="extra_gecko_codes_filename", default=None, help="The filename of the file containing any extra gecko codes you want when recording. Not enabled during the top 10/mkchannel screen. It is your responsibility to make sure the gecko codes file is formatted correctly (this might change in the future) as well as to not specify any conflicting codes. Specifying the MSG Editor gecko code will probably cause issues as only one code can be used at a time.")
     ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
     ap.add_argument("-o2", "--on-200cc", dest="on_200cc", action="store_true", default=False, help="Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
@@ -428,6 +428,11 @@ def main():
         cc_option = CC_150
     else:
         cc_option = CC_UNKNOWN
+
+    extra_gecko_codes_filename = args.extra_gecko_codes_filename
+
+    if extra_gecko_codes_filename is not None and pathlib.Path(extra_gecko_codes_filename).suffix != ".ini":
+        raise RuntimeError(f"Extra gecko codes filename must be .ini! (Got: {pathlib.Path(extra_gecko_codes_filename).suffix})")
 
     # backwards compatibility with previous yamls
     chadsoft_ghost_page_link = args.chadsoft_ghost_page
@@ -648,7 +653,7 @@ def main():
         else:
             raise RuntimeError("Could not automatically get track name! (must specify manually)")
 
-    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes_filename=extra_gecko_codes_filename)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))

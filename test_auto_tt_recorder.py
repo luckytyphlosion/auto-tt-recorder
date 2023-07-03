@@ -5,7 +5,7 @@ import random
 import glob
 
 test_config_indices = {
-    8, 11
+    7, 8, 9, 10, 11, 12
 }
 
 class RegionFilenameAndName:
@@ -49,6 +49,12 @@ def main():
             print(f"Testing region {region_filename_and_name.name}, config {config_basename}")
             config["iso-filename"] = f"../../RMCE 01/{region_filename_and_name.filename}"
             config["output-video-filename"] = f"test_vids/{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
+
+            extra_gecko_codes_filename = config.get("extra-gecko-codes-filename")
+            if extra_gecko_codes_filename is not None:
+                extra_gecko_codes_filepath = pathlib.Path(extra_gecko_codes_filename)
+                extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.stem}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
+                config["extra-gecko-codes-filename"] = extra_gecko_codes_filename
 
             temp_config_filename = f"temp/{config_basename}"
             with open(temp_config_filename, "w+") as f:

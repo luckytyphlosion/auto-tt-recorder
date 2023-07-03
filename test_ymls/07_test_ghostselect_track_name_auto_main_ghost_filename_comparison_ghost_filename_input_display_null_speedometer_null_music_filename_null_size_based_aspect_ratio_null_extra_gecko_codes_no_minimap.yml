@@ -23,6 +23,7 @@ game-volume: 1
 music-volume: 1
 aspect-ratio-16-by-9: null
 output-width: null
+extra-gecko-codes-filename: no_minimap.ini
 
 speedometer: fancy
 speedometer-metric: xz
