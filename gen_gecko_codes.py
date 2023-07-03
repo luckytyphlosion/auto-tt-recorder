@@ -187,11 +187,14 @@ def create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bg
 
     return create_gecko_code_params(tt_character, tt_vehicle, default_drift, speedometer, disable_game_bgm, rkg.track_id, track_name, ending_message, on_200cc, region, no_background_blur, no_bloom)
 
-def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, region):
+def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, region, disable_game_bgm):
     custom_top_10_and_ghost_description = timeline_settings.custom_top_10_and_ghost_description
 
     params = GeckoParams()
     params.add_subst("custom_top_10_course_id", rkg.track_id)
+
+    if disable_game_bgm:
+        params.enable_optional_code("$No Background Music")
 
     if custom_top_10_and_ghost_description.globe_location == "ww":
         params.add_subst("custom_top_10_area", 2)

@@ -40,10 +40,12 @@ end
 
 local helper_isScriptEnabled = true
 
-LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 0
-LUA_MODE_RECORD_TOP_10 = 1
-LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN = 2
-LUA_MODE_RECORD_GHOST_ONLY = 3
+local WAIT_RACE_COMPLETION_DELAY_ID = -1
+
+local LUA_MODE_RECORD_GHOST_FROM_TT_GHOST_SELECT = 0
+local LUA_MODE_RECORD_TOP_10 = 1
+local LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN = 2
+local LUA_MODE_RECORD_GHOST_ONLY = 3
 
 local ADVANCE_TO_TRACK_SELECT = 1
 local CHOOSE_MUSHROOM_CUP = 2
@@ -639,7 +641,7 @@ local advLiveReplayCommonSegment = {
 	{setFrameReplayStarts, 0},
 	{setLastKCPValue, 0},
 	{waitFrameOfInput1ThenSetFrameInputStarts, 0},
-	{waitRaceCompletion, 60 * 10},
+	{waitRaceCompletion, WAIT_RACE_COMPLETION_DELAY_ID},
 	{stopDumpFrames, 0},
 	{"done", 0}
 }
@@ -725,9 +727,15 @@ function initializeSegmentTable(mode)
 
 	for i, segment in ipairs(segments) do
 		for i, action in ipairs(segment) do
+			command = action[1]
+			delay = action[2]
+			if delay == WAIT_RACE_COMPLETION_DELAY_ID then
+				delay = tonumber(params["endingDelay"])
+			end
+
 			segment[i] = {
-				command = action[1],
-				delay = action[2]
+				command = command,
+				delay = delay
 			}
 		end
 	end

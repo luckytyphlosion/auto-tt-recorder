@@ -254,10 +254,25 @@ class Encoder:
 
         return video_with_input_display
 
-    def encode_complex_common(self, secondary_video_in_file, secondary_audio_in_file):
+    def add_in_music(self, music_volume_stream, game_volume_stream):
+        encode_settings = self.timeline_settings.encode_settings
+        if encode_settings.music_volume != 1.0:
+            music_volume_stream = ffmpeg.filter(music_volume_stream, "volume", volume=encode_settings.music_volume)
+        game_volume_stream = ffmpeg.filter(game_volume_stream, "volume", volume=encode_settings.game_volume)
+        audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")
+        return audio_combined_stream
+
+    def encode_complex_common(self, secondary_video_in_filename, secondary_audio_in_filename):
+        secondary_video_in_file = ffmpeg.input(secondary_video_in_filename)
+        secondary_audio_in_file = ffmpeg.input(secondary_audio_in_filename)
         dolphin_resolution = self.dolphin_resolution
         music_option = self.music_option
         timeline_settings = self.timeline_settings
+        has_secondary_video_in_file = secondary_video_in_filename is not None and secondary_audio_in_filename is not None
+        if has_secondary_video_in_file:
+            secondary_video_in_file_frame_len = self.get_video_frame_duration(secondary_video_in_filename)
+        else:
+            secondary_video_in_file_frame_len = 0
 
         encode_settings = timeline_settings.encode_settings
         fade_frame_duration = encode_settings.fade_frame_duration
@@ -267,14 +282,9 @@ class Encoder:
         video_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Frames/framedump0.avi")
         audio_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Audio/dspdump.wav")
 
-        if music_option.option == MUSIC_CUSTOM_MUSIC:
+        if music_option.option == MUSIC_CUSTOM_MUSIC and not music_option.start_music_at_beginning:
             music_in_file = ffmpeg.input(music_option.music_filename).audio
-            if encode_settings.music_volume == 1.0:
-                music_volume_stream = music_in_file
-            else:
-                music_volume_stream = ffmpeg.filter(music_in_file, "volume", volume=encode_settings.music_volume)
-            game_volume_stream = ffmpeg.filter(audio_in_file, "volume", volume=encode_settings.game_volume)
-            audio_combined_stream = ffmpeg.filter([game_volume_stream, music_volume_stream], "amix", inputs=2, duration="first")            
+            audio_combined_stream = self.add_in_music(music_in_file, audio_in_file)
         else:
             audio_combined_stream = audio_in_file
 
@@ -286,10 +296,12 @@ class Encoder:
             assert False
 
         video_faded_stream = ffmpeg.filter(video_with_input_display, "fade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
-    
-        audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
+        if not music_option.start_music_at_beginning:
+            audio_combined_maybefaded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
+        else:
+            audio_combined_maybefaded_stream = audio_combined_stream
 
-        if secondary_video_in_file is not None and secondary_audio_in_file is not None:
+        if has_secondary_video_in_file:
             if encode_settings.aspect_ratio_16_by_9:
                 canvas_width, canvas_height = base_framedump_dimensions[dolphin_resolution]
                 secondary_video_in_file = ffmpeg.filter(secondary_video_in_file, "scale", canvas_width, round(canvas_width * 9 / 16), flags="bicubic").filter("setsar", 1, 1)
@@ -298,15 +310,26 @@ class Encoder:
                 secondary_video_in_file,
                 secondary_audio_in_file,
                 video_faded_stream,
-                audio_combined_faded_stream
+                audio_combined_maybefaded_stream
             ]
     
             almost_final_streams = ffmpeg.filter_multi_output(all_streams, "concat", n=2, v=1, a=1)
             almost_final_video_stream = almost_final_streams[0]
-            final_audio_stream = almost_final_streams[1]
+            almost_final_audio_stream = almost_final_streams[1]
         else:
             almost_final_video_stream = video_faded_stream
-            final_audio_stream = audio_combined_faded_stream
+            almost_final_audio_stream = audio_combined_maybefaded_stream
+
+        if music_option.start_music_at_beginning:
+            music_in_file = ffmpeg.input(music_option.music_filename).audio
+            almost_final_audio_stream = self.add_in_music(music_in_file, almost_final_audio_stream)
+            almost_final_audio_stream = ffmpeg.filter(almost_final_audio_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=(secondary_video_in_file_frame_len + dynamic_filter_args.fade_start_frame)/FPS)
+
+        if encode_settings.fade_in_at_start:
+            almost_final_video_stream = ffmpeg.filter(almost_final_video_stream, "fade", type="in", duration=30/FPS, start_time=0)
+            final_audio_stream = ffmpeg.filter(almost_final_audio_stream, "afade", type="in", duration=30/FPS, start_time=0)
+        else:
+            final_audio_stream = almost_final_audio_stream
 
         if encode_settings.output_width is not None:
             final_video_stream = ffmpeg.filter(almost_final_video_stream, "scale", encode_settings.output_width, "round(ow/a/2)*2", flags="bicubic")
@@ -316,16 +339,16 @@ class Encoder:
         return final_video_stream, final_audio_stream, dynamic_filter_args
 
     def encode_from_top_10_leaderboard(self):
-        top_10_video_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Frames/top10.avi")
-        top_10_audio_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Audio/top10.wav")
+        top_10_video_in_filename = f"{dir_config.dolphin_dirname}/User/Dump/Frames/top10.avi"
+        top_10_audio_in_filename = f"{dir_config.dolphin_dirname}/User/Dump/Audio/top10.wav"
 
-        return self.encode_complex_common(top_10_video_in_file, top_10_audio_in_file)
+        return self.encode_complex_common(top_10_video_in_filename, top_10_audio_in_filename)
 
     def encode_from_tt_ghost_select(self):
-        tt_ghost_select_video_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Frames/tt_ghost_select.avi")
-        tt_ghost_select_audio_in_file = ffmpeg.input(f"{dir_config.dolphin_dirname}/User/Dump/Audio/tt_ghost_select.wav")
+        tt_ghost_select_video_in_filename = f"{dir_config.dolphin_dirname}/User/Dump/Frames/tt_ghost_select.avi"
+        tt_ghost_select_audio_in_filename = f"{dir_config.dolphin_dirname}/User/Dump/Audio/tt_ghost_select.wav"
 
-        return self.encode_complex_common(tt_ghost_select_video_in_file, tt_ghost_select_audio_in_file)
+        return self.encode_complex_common(tt_ghost_select_video_in_filename, tt_ghost_select_audio_in_filename)
 
     def encode_complex(self, output_video_filename):
         dolphin_resolution = self.dolphin_resolution
@@ -384,6 +407,8 @@ class Encoder:
                 run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration(f"{dir_config.dolphin_dirname}/User/Dump/Frames/tt_ghost_select.avi")
             elif timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN):
                 run_frame_len = self.get_video_frame_duration() + self.get_video_frame_duration(f"{dir_config.dolphin_dirname}/User/Dump/Frames/top10.avi")
+            elif timeline_settings.type == TIMELINE_GHOST_ONLY:
+                run_frame_len = self.get_video_frame_duration()
             else:
                 assert False
 
@@ -440,7 +465,6 @@ class Encoder:
                 tentative_output_video_filename = output_video_filename
 
             output_stream_pass2 = ffmpeg.output(final_video_stream, final_audio_stream, tentative_output_video_filename, **ffmpeg_output_kwargs_pass2)
-            
             if platform_system == "Windows":
                 pass1_command = ffmpeg.compile(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
                 job_process.run_subprocess_as_job(pass1_command)
@@ -448,6 +472,8 @@ class Encoder:
                 job_process.run_subprocess_as_job(pass2_command)
 
             else:
+                pass1_command = ffmpeg.compile(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
+                print(f"pass1_command: {pass1_command}")
                 ffmpeg.run(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
                 ffmpeg.run(output_stream_pass2, cmd=self.ffmpeg_filename, overwrite_output=True)
 

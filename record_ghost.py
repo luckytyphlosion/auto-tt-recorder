@@ -109,7 +109,7 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes_filename=None, extra_hq_textures_folder=None):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes_filename=None, extra_hq_textures_folder=None, no_music_mkchannel=False, ending_delay=600):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -151,8 +151,10 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
             f"{dir_config.dolphin_dirname}/User/Wii/shared2/menu/FaceLib/RFL_DB.dat",
             rkg_file_comparison
         )
-        
-        params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, mkw_iso.region)
+
+        disable_game_bgm_mk_channel = no_music_mkchannel or music_option.start_music_at_beginning
+
+        params = gen_gecko_codes.create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_name, mkw_iso.region, disable_game_bgm_mk_channel)
         gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_custom_top_10_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params, None)
         top_10_or_mk_channel_lua_mode = LUA_MODE_RECORD_MK_CHANNEL_GHOST_SCREEN if timeline_settings.type == TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN else LUA_MODE_RECORD_TOP_10
         create_lua_params.create_lua_params_for_custom_top_10_or_mk_channel(f"{dir_config.dolphin_dirname}/lua_config.txt", top_10_or_mk_channel_lua_mode)
@@ -187,7 +189,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params, extra_gecko_codes_filename)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
-    create_lua_params.create_lua_params(rkg, rkg_comparison, f"{dir_config.dolphin_dirname}/lua_config.txt", lua_mode)
+    create_lua_params.create_lua_params(rkg, rkg_comparison, f"{dir_config.dolphin_dirname}/lua_config.txt", lua_mode, ending_delay)
     mkw_filesys.replace_track(szs_filename, rkg)
     mkw_filesys.add_fancy_km_h_race_szs_if_necessary(speedometer, mkw_iso.region)
 
@@ -366,12 +368,16 @@ def main():
     ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-nbb", "--no-background-blur", dest="no_background_blur", action="store_true", default=False, help="If enabled, on most tracks, the blurry/fuzzy background images are now sharp and clear.")
     ap.add_argument("-nb", "--no-bloom", dest="no_bloom", action="store_true", default=False, help="If enabled, disables the \"bloom\" effect (see https://en.wikipedia.org/wiki/Bloom_(shader_effect)). The effect is notable for not rendering properly on resolutions higher than 480p. Disabling bloom will cause graphics to look sharper however textures will have increased contrast which some might not like.")
+    ap.add_argument("-ed", "--ending-delay", dest="ending_delay", type=int, default=600, help="How many frames to wait after the race ends. Default is 600.")
 
     # timeline no encode
     ap.add_argument("-nm", "--no-music", dest="no_music", action="store_true", default=False, help="Disable BGM and don't replace it with music.")
 
     # anything that requires encoding
     ap.add_argument("-m", "--music-filename", dest="music_filename", default="bgm", help="Filename of the music which will replace the regular BGM. Specifying bgm will keep the regular BGM. Specifying an empty string or None/none will disable music altogether. The default is bgm.")
+    ap.add_argument("-smb", "--start-music-at-beginning", dest="start_music_at_beginning", action="store_true", default=False, help="Whether to start music at the start of the video instead of at the start of the time trial. Only applicable for mkchannel, top10, and ghostselect timelines. Default is false.")
+    ap.add_argument("-fis", "--fade-in-at-start", dest="fade_in_at_start", action="store_true", default=False, help="Whether to fade in at the start of the video. Ignored for ghostonly and noencode timelines.")
+
     ap.add_argument("-ep", "--encode-preset", dest="encode_preset", default=None, help="Basic encode presets to use [TODO]")
     # youtube-fast-encode, youtube-optimize-size, discord-8mb, discord-50mb, discord-100mb
     ap.add_argument("-et", "--encode-type", dest="encode_type", default=None, help="Type of encoding to perform. Valid options are crf for a constant quality encode, and size for a constrained size based output. Pick crf if you're unsure (this is the default)")
@@ -399,7 +405,7 @@ def main():
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The filename of the file containing the gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
     ap.add_argument("-mkd", "--mk-channel-ghost-description", dest="mk_channel_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines mkchannel and top10. Default is Ghost Data.")
-
+    ap.add_argument("-nmmk", "--no-music-mkchannel", dest="no_music_mkchannel", action="store_true", default=False, help="Whether to disable music when on the Mario Kart Channel (for top10 or mkchannel timelines). Ignored if -smb/--start-music-at-beginning is true.")
     ap.add_argument("-uo", "--unbuffered-output", dest="unbuffered_output", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr to flush at every newline.")
     #ap.add_argument("-sfu8", "--standard-streams-force-utf8", dest="standard_streams_force_utf8", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr as .")
 
@@ -552,7 +558,10 @@ def main():
             if not music_filepath.exists():
                 raise RuntimeError(f"Specified music filename \"{music_filepath}\" does not exist!")
             else:
-                music_option = MusicOption(MUSIC_CUSTOM_MUSIC, args.music_filename)
+                start_music_at_beginning = args.start_music_at_beginning
+                if timeline == TIMELINE_GHOST_ONLY:
+                    start_music_at_beginning = False
+                music_option = MusicOption(MUSIC_CUSTOM_MUSIC, args.music_filename, start_music_at_beginning)
 
         if args.encode_preset is not None:
             raise RuntimeError("-ep/--encode-preset is TODO!")
@@ -562,18 +571,22 @@ def main():
             if aspect_ratio_16_by_9 not in {"True", "False", "auto"}:
                 raise RuntimeError(f"-arsn/--aspect-ratio-16-by-9 must be true, false, or auto! (got: {aspect_ratio_16_by_9})")
 
+            fade_in_at_start = args.fade_in_at_start
+            if timeline == "ghostonly":
+                fade_in_at_start = False
+
             if encode_type == ENCODE_TYPE_CRF:
                 encode_settings = CrfEncodeSettings(
                     output_format, args.crf, args.h26x_preset,
                     args.video_codec, args.audio_codec, args.audio_bitrate,
                     args.output_width, args.pix_fmt, args.youtube_settings,
-                    args.game_volume, args.music_volume, aspect_ratio_16_by_9
+                    args.game_volume, args.music_volume, aspect_ratio_16_by_9, args.fade_in_at_start
                 )
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
                 encode_settings = SizeBasedEncodeSettings(
                     output_format, args.video_codec, args.audio_codec,
                     args.audio_bitrate, args.encode_size, args.output_width,
-                    args.pix_fmt, args.game_volume, args.music_volume, aspect_ratio_16_by_9
+                    args.pix_fmt, args.game_volume, args.music_volume, aspect_ratio_16_by_9, args.fade_in_at_start
                 )
             else:
                 assert False
@@ -658,7 +671,7 @@ def main():
         else:
             raise RuntimeError("Could not automatically get track name! (must specify manually)")
 
-    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes_filename=extra_gecko_codes_filename, extra_hq_textures_folder=args.extra_hq_textures_folder)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes_filename=extra_gecko_codes_filename, extra_hq_textures_folder=args.extra_hq_textures_folder, no_music_mkchannel=args.no_music_mkchannel, ending_delay=args.ending_delay)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))

@@ -19,10 +19,11 @@ MUSIC_GAME_BGM = 1
 MUSIC_CUSTOM_MUSIC = 2
 
 class MusicOption:
-    __slots__ = ("option", "music_filename")
+    __slots__ = ("option", "music_filename", "start_music_at_beginning")
 
-    def __init__(self, option, music_filename=None):
+    def __init__(self, option, music_filename=None, start_music_at_beginning=False):
         self.option = option
         self.music_filename = music_filename
+        self.start_music_at_beginning = start_music_at_beginning
 
 music_option_bgm = MusicOption(MUSIC_GAME_BGM)

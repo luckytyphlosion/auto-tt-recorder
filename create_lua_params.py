@@ -62,7 +62,7 @@ class GhostEntry:
         self.type = type
         self.time = time
 
-def create_lua_params(rkg, rkg_comparison, output_file, mode):
+def create_lua_params(rkg, rkg_comparison, output_file, mode, ending_delay):
     cup = rkg.track_by_human_id // 4
     cup_menu_pos = rkg.track_by_human_id % 4
 
@@ -71,6 +71,7 @@ def create_lua_params(rkg, rkg_comparison, output_file, mode):
     output += f"cup: {cup}\n"
     output += f"cupMenuPos: {cup_menu_pos}\n"
     output += f"comparison: {'True' if rkg_comparison is not None else 'False'}\n"
+    output += f"endingDelay: {ending_delay}\n"
 
     #print(f"staff time: {easy_staff_ghost_times[rkg.track_by_human_id]}")
 
