@@ -109,7 +109,7 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes_filename=None):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes_filename=None, extra_hq_textures_folder=None):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -142,6 +142,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     checkpoint = read_checkpoint(checkpoint_filename)
 
     mkw_filesys.add_extended_region_files(mkw_iso.region)
+    mkw_filesys.copy_hq_textures_if_necessary(hq_textures, mkw_iso.region, extra_hq_textures_folder)
 
     if timeline_settings.type in (TIMELINE_FROM_TOP_10_LEADERBOARD, TIMELINE_FROM_MK_CHANNEL_GHOST_SCREEN) and checkpoint_not_passed(checkpoint, CHECKPOINT_DUMPING_TOP_10):
         rkg, rkg_comparison = import_ghost_to_save.import_ghost_to_save(
@@ -164,7 +165,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
             framedump_path.unlink(missing_ok=True)
 
             create_dolphin_configs_if_not_exist()
-            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, False)
+            modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
 
             dolphin_process.run_dolphin(mkw_iso, hide_window)
 
@@ -205,7 +206,6 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
 
         create_dolphin_configs_if_not_exist()
         modify_dolphin_configs(dolphin_resolution_as_enum, use_ffv1, dolphin_volume, hq_textures)
-        mkw_filesys.copy_hq_textures_if_necessary(hq_textures, mkw_iso.region)
 
         dolphin_process.run_dolphin(mkw_iso, hide_window)
 
@@ -341,7 +341,7 @@ def main():
     ap.add_argument("-wf", "--wiimm-folder", dest="wiimm_folder", default="bin/wiimm", help="Folder containing the Mario Kart Wii related programs made by Wiimm. Currently, the program requires wit, wszst, and wkmpt. Default is bin/wiimm.")
 
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
-    ap.add_argument("-arsn", "--aspect-ratio-16-by-9", dest="aspect_ratio_16_by_9", action="store_true", default=None, help="Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. Not recommended if uploading to Discord or recording for offline purposes. Default is true for crf-based encodes and false for size-based encodes.")
+    ap.add_argument("-arsn", "--aspect-ratio-16-by-9", dest="aspect_ratio_16_by_9", default="auto", help="Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. Not recommended if uploading to Discord or recording for offline purposes. Default is true for crf-based encodes and false for size-based encodes.")
     ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
     ap.add_argument("-smt", "--speedometer-metric", dest="speedometer_metric", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), xyz, the norm of the current position minus the previous position, and xz, which is like xyz except the vehicle's y position is not taken into account. Default is engine.")
@@ -360,7 +360,8 @@ def main():
     ap.add_argument("-cce", "--chadsoft-cache-expiry", dest="chadsoft_cache_expiry", default="24h", help="Duration until data downloaded from Chadsoft expires and is purged. Example formats: 1h23m46s, 24h, 3h30m, 1000 (seconds implied), 90m100s. The duration is applied on a per-file basis, so if the expiry time is 24h, each file will be deleted 24h after the specific file was downloaded. Note that the cache is purged when the program is run regardless of whether the purged files would have been requested or not. Default is 24h. Cache purging can be disabled if this option evaluates to 0 or if -crc/--chadsoft-read-cache is unspecified or false.")
     ap.add_argument("-ccf", "--chadsoft-cache-folder", dest="chadsoft_cache_folder", default="chadsoft_cached", help="Folder to temporarily store data downloaded from Chadsoft. Default folder is chadsoft_cached")
     ap.add_argument("-egc", "--extra-gecko-codes-filename", dest="extra_gecko_codes_filename", default=None, help="The filename of the file containing any extra gecko codes you want when recording. Not enabled during the top 10/mkchannel screen. It is your responsibility to make sure the gecko codes file is formatted correctly (this might change in the future) as well as to not specify any conflicting codes. Specifying the MSG Editor gecko code will probably cause issues as only one code can be used at a time.")
-    ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
+    ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current built-in HQ textures supported are the Item Slot Mushrooms. Extra textures can be specified using -ehqt/--extra-hq-textures-folder. Looks bad at 480p.")
+    ap.add_argument("-ehqt", "--extra-hq-textures-folder", dest="extra_hq_textures_folder", default=None, help="The folder containing any extra HQ textures you want. The program will check if the texture file has already been copied by comparing when each file was last modified. If the source and dest file have different timestamps, then it is copied over.")
     ap.add_argument("-o2", "--on-200cc", dest="on_200cc", action="store_true", default=False, help="Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-nbb", "--no-background-blur", dest="no_background_blur", action="store_true", default=False, help="If enabled, on most tracks, the blurry/fuzzy background images are now sharp and clear.")
@@ -530,7 +531,7 @@ def main():
     #if timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
     #    if args.top_10_chadsoft is not None and args.top_10_gecko_code_filename is not None:
     #        raise RuntimeError("Only one of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename is allowed!")
-                
+
     if timeline == TIMELINE_NO_ENCODE:
         if output_format != "mkv":
             raise RuntimeError("Output file must be an .mkv file!")
@@ -557,18 +558,22 @@ def main():
             raise RuntimeError("-ep/--encode-preset is TODO!")
         else:
             encode_type = encode_type_enum_arg_table.parse_enum_arg(args.encode_type, "Unknown encode type \"{}\"!")
+            aspect_ratio_16_by_9 = args.aspect_ratio_16_by_9
+            if aspect_ratio_16_by_9 not in {"True", "False", "auto"}:
+                raise RuntimeError(f"-arsn/--aspect-ratio-16-by-9 must be true, false, or auto! (got: {aspect_ratio_16_by_9})")
+
             if encode_type == ENCODE_TYPE_CRF:
                 encode_settings = CrfEncodeSettings(
                     output_format, args.crf, args.h26x_preset,
                     args.video_codec, args.audio_codec, args.audio_bitrate,
                     args.output_width, args.pix_fmt, args.youtube_settings,
-                    args.game_volume, args.music_volume, args.aspect_ratio_16_by_9
+                    args.game_volume, args.music_volume, aspect_ratio_16_by_9
                 )
             elif encode_type == ENCODE_TYPE_SIZE_BASED:
                 encode_settings = SizeBasedEncodeSettings(
                     output_format, args.video_codec, args.audio_codec,
                     args.audio_bitrate, args.encode_size, args.output_width,
-                    args.pix_fmt, args.game_volume, args.music_volume, args.aspect_ratio_16_by_9
+                    args.pix_fmt, args.game_volume, args.music_volume, aspect_ratio_16_by_9
                 )
             else:
                 assert False
@@ -653,7 +658,7 @@ def main():
         else:
             raise RuntimeError("Could not automatically get track name! (must specify manually)")
 
-    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes_filename=extra_gecko_codes_filename)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes_filename=extra_gecko_codes_filename, extra_hq_textures_folder=args.extra_hq_textures_folder)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))

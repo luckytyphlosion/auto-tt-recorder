@@ -1,0 +1,30 @@
+timeline: ghostselect
+unbuffered-output: true
+iso-filename: "../../RMCE 01/RMCK01.wbfs"
+main-ghost-filename: gv_tas_13_330.rkg
+comparison-ghost-filename: 00m15s4246347 ニヤケ.rkg
+output-video-filename: mp4
+track-name: auto
+input-display: null
+hq-textures: true
+encode-type: size
+video-codec: libx264
+audio-codec: libopus
+crf-value: 15
+youtube-settings: true
+keep-window: true
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+encode-only: false
+input-display-dont-create: false
+dolphin-resolution: 480p
+h26x-preset: veryfast
+game-volume: 1
+music-volume: 1
+aspect-ratio-16-by-9: autoer
+output-width: null
+
+speedometer: fancy
+speedometer-metric: xz
+speedometer-decimal-places: 1
+music-filename: null

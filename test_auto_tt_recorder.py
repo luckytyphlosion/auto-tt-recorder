@@ -5,7 +5,7 @@ import random
 import glob
 
 test_config_indices = {
-    7, 8, 9, 10, 11, 12
+
 }
 
 class RegionFilenameAndName:
@@ -27,11 +27,12 @@ TEST_MULTIPLE_REGIONS = False
 def main():
     pathlib.Path("temp").mkdir(exist_ok=True)
     pathlib.Path("test_vids").mkdir(exist_ok=True)
+    test_config_indices_len = len(test_config_indices)
 
     for config_filename in glob.glob("test_ymls/*.yml"):
         config_basename = pathlib.Path(config_filename).name
         config_index = int(config_basename.split("_", maxsplit=1)[0])
-        if config_index not in test_config_indices:
+        if test_config_indices_len != 0 and config_index not in test_config_indices:
             continue
 
         with open(config_filename, "r") as f:
@@ -44,6 +45,7 @@ def main():
             cur_region_filenames_and_names = region_filenames_and_names
         else:
             cur_region_filenames_and_names = (random.choice(region_filenames_and_names),)
+            #cur_region_filenames_and_names = (region_filenames_and_names[0],)
 
         for region_filename_and_name in cur_region_filenames_and_names:
             print(f"Testing region {region_filename_and_name.name}, config {config_basename}")

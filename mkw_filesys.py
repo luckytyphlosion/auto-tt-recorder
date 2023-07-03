@@ -90,7 +90,7 @@ hq_textures_src_filenames = (
 )
 
 # not technically mkw filesys
-def copy_hq_textures_if_necessary(hq_textures, region):
+def copy_hq_textures_if_necessary(hq_textures, region, extra_hq_textures_src_folder):
     if not hq_textures:
         return
 
@@ -103,3 +103,61 @@ def copy_hq_textures_if_necessary(hq_textures, region):
 
         if not hq_texture_dest_filepath.is_file():
             shutil.copy(hq_texture_src_filepath, hq_texture_dest_filepath)
+
+    extra_textures_filepath = pathlib.Path(f"{dir_config.dolphin_dirname}/User/Load/Textures/{region.title_id}/extra_textures")
+    extra_textures_filepath.mkdir(parents=True, exist_ok=True)
+
+    if extra_hq_textures_src_folder is None:
+        extra_textures_root, extra_textures_dirs, extra_textures_files = next(os.walk(extra_textures_filepath))
+        for extra_textures_dir in extra_textures_dirs:
+            shutil.rmtree(os.path.join(extra_textures_root, extra_textures_dir))
+    
+        for extra_textures_file in extra_textures_files:
+            os.unlink(os.path.join(extra_textures_root, extra_textures_file))
+    else:
+        extra_hq_textures_src_dirpath = pathlib.Path(extra_hq_textures_src_folder)
+        if not extra_hq_textures_src_dirpath.is_dir():
+            raise RuntimeError(f"Extra hq textures folder \"{extra_hq_textures_src_folder}\" does not exist!")
+
+        extra_textures_dest_dirpath = extra_textures_filepath
+
+        all_extra_textures_src_files_relative = set()
+        all_extra_textures_dest_files_relative = set()
+
+        print(f"Copying over HQ Textures!")
+
+        saved_cur_directory = os.getcwd()
+        os.chdir(extra_hq_textures_src_dirpath)
+
+        for extra_textures_src_root, extra_textures_src_dirs, extra_textures_src_files in os.walk("."):
+            all_extra_textures_src_files_relative.update(os.path.join(extra_textures_src_root, extra_textures_src_file) for extra_textures_src_file in extra_textures_src_files)
+
+        os.chdir(saved_cur_directory)
+        os.chdir(extra_textures_dest_dirpath)
+        for extra_textures_dest_root, extra_textures_dest_dirs, extra_textures_dest_files in os.walk("."):
+            all_extra_textures_dest_files_relative.update(os.path.join(extra_textures_dest_root, extra_textures_dest_file) for extra_textures_dest_file in extra_textures_dest_files)
+
+        os.chdir(saved_cur_directory)
+
+        for extra_textures_src_file_relative in all_extra_textures_src_files_relative:
+            extra_textures_src_filepath = extra_hq_textures_src_dirpath / pathlib.Path(extra_textures_src_file_relative)
+            extra_textures_dest_filepath = extra_textures_dest_dirpath / pathlib.Path(extra_textures_src_file_relative)
+            file_changed = False
+
+            if extra_textures_src_file_relative not in all_extra_textures_dest_files_relative:
+                file_changed = True
+                extra_textures_dest_filepath.parent.mkdir(parents=True, exist_ok=True)
+            elif extra_textures_src_filepath.stat().st_mtime != extra_textures_dest_filepath.stat().st_mtime:
+                file_changed = True
+
+            if file_changed:
+                #print(f"extra_textures_src_filepath: {extra_textures_src_filepath}, extra_textures_dest_filepath: {extra_textures_dest_filepath}")
+                shutil.copy2(extra_textures_src_filepath, extra_textures_dest_filepath)
+
+        for extra_textures_dest_file_relative in all_extra_textures_dest_files_relative:
+            if extra_textures_dest_file_relative not in all_extra_textures_src_files_relative:
+                extra_textures_dest_filepath = extra_textures_dest_dirpath / pathlib.Path(extra_textures_dest_file_relative)
+                #print(f"extra_textures_dest_filepath remove: {extra_textures_dest_filepath}")
+                os.unlink(extra_textures_dest_filepath)
+
+        #shutil.copytree(extra_hq_textures_src_dirpath, extra_textures_dest_filepath)

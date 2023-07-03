@@ -5,7 +5,7 @@ chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B54934734
 output-video-filename: mp4
 track-name: auto
 input-display: gcn
-hq-textures: false
+hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
 encode-type: crf

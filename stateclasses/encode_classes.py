@@ -100,7 +100,7 @@ class CrfEncodeSettings(EncodeSettings):
         self.music_volume = music_volume
         self.pix_fmt = pix_fmt
         self.youtube_settings = youtube_settings
-        if aspect_ratio_16_by_9 is None:
+        if aspect_ratio_16_by_9 == "auto":
             aspect_ratio_16_by_9 = True
         self.aspect_ratio_16_by_9 = aspect_ratio_16_by_9
 
@@ -146,7 +146,7 @@ class SizeBasedEncodeSettings(EncodeSettings):
         self.music_volume = music_volume
 
         self.pix_fmt = pix_fmt
-        if aspect_ratio_16_by_9 is None:
+        if aspect_ratio_16_by_9 == "auto":
             aspect_ratio_16_by_9 = False
         self.aspect_ratio_16_by_9 = aspect_ratio_16_by_9
 
