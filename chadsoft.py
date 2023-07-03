@@ -356,6 +356,10 @@ class GhostPage:
         ghost_info = self.get_ghost_info()
         return ghost_info["controller"]
 
+    def get_track_name(self):
+        ghost_info = self.get_ghost_info()
+        return ghost_info.get("trackName")
+
     @staticmethod
     def is_ghost_page_link(ghost_page_link):
         match_obj = ghost_page_link_regex.match(ghost_page_link)
@@ -389,3 +393,6 @@ class Leaderboard:
 
     def is_200cc(self):
         return self.lb_info_and_entries["200cc"]
+
+    def get_track_name(self):
+        return self.lb_info_and_entries.get("name")

@@ -13,9 +13,9 @@ CONTROLLER_GAMECUBE = 3
 CONTROLLER_UNKNOWN = 15
 
 class InputDisplayGeometry:
-    __slots__ = ("base_inputs_x", "base_inputs_y", "base_inputs_width", "base_inputs_height", "base_input_box_x", "base_input_box_y", "base_input_box_width", "base_input_box_height", "input_box_vertical_stretch_y_offset_callback")
+    __slots__ = ("base_inputs_x", "base_inputs_y", "base_inputs_width", "base_inputs_height", "base_input_box_x", "base_input_box_y", "base_input_box_width", "base_input_box_height")
 
-    def __init__(self, base_inputs_x, base_inputs_y, base_inputs_width, base_inputs_height, base_input_box_x, base_input_box_y, base_input_box_width, base_input_box_height, input_box_vertical_stretch_y_offset_callback):
+    def __init__(self, base_inputs_x, base_inputs_y, base_inputs_width, base_inputs_height, base_input_box_x, base_input_box_y, base_input_box_width, base_input_box_height):
         self.base_inputs_x = base_inputs_x
         self.base_inputs_y = base_inputs_y
         self.base_inputs_width = base_inputs_width
@@ -24,10 +24,6 @@ class InputDisplayGeometry:
         self.base_input_box_y = base_input_box_y
         self.base_input_box_width = base_input_box_width
         self.base_input_box_height = base_input_box_height
-        self.input_box_vertical_stretch_y_offset_callback = input_box_vertical_stretch_y_offset_callback
-
-def adjust_input_box_y_offset_for_vertical_stretch(rect, vertical_stretch_factor):
-    return rect.y_offset + 52 * (vertical_stretch_factor - 1)
 
 input_display_controller_geometries = {
     INPUT_DISPLAY_CLASSIC: InputDisplayGeometry(
@@ -38,8 +34,7 @@ input_display_controller_geometries = {
         base_input_box_x=209,
         base_input_box_y=2195,
         base_input_box_width=1060,
-        base_input_box_height=681,
-        input_box_vertical_stretch_y_offset_callback=adjust_input_box_y_offset_for_vertical_stretch
+        base_input_box_height=681
     ),
     INPUT_DISPLAY_NUNCHUCK: InputDisplayGeometry(
         base_inputs_x=358,
@@ -49,8 +44,7 @@ input_display_controller_geometries = {
         base_input_box_x=287,
         base_input_box_y=2112,
         base_input_box_width=896,
-        base_input_box_height=765,
-        input_box_vertical_stretch_y_offset_callback=adjust_input_box_y_offset_for_vertical_stretch
+        base_input_box_height=765
     ),
     INPUT_DISPLAY_WHEEL: None,
     INPUT_DISPLAY_NONE: None,

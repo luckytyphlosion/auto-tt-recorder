@@ -2,7 +2,7 @@ unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/04/05/657C9B135E3F4FBAD7C7827811E46B46AC34.html
 output-video-filename: mp4
-track-name: SNES Donut Plains 3 
+track-name: null
 input-display: auto
 hq-textures: true
 
@@ -15,7 +15,6 @@ top-10-censors: 6DEBEC4AB6495346 855843F84CCF6FEB
 
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 
-top-10-location: ww
 encode-type: crf
 video-codec: libx264
 audio-codec: libopus

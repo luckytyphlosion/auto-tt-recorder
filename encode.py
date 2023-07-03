@@ -32,14 +32,13 @@ from stateclasses.timeline_classes import *
 from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
 from stateclasses.input_display import *
+from constants.encode import *
 
 nb_frames_regex = re.compile(r"^nb_frames=([0-9]+)", flags=re.MULTILINE)
 
 dev_null = "/dev/null" if os.name == "posix" else "NUL"
 
 platform_system = platform.system()
-
-FPS = 59.94005994006
 
 class DynamicFilterArgs:
     __slots__ = ("adelay_frame_value", "fade_start_frame", "trim_start_frame", "input_display_start_frame")
@@ -291,6 +290,10 @@ class Encoder:
         audio_combined_faded_stream = ffmpeg.filter(audio_combined_stream, "afade", type="out", duration=fade_frame_duration/FPS, start_time=dynamic_filter_args.fade_start_frame/FPS)
 
         if secondary_video_in_file is not None and secondary_audio_in_file is not None:
+            if encode_settings.aspect_ratio_16_by_9:
+                canvas_width, canvas_height = base_framedump_dimensions[dolphin_resolution]
+                secondary_video_in_file = ffmpeg.filter(secondary_video_in_file, "scale", canvas_width, round(canvas_width * 9 / 16), flags="bicubic").filter("setsar", 1, 1)
+
             all_streams = [
                 secondary_video_in_file,
                 secondary_audio_in_file,
@@ -306,7 +309,7 @@ class Encoder:
             final_audio_stream = audio_combined_faded_stream
 
         if encode_settings.output_width is not None:
-            final_video_stream = ffmpeg.filter(almost_final_video_stream, "scale", encode_settings.output_width, "trunc(ow/a/2)*2", flags="bicubic")
+            final_video_stream = ffmpeg.filter(almost_final_video_stream, "scale", encode_settings.output_width, "round(ow/a/2)*2", flags="bicubic")
         else:
             final_video_stream = ffmpeg.filter(almost_final_video_stream, "crop", "trunc(iw/2)*2", "trunc(ih/2)*2")
 

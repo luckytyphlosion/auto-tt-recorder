@@ -1,11 +1,10 @@
 timeline: mkchannel
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
-chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DD/1D/33C44566CB46AE69772D08BBDEEAEE63F33B.html
-chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/E7/BB/C8276CB4A7DA384F141B7B44AD567B8D64A4.html
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/10/3D/3305A66DEA6FDB716D03458366A536DEAC2D.html
 output-video-filename: mp4
-track-name: GCN Mario Circuit
-input-display: auto
+track-name: Wuhu Island
+input-display: nunchuck
 hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
@@ -24,12 +23,9 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
+aspect-ratio-16-by-9: true
 
-no-background-blur: true
-
-speedometer: regular
+speedometer: standard
 speedometer-metric: engine
-speedometer-decimal-places: 0
-music-filename: bgm
-
+music-filename: none
 

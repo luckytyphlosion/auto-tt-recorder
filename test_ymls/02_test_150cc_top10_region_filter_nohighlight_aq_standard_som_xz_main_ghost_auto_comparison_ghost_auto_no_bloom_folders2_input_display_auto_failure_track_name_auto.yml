@@ -1,7 +1,7 @@
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
 output-video-filename: mp4
-track-name: Icepeak Mountain
+track-name: auto
 input-display: auto
 hq-textures: true
 

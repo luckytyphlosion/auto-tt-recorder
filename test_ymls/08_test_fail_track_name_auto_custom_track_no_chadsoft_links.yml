@@ -1,13 +1,12 @@
 timeline: mkchannel
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
-chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/10/3D/3305A66DEA6FDB716D03458366A536DEAC2D.html
+main-ghost-filename: "01m55s0002992 '07 #.rkg"
+szs-filename: 3DS_Piranha_Plant_Slide_v1.3.szs
 output-video-filename: mp4
-track-name: Wuhu Island
-input-display: nunchuck
-hq-textures: true
-mk-channel-ghost-description: "ロックマンエグ훈민정음"
-top-10-location: ww
+track-name: auto
+input-display: null
+hq-textures: false
 encode-type: crf
 video-codec: libx264
 audio-codec: libopus
@@ -23,8 +22,3 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
-
-speedometer: standard
-speedometer-metric: engine
-music-filename: none
-

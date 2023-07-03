@@ -1,11 +1,12 @@
 timeline: mkchannel
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
-chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
+chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DB/DD/200F67030284C2D5ABC405230FFB623F4A65.html
+chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/6E/BD/08F8173FDB9F1930514DC41EE3BD9E711B9C.html
 output-video-filename: mp4
-track-name: Delfino Island
-input-display: gcn
-hq-textures: false
+track-name: Komek's Liebary
+input-display: auto
+hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
 encode-type: crf
@@ -16,7 +17,6 @@ youtube-settings: true
 keep-window: true
 chadsoft-read-cache: true
 chadsoft-write-cache: true
-chadsoft-cache-folder: one_folder/cache_dir_chadsoft
 encode-only: false
 input-display-dont-create: false
 dolphin-resolution: 480p
@@ -24,15 +24,14 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
-
-dolphin-folder: "../../auto-tt-recorder_v1.3.2/dolphin"
-storage-folder: "storing/a big store"
-temp-folder: "/mnt/c/users/user/pictures/autoTTtemp"
-wiimm-folder: "../../auto_tt_recorder/wiimm"
+dolphin-folder: "/mnt/c/users/user/documents/auto_tt_recorder/test_dolphin"
+storage-folder: "../../auto-tt-rec-test_storage"
+temp-folder: "temp2"
+wiimm-folder: "bin2/wiimm2"
 
 speedometer: fancy
-speedometer-metric: engine
-speedometer-decimal-places: 0
+speedometer-metric: xz
+speedometer-decimal-places: 1
 music-filename: bgm
 
 

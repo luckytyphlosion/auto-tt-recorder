@@ -208,6 +208,9 @@ class CustomTop10AndGhostDescription:
         controller = self.leaderboard.lb_info_and_entries["ghosts"][self.highlight_index - 1]["controller"]
         return controller
 
+    def get_track_name(self):
+        return self.leaderboard.get_track_name()
+
 oMII_SYSTEM_ID = 0x1c
 oMII_SYSTEM_ID_END = 0x20
 oMII_CREATOR_NAME = 0x36

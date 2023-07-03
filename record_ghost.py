@@ -341,7 +341,7 @@ def main():
     ap.add_argument("-wf", "--wiimm-folder", dest="wiimm_folder", default="bin/wiimm", help="Folder containing the Mario Kart Wii related programs made by Wiimm. Currently, the program requires wit, wszst, and wkmpt. Default is bin/wiimm.")
 
     ap.add_argument("-dr", "--dolphin-resolution", dest="dolphin_resolution", default="480p", help="Internal resolution for Dolphin to render at. Possible options are 480p, 720p, 1080p, 1440p, and 2160p. Default is 480p (966x528)")
-    ap.add_argument("-arsn", "--aspect-ratio-16-by-9", dest="aspect_ratio_16_by_9", action="store_true", default=False, help="Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. If uploading to discord or recording for offline purposes, there is no point in setting this.")
+    ap.add_argument("-arsn", "--aspect-ratio-16-by-9", dest="aspect_ratio_16_by_9", action="store_true", default=None, help="Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. Not recommended if uploading to Discord or recording for offline purposes. Default is true for crf-based encodes and false for size-based encodes.")
     ap.add_argument("-ffv1", "--use-ffv1", dest="use_ffv1", action="store_true", default=False, help="Whether to use the lossless ffv1 codec. Note that an ffv1 dump has the exact same quality as an uncompressed dump, i.e. they are exactly the same pixel-by-pixel.")
     ap.add_argument("-sm", "--speedometer", dest="speedometer", default="none", help="Enables speedometer and takes in an argument for the SOM display type. Possible values are fancy (left aligned, special km/h symbol using a custom Race.szs, looks bad at 480p, 0-1 decimal places allowed), regular (left aligned, \"plain-looking\" km/h symbol, does not require the full NAND code, usable at 480p, 0-2 decimal places allowed), standard (the \"original\" pretty speedometer, might help with code limit), none (do not include a speedometer). Default is none.")
     ap.add_argument("-smt", "--speedometer-metric", dest="speedometer_metric", default="engine", help="What metric of speed the speedometer reports. Possible options are engine for the speed which the vehicle engine is producing (ignoring external factors like Toad's Factory conveyers), xyz, the norm of the current position minus the previous position, and xz, which is like xyz except the vehicle's y position is not taken into account. Default is engine.")
@@ -359,7 +359,7 @@ def main():
     ap.add_argument("-cwc", "--chadsoft-write-cache", dest="chadsoft_write_cache", action="store_true", default=False, help="Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.")
     ap.add_argument("-cce", "--chadsoft-cache-expiry", dest="chadsoft_cache_expiry", default="24h", help="Duration until data downloaded from Chadsoft expires and is purged. Example formats: 1h23m46s, 24h, 3h30m, 1000 (seconds implied), 90m100s. The duration is applied on a per-file basis, so if the expiry time is 24h, each file will be deleted 24h after the specific file was downloaded. Note that the cache is purged when the program is run regardless of whether the purged files would have been requested or not. Default is 24h. Cache purging can be disabled if this option evaluates to 0 or if -crc/--chadsoft-read-cache is unspecified or false.")
     ap.add_argument("-ccf", "--chadsoft-cache-folder", dest="chadsoft_cache_folder", default="chadsoft_cached", help="Folder to temporarily store data downloaded from Chadsoft. Default folder is chadsoft_cached")
-
+    ap.add_argument("-egc", "--extra-gecko-codes-filename", dest="extra_gecko_codes_filename", default=None, help="The filename of the file containing any extra gecko codes you want when recording. Not enabled during the top 10/mkchannel screen. It is your responsibility to not specify any conflicting codes. Specifying the MSG Editor gecko code will probably cause issues as only one code can be used at a time.")
     ap.add_argument("-hqt", "--hq-textures", dest="hq_textures", action="store_true", default=False, help="Whether to enable HQ textures. Current HQ textures supported are the Item Slot Mushrooms. Looks bad at 480p.")
     ap.add_argument("-o2", "--on-200cc", dest="on_200cc", action="store_true", default=False, help="Forces the use of 200cc, regardless if the ghost was set on 200cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
     ap.add_argument("-n2", "--no-200cc", dest="no_200cc", action="store_true", default=False, help="Forces the use of 150cc, regardless if the ghost was set on 150cc or not. If neither -o2/--on-200cc nor -n2/--no-200cc is set, auto-tt-recorder will automatically detect 150cc or 200cc if -cg/--chadsoft-ghost-page or -ttc/--top-10-chadsoft is specified, otherwise it will assume 150cc.")
@@ -433,6 +433,7 @@ def main():
     chadsoft_ghost_page_link = args.chadsoft_ghost_page
     # just for consistency
     main_ghost_filename = args.main_ghost_filename
+    track_name = args.track_name
 
     if main_ghost_filename is None and args.top_10_chadsoft is None and chadsoft_ghost_page_link is None and args.main_ghost_auto is None:
         raise RuntimeError("Ghost file, chadsoft leaderboard, or chadsoft ghost page not specified!")
@@ -458,6 +459,10 @@ def main():
         ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, cache_settings)
         rkg_file_main = ghost_page.get_rkg()
         controller = ghost_page.get_controller()
+        if track_name == "auto":
+            track_name = ghost_page.get_track_name()
+            if track_name is None:
+                raise RuntimeError(f"Chadsoft ghost page {chadsoft_ghost_page_link} has no track name! (must specify track-name manually)")
 
         if cc_option == CC_UNKNOWN:
             cc_option = CC_200 if ghost_page.is_200cc() else CC_150
@@ -489,10 +494,18 @@ def main():
         else:
             comparison_ghost_filename = args.comparison_ghost_auto
 
+    if track_name == "auto" and chadsoft_ghost_page_link is None and chadsoft_comparison_ghost_page_link is None and args.top_10_chadsoft is None and args.szs_filename is not None:
+        raise RuntimeError("Must specify one of a chadsoft ghost page, a chadsoft comparison ghost page, and a chadsoft top 10 leaderboard if -tn/--track-name is auto and -s/--szs-filename is specified!")
+
     if comparison_ghost_filename is not None:
         rkg_file_comparison = comparison_ghost_filename
     elif chadsoft_comparison_ghost_page_link is not None:
-        rkg_file_comparison = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, cache_settings).get_rkg()
+        comparison_ghost_page = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, cache_settings)
+        rkg_file_comparison = comparison_ghost_page.get_rkg()
+        if track_name == "auto":
+            track_name = comparison_ghost_page.get_track_name()
+            if track_name is None:
+                raise RuntimeError(f"Chadsoft comparison ghost page {chadsoft_comparison_ghost_page_link} has no track name! (must specify track-name manually)")
     else:
         rkg_file_comparison = None
 
@@ -507,7 +520,6 @@ def main():
 
     hide_window = not args.keep_window
     timeline = timeline_enum_arg_table.parse_enum_arg(args.timeline, "Unknown timeline \"{}\"!")
-    track_name = args.track_name
     ending_message = args.ending_message
 
     #if timeline == TIMELINE_FROM_TOP_10_LEADERBOARD:
@@ -595,7 +607,10 @@ def main():
                     cc_option = CC_200 if custom_top_10_and_ghost_description.is_200cc() else CC_150
                 if controller == CONTROLLER_UNKNOWN:
                     controller = custom_top_10_and_ghost_description.get_controller(controller)
-
+                if track_name == "auto":
+                    track_name = custom_top_10_and_ghost_description.get_track_name()
+                    if track_name is None:
+                        raise RuntimeError(f"Chadsoft leaderboard {args.top_10_chadsoft} has no track name! (must specify track-name manually)")
                 input_display = InputDisplay(args.input_display, controller, args.input_display_dont_create)
 
             elif args.top_10_gecko_code_filename is not None:
@@ -625,6 +640,13 @@ def main():
         on_200cc = False
     else:
         on_200cc = True
+
+    # assume original track at this point
+    if track_name == "auto":
+        if szs_filename is None:
+            track_name = None
+        else:
+            raise RuntimeError("Could not automatically get track name! (must specify manually)")
 
     record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom)
 

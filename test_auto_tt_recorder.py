@@ -5,7 +5,7 @@ import random
 import glob
 
 test_config_indices = {
-    1, 2, 3, 4, 5, 6
+    8, 11
 }
 
 class RegionFilenameAndName:
