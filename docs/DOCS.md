@@ -61,7 +61,7 @@ List of types and what they mean:
 | Command | Type   | Description                                                                                         |
 |-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
 | `mk-channel-ghost-description` | string | The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines `mkchannel` and `top10`. Default is `Ghost Data`.
-| `track-name` | string | The name of the track. This will affect the track name shown on the ghost description page, seen in all timelines except `noencode` and `ghostonly`. Default is to use the track name of the rkg track slot.
+| `track-name` | string | The name of the track. This will affect the track name shown on the ghost description page, seen in all timelines except `noencode` and `ghostonly`. If `auto` is specified, the program will try to automatically get the track name from any chadsoft link if provided (either `chadsoft-ghost-page`, `chadsoft-comparison-ghost-page`, or `top-10-chadsoft`). If no chadsoft link is provided and `szs-filename` is not specified, then assumes a vanilla track and uses the vanilla name. If omitted or null, uses the track name of the rkg track slot.
 |<img width=250/>| |
 
 ## Top10 related timeline commands
