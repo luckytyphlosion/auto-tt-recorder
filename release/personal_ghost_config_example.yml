@@ -105,7 +105,7 @@ hq-textures: true
 # Some hq textures can be found here: https://www.youtube.com/watch?v=WT9D3mFwRpg
 # You can also specify another folder instead of the default one here.
 # hq-textures must be enabled for these textures to be loaded
-extra-hq-texture-folder: add_extra_hq_textures_here
+extra-hq-textures-folder: add_extra_hq_textures_here
 
 # The background of the Mario Kart Channel Race Ghost Screen. Allowed values are:
 # ww: The background is the 3D globe.

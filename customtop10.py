@@ -41,6 +41,7 @@
 
 import re
 import itertools
+import pathlib
 
 import chadsoft
 import util
