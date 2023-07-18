@@ -66,13 +66,12 @@ class Rectangle:
                 child.y_offset *= self.vertical_stretch_factor
                 child.y_offset += (child.height * (self.vertical_stretch_factor - 1))/2
 
-        if self.scale_factor != 1:
-            if self.parent is None:
-                self.x_offset = self.x_offset * self.scale_factor
-                self.y_offset = self.y_offset * self.scale_factor
-            else:
-                self.x_offset = self.parent.x_offset + self.x_offset * self.scale_factor
-                self.y_offset = self.parent.y_offset + self.y_offset * self.scale_factor
+        if self.parent is None:
+            self.x_offset = self.x_offset * self.scale_factor
+            self.y_offset = self.y_offset * self.scale_factor
+        else:
+            self.x_offset = self.parent.x_offset + self.x_offset * self.scale_factor
+            self.y_offset = self.parent.y_offset + self.y_offset * self.scale_factor
 
         self.final_x = self.x_offset
         self.final_y = self.y_offset
