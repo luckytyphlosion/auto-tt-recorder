@@ -24,6 +24,7 @@ import shutil
 from contextlib import contextmanager
 import re
 import configargparse
+import traceback
 
 import chadsoft
 import customtop10
@@ -642,7 +643,8 @@ def main():
                 custom_top_10_and_ghost_description = customtop10.CustomTop10AndGhostDescription.from_gecko_code_filename(
                     args.top_10_gecko_code_filename,
                     args.top_10_location,
-                    args.mk_channel_ghost_description
+                    args.mk_channel_ghost_description,
+                    mkw_iso.region
                 )
             else:
                 raise RuntimeError("One of -ttc/--top-10-chadsoft or -ttg/--top-10-gecko-code-filename must be specified!")
@@ -683,4 +685,22 @@ def main3():
     print(gen_add_music_trim_loading_filter())
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        error_msg = e.args[0] if len(e.args) >= 1 else "(Not provided)"
+
+        output = ""
+        output += "\n\n\n"
+        output += "================================================================\n"
+        output += "======================== ERROR OCCURRED ========================\n"
+        output += f"{error_msg}\n"
+        output += "================================================================\n"
+        output += "\n"
+        output += "-- DEBUG INFORMATION --\n"
+        output += f"Error type: {e.__class__.__name__}\n"
+        output += "Traceback (most recent call last):\n"
+        output += f"{''.join(traceback.format_tb(e.__traceback__))}\n"
+
+        print(output)
+        sys.exit(1)

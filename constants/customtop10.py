@@ -39,12 +39,12 @@ class IsoCode:
         self.highlight = highlight
 
 custom_top_10_region_dependent_codes = {
-    # [flag changer, globe position, custom title, top 10, bypass crc, highlight]
-    # [0,            1,              2,            3,      4,          5]
-    "PAL": IsoCode("0242ABD8", "0442BBDC", "C25CDDCC", "C260BFAC", "040C997C", "C263DC48"),
-    "NTSC-U": IsoCode("02426858", "0442785C", "C25C12AC", "C26414CC", "040C98DC", "C260C828"),
-    "NTSC-J": IsoCode("0242A558", "0442B55C", "C25CD6A8", "C260B720", "040C989C", "C263D2B4"),
-    "NTSC-K": IsoCode("02418BF8", "04419BFC", "C25BBD8C", "C25FA3CC", "040C99DC", "C262BF60"),
+    #             [flag changer, globe position, custom title,  top 10,    bypass crc,  highlight]
+    #             [     0,             1,             2,           3,           4,          5    ]
+    "PAL":    IsoCode("0242ABD8", "0442BBDC",    "C25CDDCC",   "C260BFAC", "040C997C", "C263DC48"),
+    "NTSC-U": IsoCode("02426858", "0442785C",    "C25C12AC",   "C26414CC", "040C98DC", "C260C828"),
+    "NTSC-J": IsoCode("0242A558", "0442B55C",    "C25CD6A8",   "C260B720", "040C989C", "C263D2B4"),
+    "NTSC-K": IsoCode("02418BF8", "04419BFC",    "C25BBD8C",   "C25FA3CC", "040C99DC", "C262BF60"),
 }
 
 # [country_name, country_code, globe_position, flag_code]

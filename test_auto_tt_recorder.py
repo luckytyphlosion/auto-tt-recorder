@@ -5,10 +5,10 @@ import random
 import glob
 
 test_config_include_indices = {
-
+    16, 17, 18
 }
 test_config_exclude_indices = {
-    1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14
+    
 }
 
 class RegionFilenameAndName:
@@ -24,6 +24,13 @@ region_filenames_and_names = (
     RegionFilenameAndName("RMCJ01.wbfs", "NTSC-J"),
     RegionFilenameAndName("RMCK01.wbfs", "NTSC-K")
 )
+
+region_names_except_selected = {
+    "NTSC-U": ("PAL", "NTSC-J", "NTSC-K"),
+    "PAL": ("NTSC-U", "NTSC-J", "NTSC-K"),
+    "NTSC-J": ("NTSC-U", "PAL", "NTSC-K"),
+    "NTSC-K": ("NTSC-U", "PAL", "NTSC-J")
+}
 
 TEST_MULTIPLE_REGIONS = False
 
@@ -62,6 +69,16 @@ def main():
                 extra_gecko_codes_filepath = pathlib.Path(extra_gecko_codes_filename)
                 extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.stem}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
                 config["extra-gecko-codes-filename"] = extra_gecko_codes_filename
+
+            top_10_gecko_code_filename = config.get("top-10-gecko-code-filename")
+            if top_10_gecko_code_filename == "wrong_region.txt":
+                wrong_region_name = random.choice(region_names_except_selected[region_filename_and_name.name])
+                top_10_gecko_code_filename = f"gba_bc3_tops_{wrong_region_name}.txt"
+                config["top-10-gecko-code-filename"] = top_10_gecko_code_filename
+            elif top_10_gecko_code_filename == "gba_bc3_tops.txt":
+                top_10_gecko_code_filepath = pathlib.Path(top_10_gecko_code_filename)
+                top_10_gecko_code_filename = f"{top_10_gecko_code_filepath.stem}_{region_filename_and_name.name}{top_10_gecko_code_filepath.suffix}"
+                config["top-10-gecko-code-filename"] = top_10_gecko_code_filename
 
             temp_config_filename = f"temp/{config_basename}"
             with open(temp_config_filename, "w+") as f:

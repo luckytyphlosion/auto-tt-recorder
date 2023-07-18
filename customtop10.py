@@ -168,12 +168,54 @@ class CustomTop10AndGhostDescription:
         return cls(globe_location, ghost_description, top_10_code, leaderboard=leaderboard, highlight_index=highlight_index)
 
     @classmethod
-    def from_gecko_code_filename(cls, gecko_code_filename, globe_location, ghost_description):
+    def from_gecko_code_filename(cls, gecko_code_filename, globe_location, ghost_description, iso_region):
         if pathlib.Path(gecko_code_filename).suffix == ".gct":
-            raise RuntimeError("Manual top 10 gecko code filename must not be .gct! (Paste the gecko code generated from tt-rec.com in a text file)")
+            raise RuntimeError(f"top-10-gecko-code-filename \"{gecko_code_filename}\" must not be .gct! (Paste the gecko code generated from tt-rec.com in a text file)")
 
-        with open(gecko_code_filename, "r") as f:
-            top_10_code = f.read()
+        try:
+            with open(gecko_code_filename, "r") as f:
+                top_10_code = f.read()
+        except UnicodeDecodeError:
+            raise RuntimeError(f"top-10-gecko-code-filename \"{gecko_code_filename}\" is not a text file! (Paste the gecko code generated from tt-rec.com in a text file)")
+
+        top_10_region_dependent_codes_to_iso_region = {region_dependent_codes.top_10: iso_region for iso_region, region_dependent_codes in custom_top_10_region_dependent_codes.items()}
+
+        top_10_code_lines = top_10_code.splitlines()
+        found_top_10_code = False
+
+        for i, line in enumerate(top_10_code_lines, 1):
+            line = line.strip()
+            if line.strip() == "":
+                continue
+
+            is_gecko_code_line_valid = True
+            codeline_split = line.split(maxsplit=1)
+            if len(codeline_split) != 2:
+                is_gecko_code_line_valid = False
+            else:
+                codeline_first_half, codeline_second_half = codeline_split
+                if len(codeline_first_half) != 8 or len(codeline_second_half) != 8:
+                    is_gecko_code_line_valid = False
+                else:
+                    try:
+                        int(codeline_first_half, 16)
+                        int(codeline_second_half, 16)
+                    except ValueError:
+                        is_gecko_code_line_valid = False
+
+            if not is_gecko_code_line_valid:
+                raise RuntimeError(f"Bad line found in top-10-gecko-code-filename \"{gecko_code_filename}\" at line {i}: {line}")
+
+            expected_iso_region = top_10_region_dependent_codes_to_iso_region.get(codeline_first_half)
+            if expected_iso_region is not None:
+                if iso_region.name != expected_iso_region:
+                    raise RuntimeError(f"top-10-gecko-code-filename \"{gecko_code_filename}\" was made for {expected_iso_region} but ISO/WBFS is {iso_region.name}!")
+
+                found_top_10_code = True
+                break
+
+        if not found_top_10_code:
+            raise RuntimeError("Provided manual top 10 gecko code is not actually a top 10 gecko code!")
 
         return cls(globe_location, ghost_description, top_10_code)
 

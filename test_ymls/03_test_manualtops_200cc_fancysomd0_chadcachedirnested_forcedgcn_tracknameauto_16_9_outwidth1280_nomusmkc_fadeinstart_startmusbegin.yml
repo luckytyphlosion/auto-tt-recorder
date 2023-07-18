@@ -1,4 +1,6 @@
-timeline: mkchannel
+timeline: top10
+top-10-gecko-code-filename: gba_bc3_tops.txt
+
 unbuffered-output: true
 iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
@@ -25,10 +27,10 @@ game-volume: 1
 music-volume: 1
 output-width: 1280
 fade-in-at-start: true
-no-music-mk-channel: true
+no-music-mkchannel: true
 start-music-at-beginning: true
 
-dolphin-folder: "../../auto-tt-recorder_v1.3.2/dolphin"
+dolphin-folder: "../../auto-tt-recorder_v1.3.6/dolphin"
 storage-folder: "storing/a big store"
 temp-folder: "/mnt/c/users/user/pictures/autoTTtemp"
 wiimm-folder: "../../auto_tt_recorder/wiimm"
