@@ -24,7 +24,7 @@ game-volume: 1
 music-volume: 1
 output-width: null
 aspect-ratio-16-by-9: true
-no-music-mk-channel: true
+no-music-mkchannel: true
 start-music-at-beginning: true
 fade-in-at-start: true
 

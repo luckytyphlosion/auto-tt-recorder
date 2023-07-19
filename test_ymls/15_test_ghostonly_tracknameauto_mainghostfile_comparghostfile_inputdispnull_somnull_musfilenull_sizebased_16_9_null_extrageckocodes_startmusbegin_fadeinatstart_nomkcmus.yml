@@ -27,7 +27,5 @@ extra-gecko-codes-filename: no_minimap.ini
 start-music-at-beginning: true
 fade-in-at-start: true
 no-music-mkchannel: true
-speedometer: fancy
-speedometer-metric: xz
-speedometer-decimal-places: 1
+speedometer: none
 music-filename: field_of_hopes.ogg

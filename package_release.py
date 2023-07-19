@@ -65,7 +65,7 @@ def main():
     if for_gui:
         shutil.copytree("release/licenses", f"{release_dirpath}/licenses")
         shutil.copy2("release/legal.txt", f"{release_dirpath}/legal.txt")
-        shutil.copy2("release/README.txt", f"{release_dirpath}/README.txt")
+        shutil.copy2("release/README_AND_HELP.txt", f"{release_dirpath}/README_AND_HELP.txt")
     else:
         shutil.copytree("release", release_dirpath)
 

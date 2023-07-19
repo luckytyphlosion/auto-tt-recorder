@@ -206,13 +206,15 @@ class CustomTop10AndGhostDescription:
             if not is_gecko_code_line_valid:
                 raise RuntimeError(f"Bad line found in top-10-gecko-code-filename \"{gecko_code_filename}\" at line {i}: {line}")
 
-            expected_iso_region = top_10_region_dependent_codes_to_iso_region.get(codeline_first_half)
+            expected_iso_region = top_10_region_dependent_codes_to_iso_region.get(codeline_first_half.upper())
             if expected_iso_region is not None:
+                if found_top_10_code:
+                    raise RuntimeError(f"Broken code provided by top-10-gecko-code-filename \"{gecko_code_filename}\"! (possible duplicate line)")
+
                 if iso_region.name != expected_iso_region:
                     raise RuntimeError(f"top-10-gecko-code-filename \"{gecko_code_filename}\" was made for {expected_iso_region} but ISO/WBFS is {iso_region.name}!")
 
                 found_top_10_code = True
-                break
 
         if not found_top_10_code:
             raise RuntimeError("Provided manual top 10 gecko code is not actually a top 10 gecko code!")

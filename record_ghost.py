@@ -110,7 +110,7 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes_filename=None, extra_hq_textures_folder=None, no_music_mkchannel=False, ending_delay=600):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes=None, extra_hq_textures_folder=None, no_music_mkchannel=False, ending_delay=600):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
@@ -187,7 +187,7 @@ def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_compari
     disable_game_bgm = music_option.option in (MUSIC_NONE, MUSIC_CUSTOM_MUSIC)
 
     params = gen_gecko_codes.create_gecko_code_params_from_central_args(rkg, speedometer, disable_game_bgm, timeline_settings, track_name, ending_message, on_200cc, mkw_iso.region, no_background_blur, no_bloom)
-    gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params, extra_gecko_codes_filename)
+    gen_gecko_codes.create_gecko_code_file(f"data/{mkw_iso.region.title_id}_gecko_codes_template.ini", f"{dir_config.dolphin_dirname}/User/GameSettings/{mkw_iso.region.title_id}.ini", params, extra_gecko_codes)
     lua_mode = timeline_setting_to_lua_mode[timeline_settings.type]
 
     create_lua_params.create_lua_params(rkg, rkg_comparison, f"{dir_config.dolphin_dirname}/lua_config.txt", lua_mode, ending_delay)
@@ -439,8 +439,10 @@ def main():
 
     extra_gecko_codes_filename = args.extra_gecko_codes_filename
 
-    if extra_gecko_codes_filename is not None and pathlib.Path(extra_gecko_codes_filename).suffix != ".ini":
-        raise RuntimeError(f"Extra gecko codes filename must be .ini! (Got: {pathlib.Path(extra_gecko_codes_filename).suffix})")
+    if extra_gecko_codes_filename is not None:
+        extra_gecko_codes = gen_gecko_codes.GeckoCodeConfig.from_filename(extra_gecko_codes_filename)
+    else:
+        extra_gecko_codes = None
 
     # backwards compatibility with previous yamls
     chadsoft_ghost_page_link = args.chadsoft_ghost_page
@@ -673,7 +675,7 @@ def main():
         else:
             raise RuntimeError("Could not automatically get track name! (must specify manually)")
 
-    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes_filename=extra_gecko_codes_filename, extra_hq_textures_folder=args.extra_hq_textures_folder, no_music_mkchannel=args.no_music_mkchannel, ending_delay=args.ending_delay)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes=extra_gecko_codes, extra_hq_textures_folder=args.extra_hq_textures_folder, no_music_mkchannel=args.no_music_mkchannel, ending_delay=args.ending_delay)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))
@@ -685,22 +687,26 @@ def main3():
     print(gen_add_music_trim_loading_filter())
 
 if __name__ == "__main__":
-    try:
+    if True:
+        try:
+            main()
+        except Exception as e:
+            error_msg = e.args[0] if len(e.args) >= 1 else "(Not provided)"
+    
+            output = ""
+            output += "\n\n\n"
+            output += "================================================================\n"
+            output += "======================== ERROR OCCURRED ========================\n"
+            output += f"{error_msg}\n"
+            output += "================================================================\n"
+            output += "\n"
+            output += "-- DEBUG INFORMATION --\n"
+            output += f"Error type: {e.__class__.__name__}\n"
+            output += "Traceback (most recent call last):\n"
+            output += f"{''.join(traceback.format_tb(e.__traceback__))}\n"
+    
+            print(output)
+            sys.exit(1)
+    else:
         main()
-    except Exception as e:
-        error_msg = e.args[0] if len(e.args) >= 1 else "(Not provided)"
 
-        output = ""
-        output += "\n\n\n"
-        output += "================================================================\n"
-        output += "======================== ERROR OCCURRED ========================\n"
-        output += f"{error_msg}\n"
-        output += "================================================================\n"
-        output += "\n"
-        output += "-- DEBUG INFORMATION --\n"
-        output += f"Error type: {e.__class__.__name__}\n"
-        output += "Traceback (most recent call last):\n"
-        output += f"{''.join(traceback.format_tb(e.__traceback__))}\n"
-
-        print(output)
-        sys.exit(1)

@@ -5,7 +5,7 @@ import random
 import glob
 
 test_config_include_indices = {
-    16, 17, 18
+    16, 17, 18, 19, 20
 }
 test_config_exclude_indices = {
     
@@ -65,7 +65,7 @@ def main():
             config["output-video-filename"] = f"test_vids/{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
 
             extra_gecko_codes_filename = config.get("extra-gecko-codes-filename")
-            if extra_gecko_codes_filename is not None:
+            if extra_gecko_codes_filename is not None and extra_gecko_codes_filename not in { "malformed_gecko_codes.ini", "colliding_gecko_codes.ini"}:
                 extra_gecko_codes_filepath = pathlib.Path(extra_gecko_codes_filename)
                 extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.stem}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
                 config["extra-gecko-codes-filename"] = extra_gecko_codes_filename
