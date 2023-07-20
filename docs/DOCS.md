@@ -136,7 +136,7 @@ List of types and what they mean:
 | `audio-bitrate` | string | Audio bitrate for encodes. Higher bitrate means better audio quality. Specified value can be an integer or an integer followed by k (multiplies by 1000). For crf-based encodes, the default is `128k` for libopus, and `384k` for aac. For constrained size-based encodes, the default is `64k` for libopus, and `128k` for aac.
 | `pixel-format` | string | Pixel format of the output video. Default is `yuv420p`. This input is not validated against! If unsure, don't specify this option.
 | `output-width` | int | Width of the output video. If omitted, don't rescale the video at all.
-| `aspect-ratio-16-by-9` | boolean | Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. Not recommended if uploading to Discord or recording for offline purposes. Default is `true` for crf-based encodes and `false` for size-based encodes. Specifying `null` also enables this behaviour.
+| `aspect-ratio-16-by-9` | string | Whether to make the output video aspect ratio 16:9. Dolphin dumps at slightly less than 16:9, which causes black bars to appear in YouTube thumbnails and in full screen. Not recommended if uploading to Discord or recording for offline purposes. Valid options are `true`, `false`, and `auto`. `auto`, which is the default, will set this to `true` for crf-based encodes and `false` for size-based encodes. Specifying `null` also enables this behaviour.
 | `youtube-settings` | boolean | Add some encoding settings recommended by YouTube. This might increase quality on YouTube's end. Ignored for size based encodes.
 |<img width=250/>| |
 
