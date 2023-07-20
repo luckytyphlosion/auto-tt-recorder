@@ -24,7 +24,7 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
-aspect-ratio-16-by-9: false
+aspect-ratio-16-by-9: "fAlse"
 dolphin-folder: "/mnt/c/users/user/documents/auto_tt_recorder/test_dolphin"
 storage-folder: "../../auto-tt-rec-test_storage"
 temp-folder: "temp2"

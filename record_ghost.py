@@ -570,8 +570,8 @@ def main():
             raise RuntimeError("-ep/--encode-preset is TODO!")
         else:
             encode_type = encode_type_enum_arg_table.parse_enum_arg(args.encode_type, "Unknown encode type \"{}\"!")
-            aspect_ratio_16_by_9 = args.aspect_ratio_16_by_9
-            if aspect_ratio_16_by_9 not in {"True", "False", "auto"}:
+            aspect_ratio_16_by_9 = args.aspect_ratio_16_by_9.lower()
+            if aspect_ratio_16_by_9 not in {"true", "false", "auto"}:
                 raise RuntimeError(f"-arsn/--aspect-ratio-16-by-9 must be true, false, or auto! (got: {aspect_ratio_16_by_9})")
 
             fade_in_at_start = args.fade_in_at_start
