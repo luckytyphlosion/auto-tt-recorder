@@ -7,11 +7,11 @@ input-display: auto
 hq-textures: true
 
 timeline: top10
-top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/18/73BA7E182EC76227A797DD46F71154714DBE41BB/04.html#filter-vehicle-karts"
+top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/18/73BA7E182EC76227A797DD46F71154714DBE41BB/04.html#filter-vehicle-karts#filter-region-europe-and-africa"
 top-10-location: Malaysia
-top-10-title: "200cc SNES Donut Plains 3 (v1.2) CTGP Kart Top 10"
+top-10-title: auto
 top-10-highlight: 3
-top-10-censors: 6DEBEC4AB6495346 855843F84CCF6FEB
+top-10-censors: 6DEBEC4AB6495346 855843F84CCF6FEB C3E4B9A1FF14AB B38C053309A084
 
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 

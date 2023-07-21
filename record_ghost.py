@@ -401,7 +401,7 @@ def main():
     # specific to custom top 10
     ap.add_argument("-ttc", "--top-10-chadsoft", dest="top_10_chadsoft", default=None, help="Chadsoft link for the custom top 10 leaderboard. Current supported filters are the filters that Chadsoft supports, i.e. Region, Vehicles, and Times. This will also use the ghost specified by -tth/--top-10-highlight as the ghost to record if it is not already specified by -i/--main-ghost-filename, and the szs file to use if it is not already specified by -s/--szs-filename. This cannot be specified with -ttg/--top-10-gecko-code-filename or -cg/--chadsoft-ghost-page.")
     ap.add_argument("-ttl", "--top-10-location", dest="top_10_location", default="ww", help="What portion of the globe will show on the top 10 screen. Possible options are ww/worldwide for the 3d globe, or a location option from the allowed options at https://www.tt-rec.com/customtop10/. If -ttg/--top-10-gecko-code-filename is specified instead, then the possible options are ww/worldwide for the 3d globe, and anything else to show the regional globe.")
-    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default=None, help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
+    ap.add_argument("-ttt", "--top-10-title", dest="top_10_title", default="auto", help="The title that shows at the top of the Top 10 Leaderboard. Default is \"Worldwide Top 10\" for worldwide, and \"<Location> Top 10\" for the specified location. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-tth", "--top-10-highlight", dest="top_10_highlight", type=int, default=1, help="The entry to highlight on the Top 10 Leaderboard. Must be in range 1-10, or -1 for no highlight. Default is 1. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttb", "--top-10-censors", dest="top_10_censors", default=None, help="Chadsoft player IDs of the players to censor on the top 10 screen. The player ID can be retrieved from the chadsoft player page. Ignored if -ttg/--top-10-gecko-code-filename is specified.")
     ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The filename of the file containing the gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10.") 
@@ -622,6 +622,7 @@ def main():
                     args.top_10_highlight,
                     args.mk_channel_ghost_description,
                     args.top_10_censors,
+                    track_name,
                     cache_settings
                 )
 

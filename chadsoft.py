@@ -21,6 +21,7 @@ import json
 import time
 import re
 import os
+import random
 
 import identifiers
 import chadsoft
@@ -28,19 +29,23 @@ import chadsoft_config
 import wbz
 import wiimm
 import dir_config
+import traceback
+
+from constants.categories import *
 
 API_URL = "https://tt.chadsoft.co.uk"
 
 class CacheSettings:
-    __slots__ = ("read_cache", "write_cache", "cache_dirname", "rate_limit")
+    __slots__ = ("read_cache", "write_cache", "cache_dirname", "rate_limit", "retry_on_empty")
 
-    def __init__(self, read_cache, write_cache, cache_dirname, rate_limit=chadsoft_config.RATE_LIMIT):
+    def __init__(self, read_cache, write_cache, cache_dirname, rate_limit=chadsoft_config.RATE_LIMIT, retry_on_empty=False):
         self.read_cache = read_cache
         self.write_cache = write_cache
         self.cache_dirname = cache_dirname
         self.rate_limit = rate_limit
+        self.retry_on_empty = retry_on_empty
 
-default_cache_settings = CacheSettings(False, True, "chadsoft_cached")
+default_cache_settings = CacheSettings(True, True, "chadsoft_cached")
 
 def get_cached_endpoint_filepath(endpoint, params, is_binary, cache_settings):
     if not is_binary:
@@ -72,7 +77,10 @@ def get_in_loop_code(endpoint, params, is_binary, cache_settings):
 
     endpoint_as_path = get_cached_endpoint_filepath(endpoint, params, is_binary, cache_settings)
     if cache_settings.read_cache and endpoint_as_path.is_file():
-        if endpoint_as_path.stat().st_size == 0:
+        error_code = None
+
+        endpoint_as_path_size = endpoint_as_path.stat().st_size
+        if endpoint_as_path_size == 0:
             if not is_binary:
                 return {}, 404
             else:
@@ -82,12 +90,27 @@ def get_in_loop_code(endpoint, params, is_binary, cache_settings):
             #print(f"endpoint_as_path: {endpoint_as_path}")
             with open(endpoint_as_path, "r", encoding="utf-8-sig") as f:
                 content = f.read().encode("utf-8")
-                data = json.loads(content)
+                if len(content) < 5:
+                    try:
+                        error_code = int(content, 10)
+                    except ValueError:
+                        pass
+
+                if error_code is None:
+                    data = json.loads(content)
         else:
             with open(endpoint_as_path, "rb") as f:
                 data = f.read()
 
-        return data, 200
+            if len(data) < 5:
+                try:
+                    data_as_str = data.decode("utf-8")
+                    error_code = int(data_as_str, 10)
+                except (ValueError, UnicodeDecodeError):
+                    pass
+
+        if error_code is None:
+            return data, 200
 
     url = f"{API_URL}{endpoint}"
     print(f"url: {url}?{urllib.parse.urlencode(params, doseq=True)}")
@@ -101,7 +124,13 @@ def get_in_loop_code(endpoint, params, is_binary, cache_settings):
 
     if r.status_code != 200:
         if cache_settings.write_cache:
-            endpoint_as_path.touch()
+            if r.status_code == 404:
+                endpoint_as_path.touch()
+            else:
+                print(f"Got non-404 error code: {r.status_code}")
+                with open(endpoint_as_path, "w+") as f:
+                    f.write(str(r.status_code))
+
         return r.reason, r.status_code
         #raise RuntimeError(f"API returned {r.status_code}: {r.reason}")
 
@@ -216,7 +245,7 @@ def get_player_from_player_id(player_id, start=0, limit=0, cache_settings=None):
 # #filter-times-record-history
 # #filter-times-all
 
-leaderboard_regex = re.compile(r"^https://(?:www\.)?chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02|03|04|05|06))\.html(.*)$")
+leaderboard_regex = re.compile(r"^https://(?:www\.)?chadsoft\.co\.uk/time-trials/leaderboard/([0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/(?:00|01|02|03|04|05|06)(?:-fast-lap)?)\.html(.*)$")
 
 region_name_to_id = {
     "all": None,
@@ -237,7 +266,7 @@ time_measure_to_id = {
 def get_lb_from_lb_link(lb_link, num_entries, cache_settings):
     match_obj = leaderboard_regex.match(lb_link)
     if not match_obj:
-        raise RuntimeError("Invalid chadsoft leaderboard link!")
+        raise RuntimeError(f"Invalid chadsoft leaderboard link {lb_link}!")
 
     filters = match_obj.group(2)
     continent = None
@@ -265,7 +294,7 @@ def get_lb_from_lb_link(lb_link, num_entries, cache_settings):
                 except KeyError:
                     raise RuntimeError(f"Invalid region value \"{filter_value}\"!")
             elif filter_name == "vehicle":
-                if filter_value in ("karts", "bikes"):
+                if filter_value in {"karts", "bikes"}:
                     vehicle = filter_value
                 elif filter_value == "all":
                     vehicle = None
@@ -289,7 +318,7 @@ def get_lb_from_lb_link(lb_link, num_entries, cache_settings):
     if len(top_n_leaderboard["ghosts"]) == 0:
         raise RuntimeError("Leaderboard is empty!")
 
-    return top_n_leaderboard
+    return top_n_leaderboard, vehicle, continent
 
 ghost_page_link_regex = re.compile(r"^https://(?:www\.)?chadsoft\.co\.uk/time-trials/rkgd/([0-9A-Fa-f]{2}/[0-9A-Fa-f]{2}/[0-9A-Fa-f]{36})\.html$")
 
@@ -365,17 +394,23 @@ class GhostPage:
         match_obj = ghost_page_link_regex.match(ghost_page_link)
         return match_obj is not None
 
+lb_href_regex = re.compile(r"^(/leaderboard/[0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/)(00|01|02|04|05|06)((?:-fast-lap)?).json")
+
 class Leaderboard:
-    __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "cache_settings")
+    __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "cache_settings", "vehicle", "continent")
 
     def __init__(self, lb_link, num_entries, cache_settings):
         self.lb_link = lb_link
         self.num_entries = num_entries
         self.lb_info_and_entries = {}
         self.cache_settings = cache_settings
+        self.vehicle = None
 
-    def download_info_and_ghosts(self):
-        self.lb_info_and_entries = get_lb_from_lb_link(self.lb_link, self.num_entries, cache_settings=self.cache_settings)
+    def download_info_and_ghosts(self, do_not_download_ghosts=False):
+        self.lb_info_and_entries, self.vehicle, self.continent = get_lb_from_lb_link(self.lb_link, self.num_entries, cache_settings=self.cache_settings)
+
+        if do_not_download_ghosts:
+            return
 
         for lb_entry in self.lb_info_and_entries["ghosts"]:
             rkg_data, status_code = chadsoft.get(lb_entry["href"], is_binary=True, cache_settings=self.cache_settings)
@@ -396,3 +431,330 @@ class Leaderboard:
 
     def get_track_name(self):
         return self.lb_info_and_entries.get("name")
+
+    def get_lb_link(self):
+        return self.lb_link
+
+    def get_vehicle(self):
+        return self.vehicle
+
+    def get_continent(self):
+        return self.continent
+
+    def is_vanilla_track(self):
+        return self.lb_info_and_entries.get("defaultTrack")
+
+    leaderboard_category_combinations_to_community_category_names = {
+        frozenset((CATEGORY_SHORTCUT, CATEGORY_GLITCH, CATEGORY_NO_SHORTCUT)): {
+            CATEGORY_SHORTCUT: "Shortcut",
+            CATEGORY_GLITCH: "Glitch",
+            CATEGORY_NO_SHORTCUT: "No Glitch, No-SC"
+        },
+        frozenset((CATEGORY_NORMAL_200CC, CATEGORY_GLITCH_200CC, CATEGORY_NO_SHORTCUT_200CC)): {
+            CATEGORY_NORMAL_200CC: "Shortcut",
+            CATEGORY_GLITCH_200CC: "Glitch",
+            CATEGORY_NO_SHORTCUT_200CC: "No Glitch, No-SC"
+        },
+        frozenset((CATEGORY_SHORTCUT, CATEGORY_NO_SHORTCUT)): {
+            CATEGORY_SHORTCUT: "Shortcut",
+            CATEGORY_NO_SHORTCUT: "No-shortcut"
+        },
+        frozenset((CATEGORY_NORMAL_200CC, CATEGORY_NO_SHORTCUT_200CC)): {
+            CATEGORY_NORMAL_200CC: "Shortcut",
+            CATEGORY_NO_SHORTCUT_200CC: "No-shortcut"
+        },
+        frozenset((CATEGORY_NORMAL, CATEGORY_GLITCH)): {
+            CATEGORY_NORMAL: "SPECIAL_NO_GLITCH_OR_NONE",
+            CATEGORY_GLITCH: "Glitch",
+        },
+        frozenset((CATEGORY_NORMAL_200CC, CATEGORY_GLITCH_200CC)): {
+            CATEGORY_NORMAL_200CC: "SPECIAL_NO_GLITCH_OR_NONE",
+            CATEGORY_GLITCH_200CC: "Glitch"
+        },
+        frozenset((CATEGORY_NORMAL,)): {
+            CATEGORY_NORMAL: ""
+        },
+        frozenset((CATEGORY_NORMAL_200CC,)): {
+            CATEGORY_NORMAL_200CC: ""
+        }
+    }
+
+    def add_track_category_id(self, all_track_categories, category_id):
+        all_track_categories.add(category_id)
+
+    def determine_community_category_name(self):
+        category_id = self.lb_info_and_entries.get("categoryId", -1)
+        if category_id == -1:
+            return ""
+
+        if not self.is_200cc():
+            json_categories_to_check = {"00", "01", "02"}
+        else:
+            json_categories_to_check = {"04", "05", "06"}
+
+        match_obj = lb_href_regex.match(self.lb_info_and_entries["_links"]["self"]["href"])
+        if match_obj is None:
+            raise RuntimeError("This shouldn't happen, please contact the developer!")
+
+        track_lb_base = match_obj.group(1)
+        json_category = match_obj.group(2)
+        fast_lap = match_obj.group(3)
+
+        json_categories_to_check.remove(json_category)
+        all_track_categories = set()
+        self.add_track_category_id(all_track_categories, category_id)
+
+        for json_category_to_check in json_categories_to_check:
+            other_category_lb_href = f"{track_lb_base}{json_category_to_check}{fast_lap}.json"
+            other_category_lb, status = chadsoft.get_lb_from_href_with_status(other_category_lb_href, start=0, limit=1, times="pb", cache_settings=self.cache_settings)
+            if status != 404:
+                other_category_id = other_category_lb.get("categoryId", -1)
+                self.add_track_category_id(all_track_categories, other_category_id)
+
+        frozen_all_track_categories = frozenset(all_track_categories)
+        community_category_names_for_lb = Leaderboard.leaderboard_category_combinations_to_community_category_names.get(frozen_all_track_categories)
+        if community_category_names_for_lb is None:
+            return identifiers.category_names_no_200cc[category_id]
+
+        community_category_name = community_category_names_for_lb[category_id]
+        if community_category_name == "SPECIAL_NO_GLITCH_OR_NONE":
+            community_category_name = "No Glitch" if self.is_vanilla_track() else ""
+
+        return community_category_name
+
+    def test_community_category_name(self, expected):
+        actual = self.determine_community_category_name()
+        if actual != expected:
+            print(f"FAIL: {self.lb_link} expected {expected} got {actual}")
+        else:
+            print(f"SUCCESS: {self.lb_link}")
+
+
+# ===
+# if default:
+# if 00:-1
+# (nothing)
+# https://chadsoft.co.uk/time-trials/leaderboard/08/1AE1A7D894960B38E09E7494373378D87305A163/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/16/8BFE0DEF91391D0E1930F04662C23CCD407C70E9/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/14/8C854B087417A92425110CC71E23C944D6997806/04.html
+# https://chadsoft.co.uk/time-trials/leaderboard/0F/888CA2E0257D24BEDCA93713E0B6CBE384CC9B35/04.html
+
+# if Shortcut, Glitch, No-shortcut (150cc)
+# if 00:16, 01:01, 02:02
+# 16 -> Shortcut
+# 01 -> Glitch
+# 02 -> No Glitch, No SC
+# https://chadsoft.co.uk/time-trials/leaderboard/02/0E380357AFFCFD8722329994885699D9927F8276/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/05/E4BF364CB0C5899907585D731621CA930A4EF85C/00.html
+
+# if Normal, Glitch, No-shortcut (200cc)
+# if 04:04, 05:05, 06:06
+# 04 -> Shortcut
+# 05 -> Glitch
+# 06 -> No Glitch, No SC
+# https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/04.html
+# https://www.chadsoft.co.uk/time-trials/leaderboard/0D/B615BC0F9BD549E05146C76B2E40F08D272B8395/04.html
+
+# if Shortcut, No-shortcut (150cc)
+# if 00:16, 02:02
+# 16 -> Shortcut
+# 02 -> No-shortcut
+# https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/03/F1A761F9A647F9C702936587F2DB281D87437641/00.html
+
+# if Normal, No-shortcut (200cc)
+# if 04:04, 06:06
+# 04 -> Shortcut
+# 06 -> No-shortcut
+# https://chadsoft.co.uk/time-trials/leaderboard/04/1896AEA49617A571C66FF778D8F2ABBE9E5D7479/04.html
+# https://www.chadsoft.co.uk/time-trials/leaderboard/02/0995EDD37C5265D4267FE80F1C2538D9D70A50C9/04.html
+
+# if Normal, Glitch, Vanilla (150cc)
+# if 00:00, 01:01, vanilla
+# 00 -> No Glitch
+# 01 -> Glitch
+# https://chadsoft.co.uk/time-trials/leaderboard/0B/48EBD9D64413C2B98D2B92E5EFC9B15ECD76FEE6/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/19/071D697C4DDB66D3B210F36C7BF878502E79845B/00.html
+
+# if Normal, Glitch, Vanilla (200cc)
+# if 04:04, 05:05
+# 04 -> No Glitch
+# 05 -> Glitch
+# https://chadsoft.co.uk/time-trials/leaderboard/0D/FFE518915E5FAAA889057C8A3D3E439868574508/04.html
+# https://chadsoft.co.uk/time-trials/leaderboard/1F/E8ED31605CC7D6660691998F024EED6BA8B4A33F/04.html
+
+# if Normal, Glitch, Custom (150cc)
+# if 00:00, 01:01, Custom
+# 00 -> (nothing)
+# 01 -> Glitch
+# https://chadsoft.co.uk/time-trials/leaderboard/1E/5A5EFA90E4A83E4F873E2728F25A994451E8DB4A/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/0E/882AFADD91CD261E941BEE24A563FAE51F7FF661/00.html
+
+# if Normal, Glitch, Custom (200cc)
+# if 04:04, 05:05, Custom
+# 00 -> (nothing)
+# 01 -> Glitch
+# https://chadsoft.co.uk/time-trials/leaderboard/13/8BA7E0A473F06577CEA3DFD73BE639E3DA3C9FF1/04.html
+# https://chadsoft.co.uk/time-trials/leaderboard/0B/DA74F3399138CBABAA08182163ACE343F2746357/04.html
+
+# if Normal (150cc)
+# if 00:00
+# (nothing)
+# https://chadsoft.co.uk/time-trials/leaderboard/19/8C4EEED505F0862CBB490A0AC0BD334515895710/00.html
+# https://chadsoft.co.uk/time-trials/leaderboard/18/22D1945EEE7D68E87C5033C2C195D11820233169/00.html
+
+# if Normal (200cc)
+# if 04:04
+# (nothing)
+# https://chadsoft.co.uk/time-trials/leaderboard/0D/CD19D287B6578A396C8A4EC77ACF0C633B5C75A8/04.html
+# https://chadsoft.co.uk/time-trials/leaderboard/1E/CF7B757F4FFC9629896ED1EDDDCD6FDFFDC0DFA3/04.html
+
+# error:
+# return original category name
+
+
+class CatTest:
+    __slots__ = ("lb_link", "expected")
+
+    def __init__(self, lb_link, expected):
+        self.lb_link = lb_link
+        self.expected = expected
+
+class CatTestGroup:
+    __slots__ = ("cc_150_a", "cc_150_b", "cc_200_a", "cc_200_b")
+
+    def __init__(self, cc_150_a, cc_150_b, cc_200_a, cc_200_b):
+        self.cc_150_a = cc_150_a
+        self.cc_150_b = cc_150_b
+        self.cc_200_a = cc_200_a
+        self.cc_200_b = cc_200_b
+
+community_category_names_test = [
+    CatTestGroup(
+        cc_150_a=[CatTest("https://chadsoft.co.uk/time-trials/leaderboard/08/1AE1A7D894960B38E09E7494373378D87305A163/00.html", "")],
+        cc_150_b=[CatTest(
+        "https://chadsoft.co.uk/time-trials/leaderboard/16/8BFE0DEF91391D0E1930F04662C23CCD407C70E9/00.html", "")],
+        cc_200_a=[CatTest(
+        "https://chadsoft.co.uk/time-trials/leaderboard/14/8C854B087417A92425110CC71E23C944D6997806/04.html", "")],
+        cc_200_b=[CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0F/888CA2E0257D24BEDCA93713E0B6CBE384CC9B35/04.html", "")],
+    ),
+    CatTestGroup(
+        cc_150_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/02/0E380357AFFCFD8722329994885699D9927F8276/00.html", "Shortcut"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/02/0E380357AFFCFD8722329994885699D9927F8276/01.html", "Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/02/0E380357AFFCFD8722329994885699D9927F8276/02.html", "No Glitch, No-SC")
+        ],
+        cc_150_b=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/05/E4BF364CB0C5899907585D731621CA930A4EF85C/00.html", "Shortcut"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/05/E4BF364CB0C5899907585D731621CA930A4EF85C/01.html", "Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/05/E4BF364CB0C5899907585D731621CA930A4EF85C/02.html", "No Glitch, No-SC")
+        ],
+        cc_200_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/04.html", "Shortcut"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/05.html", "Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/06.html", "No Glitch, No-SC")
+        ],
+        cc_200_b=[
+            CatTest("https://www.chadsoft.co.uk/time-trials/leaderboard/0D/B615BC0F9BD549E05146C76B2E40F08D272B8395/04.html", "Shortcut"),
+            CatTest("https://www.chadsoft.co.uk/time-trials/leaderboard/0D/B615BC0F9BD549E05146C76B2E40F08D272B8395/05.html", "Glitch"),
+            CatTest("https://www.chadsoft.co.uk/time-trials/leaderboard/0D/B615BC0F9BD549E05146C76B2E40F08D272B8395/06.html", "No Glitch, No-SC")
+        ]
+    ),
+    CatTestGroup(
+        cc_150_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/00.html", "Shortcut"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0C/B9821B14A89381F9C015669353CB24D7DB1BB25D/02.html", "No-shortcut"),
+        ],
+        cc_150_b=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/03/F1A761F9A647F9C702936587F2DB281D87437641/00.html", "Shortcut"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/03/F1A761F9A647F9C702936587F2DB281D87437641/02.html", "No-shortcut"),
+        ],
+        cc_200_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/04/1896AEA49617A571C66FF778D8F2ABBE9E5D7479/04.html", "Shortcut"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/04/1896AEA49617A571C66FF778D8F2ABBE9E5D7479/06.html", "No-shortcut"),
+        ],
+        cc_200_b=[
+            CatTest("https://www.chadsoft.co.uk/time-trials/leaderboard/02/0995EDD37C5265D4267FE80F1C2538D9D70A50C9/04.html", "Shortcut"),
+            CatTest("https://www.chadsoft.co.uk/time-trials/leaderboard/02/0995EDD37C5265D4267FE80F1C2538D9D70A50C9/06.html", "No-shortcut"),
+        ],
+    ),
+    CatTestGroup(
+        cc_150_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0B/48EBD9D64413C2B98D2B92E5EFC9B15ECD76FEE6/00.html", "No Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0B/48EBD9D64413C2B98D2B92E5EFC9B15ECD76FEE6/01.html", "Glitch"),
+        ],
+        cc_150_b=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/19/071D697C4DDB66D3B210F36C7BF878502E79845B/00.html", "No Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/19/071D697C4DDB66D3B210F36C7BF878502E79845B/01.html", "Glitch"),
+        ],
+        cc_200_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0D/FFE518915E5FAAA889057C8A3D3E439868574508/04.html", "No Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0D/FFE518915E5FAAA889057C8A3D3E439868574508/05.html", "Glitch"),
+        ],
+        cc_200_b=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/1F/E8ED31605CC7D6660691998F024EED6BA8B4A33F/04.html", "No Glitch"),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/1F/E8ED31605CC7D6660691998F024EED6BA8B4A33F/05.html", "Glitch"),
+        ],
+    ),
+    CatTestGroup(
+        cc_150_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/1E/5A5EFA90E4A83E4F873E2728F25A994451E8DB4A/00.html", ""),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/1E/5A5EFA90E4A83E4F873E2728F25A994451E8DB4A/01.html", "Glitch"),
+        ],
+        cc_150_b=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0E/882AFADD91CD261E941BEE24A563FAE51F7FF661/00.html", ""),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0E/882AFADD91CD261E941BEE24A563FAE51F7FF661/01.html", "Glitch"),
+        ],
+        cc_200_a=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/13/8BA7E0A473F06577CEA3DFD73BE639E3DA3C9FF1/04.html", ""),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/13/8BA7E0A473F06577CEA3DFD73BE639E3DA3C9FF1/05.html", "Glitch"),
+        ],
+        cc_200_b=[
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0B/DA74F3399138CBABAA08182163ACE343F2746357/04.html", ""),
+            CatTest("https://chadsoft.co.uk/time-trials/leaderboard/0B/DA74F3399138CBABAA08182163ACE343F2746357/05.html", "Glitch"),
+        ],
+    ),
+    CatTestGroup(
+        cc_150_a=[CatTest("https://chadsoft.co.uk/time-trials/leaderboard/19/8C4EEED505F0862CBB490A0AC0BD334515895710/00.html", "")],
+        cc_150_b=[CatTest(
+        "https://chadsoft.co.uk/time-trials/leaderboard/18/22D1945EEE7D68E87C5033C2C195D11820233169/00.html", "")],
+        cc_200_a=[CatTest(
+        "https://chadsoft.co.uk/time-trials/leaderboard/0D/CD19D287B6578A396C8A4EC77ACF0C633B5C75A8/04.html", "")],
+        cc_200_b=[CatTest("https://chadsoft.co.uk/time-trials/leaderboard/1E/CF7B757F4FFC9629896ED1EDDDCD6FDFFDC0DFA3/04.html", "")],
+    ),
+]
+
+cat_test_cache_settings = CacheSettings(True, True, "chadsoft_cached", retry_on_empty=False)
+
+def test_cat_tests(cat_tests):
+    for cat_test in cat_tests:
+        try:
+            leaderboard = Leaderboard(cat_test.lb_link, 1, cat_test_cache_settings)
+            leaderboard.download_info_and_ghosts(True)
+            leaderboard.test_community_category_name(cat_test.expected)
+        except Exception as e:
+            print(f"FAIL due to error: {cat_test.lb_link}\nError below:\n{e}\n{''.join(traceback.format_tb(e.__traceback__))}\n")
+
+def test_all_community_category_names():
+    purge_cache("24h", "chadsoft_cached")
+    random.seed(1111236)
+
+    for cat_test_group in community_category_names_test:
+        if False:
+            cc_150_cat_tests = cat_test_group.cc_150_a
+        else:
+            cc_150_cat_tests = cat_test_group.cc_150_b
+            
+        if False:
+            cc_200_cat_tests = cat_test_group.cc_200_a
+        else:
+            cc_200_cat_tests = cat_test_group.cc_200_b
+
+        test_cat_tests(cc_150_cat_tests)
+        test_cat_tests(cc_200_cat_tests)
+
+def main():
+    test_all_community_category_names()
+
+if __name__ == "__main__":
+    main()

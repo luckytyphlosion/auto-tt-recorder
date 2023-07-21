@@ -9,9 +9,9 @@ main-ghost-auto: 01m11s5444346 Flαg ND.rkg
 comparison-ghost-auto: 02m47s0577229 Naka GT.rkg
 
 timeline: top10
-top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/06/A1E5087B9951410F9B590FD1D6D831357167A3B6/01.html#filter-region-america"
+top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/06/A1E5087B9951410F9B590FD1D6D831357167A3B6/01.html#filter-region-america#filter-vehicle-magikruiser"
 top-10-location: AQ
-top-10-title: "Icepeak Mountain (Glitch) CTGP Top 10"
+top-10-title: "{continentWWisCTGP} {cc} a{trackName}s  a {location}amog {vehicleUS}{category}"
 top-10-highlight: -1
 
 szs-filename: "Icepeak Mountain v1.2 (boardcross_course).szs"

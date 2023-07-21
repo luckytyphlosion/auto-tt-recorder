@@ -42,12 +42,14 @@
 import re
 import itertools
 import pathlib
+import functools
 
 import chadsoft
 import util
 import import_ghost_to_save
 from import_ghost_to_save import Rkg
 import wbz
+import identifiers
 
 from constants.customtop10 import *
 from stateclasses.gecko_code_line import *
@@ -92,6 +94,14 @@ regional_to_full_name = {
     "oceania": "Oceania"
 }
 
+continent_to_name = {
+    1: "Asia",
+    2: "America",
+    3: "Europe & Africa",
+    4: "Oceania",
+    5: "Korea"
+}
+    
 def simplify_globe_location(globe_location):
     if globe_location.lower() in ("worldwide", "ww"):
         return "ww"
@@ -127,12 +137,15 @@ class CustomTop10AndGhostDescription:
         self.highlight_index = highlight_index
 
     @classmethod
-    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, cache_settings):
+    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, track_name, cache_settings):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
+
+        if top_10_title == "auto":
+            top_10_title = "{trackName} {cc} {vehicle} {category} {continent} Top 10"
 
         leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10, cache_settings)
         leaderboard.download_info_and_ghosts()
@@ -162,7 +175,8 @@ class CustomTop10AndGhostDescription:
 
         globe_location = simplify_globe_location(globe_location)
 
-        custom_top_10 = CustomTop10(iso_region, globe_location, top_10_title, top_10_entries, highlight_index)
+        custom_top_10 = CustomTop10(iso_region, globe_location, top_10_title, top_10_entries, highlight_index, track_name=track_name)
+        custom_top_10.build_automatic_title(leaderboard)
         top_10_code = custom_top_10.generate()
 
         return cls(globe_location, ghost_description, top_10_code, leaderboard=leaderboard, highlight_index=highlight_index)
@@ -310,18 +324,21 @@ class Top10Entry:
         partial_mii = list(DEFAULT_MII)
         return cls(country, finish_time, wheel, partial_mii)
 
-class CustomTop10:
-    __slots__ = ("code", "region_dependent_codes", "globe_location", "globe_position", "top_10_title", "highlight_index", "include_track_in_title", "entries")
+split_with_space_regex = re.compile(r"(\s+|(?={))|(?<=})(?=[^{\s])")
 
-    def __init__(self, iso_region, globe_location, top_10_title, entries, highlight_index=1, include_track_in_title=False):
+class CustomTop10:
+    __slots__ = ("code", "region_dependent_codes", "globe_location", "globe_position", "top_10_title", "highlight_index", "include_track_in_title", "entries", "track_name", "iso_region", "top_10_title_specifiers")
+
+    def __init__(self, iso_region, globe_location, top_10_title, entries, highlight_index=1, include_track_in_title=False, track_name=None):
         self.code = []
         self.region_dependent_codes = custom_top_10_region_dependent_codes[iso_region]
+        self.iso_region = iso_region
         self.globe_location = simplify_globe_location(globe_location)
         self.globe_position = CustomTop10.get_globe_position_from_location(globe_location)
+        self.track_name = track_name
+        self.top_10_title_specifiers = {}
         if self.globe_position == "":
             self.globe_position = countries_by_name["Belgium"].globe_position
-        if top_10_title is None:
-            top_10_title = CustomTop10.get_default_top_10_title(globe_location)
         self.top_10_title = top_10_title
         if highlight_index != -1 and not (1 <= highlight_index <= 10):
             raise RuntimeError(f"Highlight index \"{highlight_index}\" not -1 or in range [1, 10]!")
@@ -331,26 +348,6 @@ class CustomTop10:
         if not (1 <= len(entries) <= 10):
             raise RuntimeError(f"Number of entries \"{len(entries)}\" not in range [1, 10]!")
         self.entries = entries
-
-    @staticmethod
-    def get_default_top_10_title(globe_location):
-        if globe_location == "ww":
-            top_10_title = "Worldwide Top 10"
-        else:
-            try:
-                location_full_name = regional_to_full_name[globe_location.lower()]
-            except KeyError:
-                try:
-                    location_full_name = countries_by_name[globe_location].name
-                except KeyError:
-                    try:
-                        location_full_name = countries_by_flag_id[globe_location.upper()].name
-                    except KeyError as e:
-                        raise RuntimeError(f"Unknown country \"{globe_location}\"!") from e
-
-            top_10_title = f"{location_full_name} Top 10"
-
-        return top_10_title
 
     @staticmethod
     def get_globe_position_from_location(globe_location):
@@ -369,7 +366,111 @@ class CustomTop10:
                 try:
                     return countries_by_flag_id[globe_location.upper()].globe_position
                 except KeyError as e:
-                    raise RuntimeError(f"Unknown country \"{globe_location}\"!") from e
+                    raise RuntimeError(f"Unknown country \"{globe_location}\" specified in top-10-location!")
+
+    def set_top_10_title_track_name(self, leaderboard):
+        if self.track_name is None:
+            self.include_track_in_title = True
+            return ""
+        elif self.track_name == "auto":
+            track_name = leaderboard.get_track_name()
+            if track_name is None:
+                raise RuntimeError(f"{{trackName}} specifier in top-10-title failed because Chadsoft leaderboard {leaderboard.get_lb_link()} has no track name! (must specify track-name manually)")
+            return track_name
+        else:
+            return self.track_name
+
+    def get_200cc_str(self, leaderboard):
+        if leaderboard.is_200cc():
+            return "200cc"
+        else:
+            return ""
+
+    def get_vehicle_name(self, leaderboard, iso_region_name):
+        vehicle = leaderboard.get_vehicle()
+        if vehicle == "karts":
+            return "Kart"
+        elif vehicle == "bikes":
+            return "Bike"
+        elif vehicle is None:
+            return ""
+        else:
+            return identifiers.get_vehicle_name_region_dependent(vehicle, iso_region_name)
+
+    def get_location_full_name(self, leaderboard, worldwide_name):
+        globe_location = self.globe_location
+        if globe_location == "ww":
+            location_full_name = worldwide_name
+        else:
+            try:
+                location_full_name = regional_to_full_name[globe_location.lower()]
+            except KeyError:
+                try:
+                    location_full_name = countries_by_name[globe_location].name
+                except KeyError:
+                    try:
+                        location_full_name = countries_by_flag_id[globe_location.upper()].name
+                    except KeyError as e:
+                        raise RuntimeError(f"Unknown country \"{globe_location}\" specified in top-10-location!")
+
+        return location_full_name
+
+    def get_continent_name(self, leaderboard, worldwide_name):
+        continent_name = continent_to_name[leaderboard.get_continent()]
+        if continent_name is None:
+            return worldwide_name
+        else:
+            return continent_name
+
+    def get_community_category_name(self, leaderboard):
+        return leaderboard.determine_community_category_name()
+
+    def create_top_10_title_specifiers(self):
+        self.top_10_title_specifiers = {
+            "{trackName}": CustomTop10.set_top_10_title_track_name,
+            "{cc}": CustomTop10.get_200cc_str,
+            "{vehicle}": functools.partial(CustomTop10.get_vehicle_name, iso_region_name=self.iso_region),
+            "{vehicleUS}": functools.partial(CustomTop10.get_vehicle_name, iso_region_name="NTSC-U"),
+            "{vehicleEU}": functools.partial(CustomTop10.get_vehicle_name, iso_region_name="PAL"),
+            "{location}": functools.partial(CustomTop10.get_location_full_name, worldwide_name="Worldwide"),
+            "{locationWWisCTGP}": functools.partial(CustomTop10.get_location_full_name, worldwide_name="CTGP"),
+            "{category}": CustomTop10.get_community_category_name,
+            "{continent}": functools.partial(CustomTop10.get_continent_name, worldwide_name="Worldwide"),
+            "{continentWWisCTGP}": functools.partial(CustomTop10.get_continent_name, worldwide_name="CTGP")
+        }
+
+    def build_automatic_title(self, leaderboard):
+        if "{" not in self.top_10_title and "}" not in self.top_10_title:
+            return
+
+        self.create_top_10_title_specifiers()
+
+        escape_removed_top_10_title = self.top_10_title.replace("{{", "\x05").replace("}}", "\x06")
+        split_top_10_title = [x if x is not None else "" for x in split_with_space_regex.split(escape_removed_top_10_title)]
+        prev_was_empty_specifier = False
+        built_top_10_title_parts = []
+
+        for top_10_title_part in split_top_10_title:
+            top_10_title_specifier_func = self.top_10_title_specifiers.get(top_10_title_part)
+            if top_10_title_specifier_func is not None:
+                value = top_10_title_specifier_func(self, leaderboard)
+                if value != "":
+                    calculated_top_10_title_part = value
+                    prev_was_empty_specifier = False
+                else:
+                    calculated_top_10_title_part = ""
+                    prev_was_empty_specifier = True
+            else:
+                if prev_was_empty_specifier and top_10_title_part != "":
+                    calculated_top_10_title_part = top_10_title_part[1:]
+                else:
+                    calculated_top_10_title_part = top_10_title_part
+
+                prev_was_empty_specifier = False
+            built_top_10_title_parts.append(calculated_top_10_title_part)
+
+        self.top_10_title = "".join(built_top_10_title_parts).strip()
+        self.top_10_title.replace("\x05", "{").replace("\x06", "}")
 
     # main function that generates the code
     def generate(self):

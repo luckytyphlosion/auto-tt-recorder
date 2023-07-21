@@ -17,6 +17,7 @@
 # -*- coding: utf-8 -*-
 
 from stateclasses.input_display import *
+from constants.categories import *
 
 vehicle_names = {
     0x00: "Standard Kart S",
@@ -117,6 +118,12 @@ vehicle_names_eu = {
     0x20: "Torpedo",
     0x21: "Bubble Bike",
 }
+
+def get_vehicle_name_region_dependent(vehicle, iso_region_name):
+    if iso_region_name == "PAL":
+        return vehicle_names_eu.get(vehicle, vehicle_names.get(vehicle))
+    else:
+        return vehicle_names.get(vehicle)
 
 track_names_eu = {
     6: "DK's Snowboard Cross"
@@ -219,25 +226,25 @@ track_filenames = [
 ]
 
 category_names = {
-    -1: "(Default)",
-    0: "Normal",
-    1: "Glitch",
-    2: "No-shortcut",
-    4: "Normal (200cc)",
-    5: "Glitch (200cc)",
-    6: "No-shortcut (200cc)",
-    16: "Shortcut"
+    CATEGORY_DEFAULT: "(Default)",
+    CATEGORY_NORMAL: "Normal",
+    CATEGORY_GLITCH: "Glitch",
+    CATEGORY_NO_SHORTCUT: "No-shortcut",
+    CATEGORY_NORMAL_200CC: "Normal (200cc)",
+    CATEGORY_GLITCH_200CC: "Glitch (200cc)",
+    CATEGORY_NO_SHORTCUT_200CC: "No-shortcut (200cc)",
+    CATEGORY_SHORTCUT: "Shortcut"
 }
 
 category_names_no_200cc = {
-    -1: "(Default)",
-    0: "Normal",
-    1: "Glitch",
-    2: "No-shortcut",
-    4: "Normal",
-    5: "Glitch",
-    6: "No-shortcut",
-    16: "Shortcut"
+    CATEGORY_DEFAULT: "(Default)",
+    CATEGORY_NORMAL: "Normal",
+    CATEGORY_GLITCH: "Glitch",
+    CATEGORY_NO_SHORTCUT: "No-shortcut",
+    CATEGORY_NORMAL_200CC: "Normal",
+    CATEGORY_GLITCH_200CC: "Glitch",
+    CATEGORY_NO_SHORTCUT_200CC: "No-shortcut",
+    CATEGORY_SHORTCUT: "Shortcut"
 }
 
 vehicle_modifier_to_str = {
