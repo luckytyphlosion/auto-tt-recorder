@@ -123,6 +123,9 @@ def get_in_loop_code(endpoint, params, is_binary, cache_settings):
         endpoint_as_path.parent.mkdir(parents=True, exist_ok=True)
 
     if r.status_code != 200:
+        if r.status_code != 404:
+            raise ConnectionError(f"Got status code {r.status_code}!")
+
         if cache_settings.write_cache:
             if r.status_code == 404:
                 endpoint_as_path.touch()

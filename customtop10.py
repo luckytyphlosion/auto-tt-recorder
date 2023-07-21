@@ -416,7 +416,7 @@ class CustomTop10:
         return location_full_name
 
     def get_continent_name(self, leaderboard, worldwide_name):
-        continent_name = continent_to_name[leaderboard.get_continent()]
+        continent_name = continent_to_name.get(leaderboard.get_continent())
         if continent_name is None:
             return worldwide_name
         else:
