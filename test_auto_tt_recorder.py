@@ -5,7 +5,7 @@ import random
 import glob
 
 test_config_include_indices = {
-    2, 5
+
 }
 test_config_exclude_indices = {
     
