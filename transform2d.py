@@ -184,3 +184,10 @@ def calc_overlay_objs_coords_dimensions(dolphin_resolution, input_display, aspec
     final_base_stream = apply_ffmpeg_filters(canvas, ffmpeg_in_streams_info)
 
     return final_base_stream
+
+def scale_input_stream_to_16_by_9_if_necessary(encode_settings, dolphin_resolution, video_in_file):
+    if encode_settings.aspect_ratio_16_by_9:
+        canvas_width, canvas_height = base_framedump_dimensions[dolphin_resolution]
+        video_in_file = ffmpeg.filter(video_in_file, "scale", canvas_width, round(canvas_width * 9 / 16), flags="bicubic").filter("setsar", 1, 1)
+
+    return video_in_file

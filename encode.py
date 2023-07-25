@@ -291,7 +291,7 @@ class Encoder:
         if timeline_settings.input_display.type in {INPUT_DISPLAY_CLASSIC, INPUT_DISPLAY_NUNCHUCK}:
             video_with_input_display = self.add_input_display_to_video_new(video_in_file, dynamic_filter_args)
         elif timeline_settings.input_display.type == INPUT_DISPLAY_NONE:
-            video_with_input_display = video_in_file
+            video_with_input_display = transform2d.scale_input_stream_to_16_by_9_if_necessary(encode_settings, dolphin_resolution, video_in_file)
         else:
             assert False
 
@@ -302,9 +302,7 @@ class Encoder:
             audio_combined_maybefaded_stream = audio_combined_stream
 
         if has_secondary_video_in_file:
-            if encode_settings.aspect_ratio_16_by_9:
-                canvas_width, canvas_height = base_framedump_dimensions[dolphin_resolution]
-                secondary_video_in_file = ffmpeg.filter(secondary_video_in_file, "scale", canvas_width, round(canvas_width * 9 / 16), flags="bicubic").filter("setsar", 1, 1)
+            secondary_video_in_file = transform2d.scale_input_stream_to_16_by_9_if_necessary(encode_settings, dolphin_resolution, secondary_video_in_file)
 
             all_streams = [
                 secondary_video_in_file,
