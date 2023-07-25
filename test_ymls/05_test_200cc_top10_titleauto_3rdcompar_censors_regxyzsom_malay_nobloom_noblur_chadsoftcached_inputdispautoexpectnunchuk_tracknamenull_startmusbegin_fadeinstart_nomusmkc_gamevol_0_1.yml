@@ -1,5 +1,4 @@
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/04/05/657C9B135E3F4FBAD7C7827811E46B46AC34.html
 output-video-filename: mp4
 track-name: null
@@ -23,7 +22,6 @@ youtube-settings: true
 keep-window: true
 chadsoft-read-cache: true
 chadsoft-write-cache: true
-chadsoft-cache-folder: chadsoft_cacher2
 encode-only: false
 input-display-dont-create: false
 dolphin-resolution: 480p
@@ -40,4 +38,4 @@ no-background-blur: true
 
 speedometer: regular
 speedometer-metric: xyz
-music-filename: 22 The Ending.mp3
+music-filename: test_data/22 The Ending.mp3

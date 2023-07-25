@@ -1,8 +1,6 @@
 timeline: top10
-top-10-gecko-code-filename: gba_bc3_tops.txt
-
+top-10-gecko-code-filename: test_data/gba_bc3_tops.txt
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/16/DE/9444B549347345D441D07F8E41EEAEF989BE.html
 output-video-filename: mp4
 track-name: auto
@@ -18,7 +16,6 @@ youtube-settings: true
 keep-window: true
 chadsoft-read-cache: true
 chadsoft-write-cache: true
-chadsoft-cache-folder: one_folder/cache_dir_chadsoft
 encode-only: false
 input-display-dont-create: false
 dolphin-resolution: 480p
@@ -29,11 +26,6 @@ output-width: 1280
 fade-in-at-start: true
 no-music-mkchannel: true
 start-music-at-beginning: true
-
-dolphin-folder: "../../auto-tt-recorder_v1.3.6/dolphin"
-storage-folder: "storing/a big store"
-temp-folder: "/mnt/c/users/user/pictures/autoTTtemp"
-wiimm-folder: "../../auto_tt_recorder/wiimm"
 
 speedometer: fancy
 speedometer-metric: engine

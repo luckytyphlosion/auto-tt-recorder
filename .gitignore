@@ -172,7 +172,7 @@ temp/
 !dolphin/portable.txt
 
 release_working/
-release_config.yml
+build_options.yml
 legacy_records_cached/
 legacy_records.yml
 music_cached/
@@ -182,3 +182,4 @@ test_dolphin/
 bin2/
 storing/
 hq_textures/
+!test_data/*

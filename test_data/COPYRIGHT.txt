@@ -1,0 +1,1 @@
+The files here are not under GPLv2+ and are all rights reserved by their respective copyright owners. These files do not get added in the release (and are just here for testing) so it doesn't matter.

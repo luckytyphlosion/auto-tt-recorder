@@ -1,6 +1,5 @@
 timeline: mkchannel
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
 chadsoft-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/DB/DD/200F67030284C2D5ABC405230FFB623F4A65.html
 chadsoft-comparison-ghost-page: https://chadsoft.co.uk/time-trials/rkgd/6E/BD/08F8173FDB9F1930514DC41EE3BD9E711B9C.html
 output-video-filename: mp4
@@ -25,15 +24,11 @@ game-volume: 1
 music-volume: 1
 output-width: null
 aspect-ratio-16-by-9: "fAlse"
-dolphin-folder: "/mnt/c/users/user/documents/auto_tt_recorder/test_dolphin"
-storage-folder: "../../auto-tt-rec-test_storage"
-temp-folder: "temp2"
-wiimm-folder: "bin2/wiimm2"
 
 speedometer: fancy
 speedometer-metric: xz
 speedometer-decimal-places: 1
-music-filename: 50. The Grand Finale.mp3
+music-filename: test_data/50. The Grand Finale.mp3
 
 
 

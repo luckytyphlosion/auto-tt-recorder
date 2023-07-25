@@ -1,12 +1,11 @@
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
 output-video-filename: mp4
 track-name: auto
 input-display: auto
 hq-textures: true
 
-main-ghost-auto: 01m11s5444346 Flαg ND.rkg
-comparison-ghost-auto: 02m47s0577229 Naka GT.rkg
+main-ghost-auto: test_data/01m11s5444346 Flαg ND.rkg
+comparison-ghost-auto: test_data/02m47s0577229 Naka GT.rkg
 
 timeline: top10
 top-10-chadsoft: "https://chadsoft.co.uk/time-trials/leaderboard/06/A1E5087B9951410F9B590FD1D6D831357167A3B6/01.html#filter-region-america#filter-vehicle-magikruiser"
@@ -14,7 +13,7 @@ top-10-location: AQ
 top-10-title: "{continentWWisCTGP} {cc} a{trackName}s  a {location}amog {vehicleUS}{category}"
 top-10-highlight: -1
 
-szs-filename: "Icepeak Mountain v1.2 (boardcross_course).szs"
+szs-filename: "test_data/Icepeak Mountain v1.2 (boardcross_course).szs"
 
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 
@@ -39,13 +38,8 @@ no-music-mkchannel: false
 encode-only: false
 input-display-dont-create: false
 
-dolphin-folder: "test_dolphin"
-storage-folder: "/mnt/c/users/user/documents/auto-tt-recorder-gui-v0.2.1-win32-x64/resources/app/auto-tt-recorder_v1.3.1_for_gui/storage"
-temp-folder: "../../auto-tt-recorder_v1.3.2/temp"
-wiimm-folder: "/mnt/c/users/user/documents/RMCE 01/bin ary"
-
 speedometer: standard
 speedometer-metric: xz
-music-filename: "38 Grasslands, All the Way.mp3"
+music-filename: "test_data/38 Grasslands, All the Way.mp3"
 
 no-bloom: true

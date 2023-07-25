@@ -1,8 +1,7 @@
 timeline: ghostonly
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
-main-ghost-filename: gv_tas_13_330.rkg
-comparison-ghost-filename: 00m15s4246347 ニヤケ.rkg
+main-ghost-filename: test_data/gv_tas_13_330.rkg
+comparison-ghost-filename: test_data/00m15s4246347 ニヤケ.rkg
 output-video-filename: mp4
 track-name: auto
 input-display: null
@@ -23,9 +22,9 @@ game-volume: 1
 music-volume: 1
 aspect-ratio-16-by-9: null
 output-width: null
-extra-gecko-codes-filename: no_minimap.ini
+extra-gecko-codes-filename: test_data/no_minimap.ini
 start-music-at-beginning: true
 fade-in-at-start: true
 no-music-mkchannel: true
 speedometer: none
-music-filename: field_of_hopes.ogg
+music-filename: test_data/field_of_hopes.ogg

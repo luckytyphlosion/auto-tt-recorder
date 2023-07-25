@@ -1,13 +1,12 @@
 main-ghost-auto: https://www.chadsoft.co.uk/time-trials/rkgd/45/F1/3863E0C87D4864AB3270FF8352CE9E17B0ED.html
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
 output-video-filename: mp4
 track-name: auto
 input-display: auto
 hq-textures: true
 
 timeline: top10
-top-10-gecko-code-filename: koopa_cape_tops_malformed.txt
+top-10-gecko-code-filename: test_data/koopa_cape_tops_malformed.txt
 top-10-location: ww
 
 encode-type: crf

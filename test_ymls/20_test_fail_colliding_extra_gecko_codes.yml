@@ -1,6 +1,5 @@
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
-output-video-filename: bababooe.mp4
+output-video-filename: mp4
 track-name: auto
 input-display: auto
 hq-textures: true
@@ -23,7 +22,7 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
-extra-gecko-codes-filename: colliding_gecko_codes.ini
+extra-gecko-codes-filename: test_data/colliding_gecko_codes.ini
 
 no-bloom: false
 no-background-blur: false

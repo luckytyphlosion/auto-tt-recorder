@@ -1,5 +1,4 @@
 unbuffered-output: true
-iso-filename: "../../RMCE 01/RMCK01.wbfs"
 output-video-filename: mp4
 track-name: auto
 input-display: auto
@@ -25,7 +24,7 @@ h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
 output-width: null
-extra-gecko-codes-filename: requirements.txt
+extra-gecko-codes-filename: test_data/requirements.txt
 
 no-bloom: true
 no-background-blur: true

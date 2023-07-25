@@ -1,1 +1,1 @@
-requests ffmpeg-python configargparse pyyaml Pillow
+requests ffmpeg-python ConfigArgParse pyyaml Pillow pywin32 python-wslpath
