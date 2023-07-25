@@ -1,10 +1,12 @@
 import re
+import yaml
 
 release_name_regex = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
 
 bool_check = ((lambda x: isinstance(x, bool)), "is not a boolean (true/false).")
 str_check = ((lambda x: isinstance(x, str)), "is not a string.")
 int_list_check = ((lambda x: isinstance(x, list) and all(isinstance(y, int) for y in x)), "is not a list of integers.")
+int_check = ((lambda x: isinstance(x, int)), "is not an integer.")
 
 test_and_release_options_format = {
     "dolphin-lua-core-dirname": str_check,
@@ -17,7 +19,7 @@ test_and_release_options_format = {
     "rmcj01-iso": str_check,
     "rmck01-iso": str_check,
     "test-release": bool_check,
-    "release-clean-install": ((lambda x: x in {True, False, "random"}), "is not of true, false, or random."),
+    "clean-install-on-test-release": ((lambda x: x in {True, False, "random"}), "is not of true, false, or random."),
     "iso-directory": str_check,
     "sevenz-filename": str_check,
     "storage-folder-absolute": str_check,
@@ -32,15 +34,18 @@ test_and_release_options_format = {
     "wiimm-folder-absolute": str_check,
     "wiimm-folder-relative": str_check,
     "wiimm-folder-relative-no-parent": str_check,
-    "extra-hq-textures-folder-relative-no-parent": str_check,
-    "chadsoft-cache-folder-relative": str_check
-    "chadsoft-cache-folder-relative-no-parent": str_check
+    "extra-hq-textures-folder-absolute": str_check,
+    "chadsoft-cache-folder-relative": str_check,
+    "chadsoft-cache-folder-relative-no-parent": str_check,
+    "force-delete-invalid-directories": bool_check,
+    "assume-cmd-folders-exist": bool_check,
+    "randomize-tests-seed": int_check
 }
 
 expected_option_names = set(test_and_release_options_format.keys())
 
 def open_options(options_filename):
-    with open(options_filename, "r") as f:
+    with open(options_filename, "r", encoding="utf-8") as f:
         options = yaml.safe_load(f)
 
     actual_option_names = set(options.keys())

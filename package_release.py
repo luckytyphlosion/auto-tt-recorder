@@ -31,7 +31,7 @@ bin_files_to_copy = (
     "ffprobe.exe"
 )
 
-def copy_dolphin_files(dolphin_lua_core_dirname, release_dolphin_dirname):
+def copy_dolphin_files(dolphin_lua_core_dirname, release_dolphin_dirname, copy_lua_scripts=True):
     release_dolphin_dirpath = pathlib.Path(release_dolphin_dirname)
     release_dolphin_dirpath.mkdir(exist_ok=True, parents=True)
 
@@ -56,8 +56,9 @@ def copy_dolphin_files(dolphin_lua_core_dirname, release_dolphin_dirname):
 
     pathlib.Path(f"{release_dolphin_dirname}/portable.txt").touch()
 
-    print("Copying Lua Scripts to release directory!")
-    shutil.copytree("dolphin/Sys/Scripts", f"{release_dolphin_dirname}/Sys/Scripts")
+    if copy_lua_scripts:
+        print("Copying Lua Scripts to release directory!")
+        shutil.copytree("dolphin/Sys/Scripts", f"{release_dolphin_dirname}/Sys/Scripts")
 
 def copy_bin_files(release_dirname):
     print("Copying binary files!")

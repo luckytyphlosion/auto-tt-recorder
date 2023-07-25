@@ -183,3 +183,9 @@ bin2/
 storing/
 hq_textures/
 !test_data/*
+test_dol2phin/*
+sto2ring/*
+
+test_scratch/*
+
+!binary_sources.json

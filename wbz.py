@@ -58,7 +58,11 @@ class WbzConverter:
             return
 
         # check if ISO is valid
-        completed_process = subprocess.run((self.wit_filename, "imgfiles", self.iso_filename, "-1", "--include", "RMC.01"), capture_output=True, encoding="utf-8")
+        try:
+            completed_process = subprocess.run((self.wit_filename, "imgfiles", self.iso_filename, "-1", "--include", "RMC.01"), capture_output=True, encoding="utf-8")
+        except OSError as e:
+            raise RuntimeError(f"Command ran was ({(self.wit_filename, 'imgfiles', self.iso_filename, '-1', '--include', 'RMC.01')}).") from e
+
         print(completed_process.stdout)
         if completed_process.returncode != 0:
             raise RuntimeError(f"wit error occurred while checking for a valid ISO! error:\n\n{completed_process.stderr}")

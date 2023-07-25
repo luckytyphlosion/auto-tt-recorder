@@ -4,8 +4,9 @@ import pathlib
 import random
 import glob
 import platform
-import py7zr
+import shutil
 from wslpath import wslpath
+import os
 
 import package_release
 import build_options
@@ -112,6 +113,10 @@ def main():
 
     options = build_options.open_options("build_options.yml")
 
+    random_seed = options["randomize-tests-seed"]
+    if random_seed != 0:
+        random.seed(random_seed)
+    
     test_config_include_indices = set(options["include-tests"])
     test_config_exclude_indices = set(options["exclude-tests"])
 
@@ -131,13 +136,15 @@ def main():
     wiimm_folder_relative = options["wiimm-folder-relative"]
     wiimm_folder_relative_no_parent = options["wiimm-folder-relative-no-parent"]
 
-    extra_hq_textures_folder_relative_no_parent = options["extra-hq-textures-folder-relative-no-parent"]
+    extra_hq_textures_folder_absolute = options["extra-hq-textures-folder-absolute"]
 
     chadsoft_cache_folder_relative = options["chadsoft-cache-folder-relative"]
     chadsoft_cache_folder_relative_no_parent = options["chadsoft-cache-folder-relative-no-parent"]
 
     test_release = options["test-release"]
-    release_clean_install = release_clean_install_option_to_enum[options["release-clean-install"]]
+    release_clean_install = release_clean_install_option_to_enum[options["clean-install-on-test-release"]]
+
+    force_delete_invalid_directories = options["force-delete-invalid-directories"]
 
     region_filenames_and_names = (
         RegionFilenameAndName(options["rmce01-iso"], "NTSC-U"),
@@ -151,19 +158,19 @@ def main():
         sevenz_filename = wslpath(sevenz_filename)
 
         storage_folder_absolute = wslpath(storage_folder_absolute)
-        storage_folder_relative = wslpath(storage_folder_relative)
-        storage_folder_relative_no_parent = wslpath(storage_folder_relative_no_parent)
+        #storage_folder_relative = wslpath(storage_folder_relative)
+        #storage_folder_relative_no_parent = wslpath(storage_folder_relative_no_parent)
         dolphin_folder_absolute = wslpath(dolphin_folder_absolute)
-        dolphin_folder_relative = wslpath(dolphin_folder_relative)
-        dolphin_folder_relative_no_parent = wslpath(dolphin_folder_relative_no_parent)
-        temp_folder_relative = wslpath(temp_folder_relative)
+        #dolphin_folder_relative = wslpath(dolphin_folder_relative)
+        #dolphin_folder_relative_no_parent = wslpath(dolphin_folder_relative_no_parent)
+        #temp_folder_relative = wslpath(temp_folder_relative)
         temp_folder_absolute = wslpath(temp_folder_absolute)
-        temp_folder_relative_no_parent = wslpath(temp_folder_relative_no_parent)
+        #temp_folder_relative_no_parent = wslpath(temp_folder_relative_no_parent)
         wiimm_folder_absolute = wslpath(wiimm_folder_absolute)
-        wiimm_folder_relative = wslpath(wiimm_folder_relative)
-        wiimm_folder_relative_no_parent = wslpath(wiimm_folder_relative_no_parent)
-        extra_hq_textures_folder_relative_no_parent = wslpath(extra_hq_textures_folder_relative_no_parent)
-        chadsoft_cache_folder_relative_no_parent = wslpath(chadsoft_cache_folder_relative_no_parent)
+        #wiimm_folder_relative = wslpath(wiimm_folder_relative)
+        #wiimm_folder_relative_no_parent = wslpath(wiimm_folder_relative_no_parent)
+        extra_hq_textures_folder_absolute = wslpath(extra_hq_textures_folder_absolute)
+        #chadsoft_cache_folder_relative_no_parent = wslpath(chadsoft_cache_folder_relative_no_parent)
 
     storage_folders = AutoTTRecCmdFolders("storage-folder", [
         AutoTTRecCmdFolder("storage", True, True),
@@ -181,8 +188,8 @@ def main():
 
     temp_folders = AutoTTRecCmdFolders("temp-folder", [
         AutoTTRecCmdFolder("temp", True, True),
-        AutoTTRecCmdFolder(temp_folder_relative),
-        AutoTTRecCmdFolder(temp_folder_absolute, True),
+        AutoTTRecCmdFolder(temp_folder_absolute),
+        AutoTTRecCmdFolder(temp_folder_relative, True),
         AutoTTRecCmdFolder(temp_folder_relative_no_parent, True)
     ], verification_func=is_temp_folder)
 
@@ -194,14 +201,14 @@ def main():
     ])
 
     extra_hq_textures_folders = AutoTTRecCmdFolders("extra-hq-textures-folder", [
-        AutoTTRecCmdFolder(extra_hq_textures_folder_relative_no_parent, True)
+        AutoTTRecCmdFolder(extra_hq_textures_folder_absolute)
     ])
 
     chadsoft_cache_folders = AutoTTRecCmdFolders("chadsoft-cache-folder", [
         AutoTTRecCmdFolder("chadsoft_cached", True, True),
-        AutoTTRecCmdFolder(chadsoft_cache_folder_relative, True)
+        AutoTTRecCmdFolder(chadsoft_cache_folder_relative, True),
         AutoTTRecCmdFolder(chadsoft_cache_folder_relative_no_parent, True)
-    ], verification_func=chadsoft_cached_folder_errors)
+    ], verification_func=is_chadsoft_cached_folder)
 
     all_cmd_folders = [
         storage_folders,
@@ -214,64 +221,93 @@ def main():
 
     dolphin_lua_core_dirname = options["dolphin-lua-core-dirname"]
 
-    for dolphin_folder in dolphin_folders.folders:
-        dolphin_dirpath = pathlib.Path(dolphin_folder.name)
-        if dolphin_dirpath.is_dir():
-            if not (dolphin_dirpath / "Sys/Scripts/_MKW_Play_Ghost.lua").is_file():
-                is_dolphin_folder = True
-                print(f"Removing dolphin folder \"{dolphin_folder.name}\"!")
-                shutil.rmtree(dolphin_dirpath)
-            else:
+    pathlib.Path("temp").mkdir(exist_ok=True, parents=True)
+
+    if not options["assume-cmd-folders-exist"]:
+        for dolphin_folder in dolphin_folders.folders:
+            dolphin_dirpath = pathlib.Path(dolphin_folder.name)
+            if dolphin_dirpath.is_dir():
+                mkw_play_ghost_filepath = (dolphin_dirpath / "Sys/Scripts/_MKW_Play_Ghost.lua")
+                #print(f"mkw_play_ghost_filepath: {mkw_play_ghost_filepath}, mkw_play_ghost_filepath.is_file(): {mkw_play_ghost_filepath.is_file()}")
+                if mkw_play_ghost_filepath.is_file():
+                    is_dolphin_folder = True
+                    print(f"Removing dolphin folder \"{dolphin_folder.name}\"!")
+                    if dolphin_folder.is_default:
+                        dolphin_sys_scripts_dirpath = (dolphin_dirpath / "Sys/Scripts")
+                        os.rename(dolphin_sys_scripts_dirpath, "temp/dolphin_Sys_Scripts")
+                        shutil.rmtree(dolphin_dirpath)
+                        dolphin_sys_scripts_dirpath.parent.mkdir(exist_ok=True, parents=True)
+                        os.rename("temp/dolphin_Sys_Scripts", dolphin_sys_scripts_dirpath)
+                    else:
+                        shutil.rmtree(dolphin_dirpath)
+                else:
+                    if force_delete_invalid_directories:
+                        print(f"Warning: \"{dolphin_folder.name}\" is not a dolphin folder, removing.")
+                        shutil.rmtree(dolphin_dirpath)
+                        is_dolphin_folder = True
+                    else:
+                        is_dolphin_folder = False
+            elif dolphin_dirpath.exists():
                 is_dolphin_folder = False
-        elif dolphin_dirpath.exists():
-            is_dolphin_folder = False
-        else:
-            is_dolphin_folder = True
+            else:
+                is_dolphin_folder = True
+    
+            if not is_dolphin_folder:
+                raise RuntimeError(f"Provided dolphin folder \"{dolphin_folder.name}\" in test options points to a non-dolphin folder!")
+    
+            print(f"Copying over source dolphin folder to \"{dolphin_folder.name}\"!")
+            package_release.copy_dolphin_files(dolphin_lua_core_dirname, dolphin_folder.name, not dolphin_folder.is_default)
+    
+        for wiimm_folder in wiimm_folders.folders:
+            if wiimm_folder.is_default:
+                continue
+    
+            wiimm_dirpath = pathlib.Path(wiimm_folder.name)
+            if wiimm_dirpath.is_dir():
+                wiimm_root, wiimm_dirs, wiimm_files = next(os.walk(wiimm_dirpath))
+                if len(set(wiimm_dirs) - {"cygwin64", "linux"}) != 0:
+                    if force_delete_invalid_directories:
+                        print(f"Warning: Provided wiimm folder \"{wiimm_folder.name}\" in test options points to a non-wiimm folder.")
+                    else:
+                        raise RuntimeError(f"Provided wiimm folder \"{wiimm_folder.name}\" in test options points to a non-wiimm folder!")
+    
+                missing_wiimm_dirs = {"cygwin64", "linux"} - set(wiimm_dirs)
+            else:
+                missing_wiimm_dirs = {"cygwin64", "linux"}
 
-        if not is_dolphin_folder:
-            raise RuntimeError(f"Provided dolphin folder \"{dolphin_folder.name}\" in test options points to a non-dolphin folder!")
-
-        print(f"Copying over source dolphin folder to \"{dolphin_folder.name}\"!")
-        package_release.copy_dolphin_files(dolphin_lua_core_dirname, dolphin_folder.name)
-
-    for wiimm_folder in wiimm_folders.folders:
-        if wiimm_folder.is_default:
-            continue
-
-        wiimm_dirpath = pathlib.Path(wiimm_folder.name)
-        if wiimm_dirpath.is_dir():
-            wiimm_root, wiimm_dirs, wiimm_files = next(os.walk(wiimm_dirpath))
-            if len(set(wiimm_dirs) - {"cygwin64", "linux"}) != 0:
-                raise RuntimeError(f"Provided wiimm folder \"{wiimm_folder.name}\" in test options points to a non-wiimm folder!")
-
-            missing_wiimm_dirs = {"cygwin64", "linux"} - set(wiimm_dirs)
             for wiimm_dir in missing_wiimm_dirs:
                 print(f"Copying over \"{wiimm_dir}\"-based wiimm tools to \"{wiimm_folder.name}\"!")
                 package_release.copy_wiimm_files(wiimm_folder.name, wiimm_dir)
-
-    for extra_hq_textures_folder in extra_hq_textures_folders.folders:
-        if extra_hq_textures_folder is not None:
-            extra_hq_textures_dirpath = pathlib.Path(extra_hq_textures_folder.name)
-            if not extra_hq_textures_dirpath.is_dir():
-                raise RuntimeError(f"Provided extra hq textures folder \"{extra_hq_textures_folder.name}\" does not exist!")
-
-    for autogenerated_folders in (storage_folders, temp_folders, chadsoft_cache_folders):
-        print(f"Removing {autogenerated_folders.name} folders!")
-        for autogenerated_folder in autogenerated_folders.folders:
-            autogenerated_dirpath = pathlib.Path(autogenerated_folder.name)
-            if autogenerated_dirpath.is_dir():
-                if autogenerated_folder.verification_func is not None:
-                    autogenerated_folder.verification_func(autogenerated_folder.name)
-                print(f"Removing \"{autogenerated_folder}\"!")
-                shutil.rmtree(autogenerated_dirpath)
-            elif autogenerated_dirpath.exists():
-                raise RuntimeError(f"Provided {autogenerated_folders.name} \"{storage_folder_name}\" in test options is not a {autogenerated_folders.name}!")
+    
+        for extra_hq_textures_folder in extra_hq_textures_folders.folders:
+            if extra_hq_textures_folder is not None:
+                extra_hq_textures_dirpath = pathlib.Path(extra_hq_textures_folder.name)
+                if not extra_hq_textures_dirpath.is_dir():
+                    raise RuntimeError(f"Provided extra hq textures folder \"{extra_hq_textures_folder.name}\" does not exist!")
+    
+        for autogenerated_folders in (storage_folders, temp_folders, chadsoft_cache_folders):
+            print(f"Removing {autogenerated_folders.name} folders!")
+            for autogenerated_folder in autogenerated_folders.folders:
+                autogenerated_dirpath = pathlib.Path(autogenerated_folder.name)
+                if autogenerated_dirpath.is_dir():
+                    if autogenerated_folders.verification_func is not None:
+                        try:
+                            autogenerated_folders.verification_func(autogenerated_folder.name)
+                        except RuntimeError as e:
+                            if force_delete_invalid_directories:
+                                print(f"Warning: {e}")
+                            else:
+                                raise e
+    
+                    print(f"Removing \"{autogenerated_folder.name}\"!")
+                    shutil.rmtree(autogenerated_dirpath)
+                elif autogenerated_dirpath.exists():
+                    raise RuntimeError(f"Provided {autogenerated_folders.name} \"{autogenerated_folder.name}\" in test options is not a {autogenerated_folders.name}!")
 
     iso_dirpath = pathlib.Path(iso_directory)
-    release_auto_tt_rec_basename = f"auto-tt-recorder_{release_config['release-name']}"
-    release_auto_tt_rec_directory = f"release_working/{release_auto_tt_rec_7z_basename}"
+    release_auto_tt_rec_basename = f"auto-tt-recorder_{options['release-name']}"
+    release_auto_tt_rec_directory = f"release_working/{release_auto_tt_rec_basename}"
     release_auto_tt_rec_7z_filename = f"{release_auto_tt_rec_directory}.7z"
-    release_auto_tt_rec_7z_dest_directory = ""
 
     test_config_include_indices_len = len(test_config_include_indices)
 
@@ -282,7 +318,12 @@ def main():
     else:
         filename_folder_prefix = "./"
 
-    for config_filename in glob.glob("test_ymls/*.yml"):
+    config_filenames = glob.glob("test_ymls/*.yml")
+
+    if random_seed != 0:
+        random.shuffle(config_filenames)
+
+    for config_filename in config_filenames:
         config_basename = pathlib.Path(config_filename).name
         config_index = int(config_basename.split("_", maxsplit=1)[0])
         if test_config_include_indices_len != 0 and config_index not in test_config_include_indices:
@@ -290,7 +331,7 @@ def main():
         elif config_index in test_config_exclude_indices:
             continue
 
-        with open(config_filename, "r") as f:
+        with open(config_filename, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         output_video_filepath_extension = config["output-video-filename"]
@@ -309,18 +350,30 @@ def main():
                 auto_tt_rec_filename_cmd_value = config.get(auto_tt_rec_filename_cmd)
 
                 if auto_tt_rec_filename_cmd_value is not None:
-                    if auto_tt_rec_filename_cmd not in {"main-ghost-auto", "comparison-ghost-auto"} or auto_tt_rec_filename_cmd_value.endswith(".rkg"):
-                        auto_tt_rec_filename_cmd_value = f"{filename_folder_prefix}/{auto_tt_rec_filename_cmd_value}"
+                    modify_filename_cmd_value = True
     
-                    config[auto_tt_rec_filename_cmd] = auto_tt_rec_filename_cmd_value
+                    if auto_tt_rec_filename_cmd in {"main-ghost-auto", "comparison-ghost-auto"}:
+                        if auto_tt_rec_filename_cmd_value.endswith(".rkg"):
+                            modify_filename_cmd_value = True
+                        else:
+                            modify_filename_cmd_value = False
+                    elif auto_tt_rec_filename_cmd == "music-filename":
+                        if auto_tt_rec_filename_cmd_value not in {"bgm", "none"}:
+                            modify_filename_cmd_value = True
+                        else:
+                            modify_filename_cmd_value = False
+
+                    if modify_filename_cmd_value:
+                        auto_tt_rec_filename_cmd_value = f"{filename_folder_prefix}/{auto_tt_rec_filename_cmd_value}"
+                        config[auto_tt_rec_filename_cmd] = auto_tt_rec_filename_cmd_value
 
             config["iso-filename"] = str(iso_dirpath / region_filename_and_name.filename)
-            config["output-video-filename"] = f"{filename_folder_prefix}/{output_video_filename_folder}/{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
+            config["output-video-filename"] = f"{filename_folder_prefix}/test_vids/{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
 
             extra_gecko_codes_filename = config.get("extra-gecko-codes-filename")
-            if extra_gecko_codes_filename is not None and extra_gecko_codes_filename not in {"malformed_gecko_codes.ini", "colliding_gecko_codes.ini"}:
+            if extra_gecko_codes_filename is not None and not extra_gecko_codes_filename.endswith("malformed_gecko_codes.ini") and not extra_gecko_codes_filename.endswith("colliding_gecko_codes.ini"):
                 extra_gecko_codes_filepath = pathlib.Path(extra_gecko_codes_filename)
-                extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.stem}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
+                extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.with_suffix('')}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
                 config["extra-gecko-codes-filename"] = f"{filename_folder_prefix}/{extra_gecko_codes_filename}"
 
             top_10_gecko_code_filename = config.get("top-10-gecko-code-filename")
@@ -338,7 +391,10 @@ def main():
                     config["top-10-gecko-code-filename"] = f"{filename_folder_prefix}/{top_10_gecko_code_filename}"
 
             for cmd_folders in all_cmd_folders:
-                cmd_folder = random.choice(cmd_folders)
+                if cmd_folders.name == "extra-hq-textures-folder" and config.get("extra-hq-textures-folder") == "this_does_not_exist":
+                    continue
+
+                cmd_folder = random.choice(cmd_folders.folders)
                 if cmd_folder.is_default:
                     resulting_cmd_folder_name = None
                     print(f"Chose default {cmd_folders.name} folder!")
@@ -349,7 +405,7 @@ def main():
                         if random.randint(0, 1) == 0:
                             relative_folder_additive = random.choice(relative_folder_additives)
                             print(f"Added relative folder additive \"{relative_folder_additive}\"!")
-                            resulting_cmd_folder_name = f"{relative_folder_additives}/{resulting_cmd_folder_name}"
+                            resulting_cmd_folder_name = f"{relative_folder_additive}/{resulting_cmd_folder_name}"
 
                         resulting_cmd_folder_name = f"{filename_folder_prefix}/{resulting_cmd_folder_name}"
 
@@ -377,11 +433,23 @@ def main():
                     extract_release = True
 
                 if extract_release:
-                    subprocess.run(("C:/Program Files/7-Zip/7z.exe", "x", sevenz_filename, "-orelease_working/*"), check=True)
+                    subprocess.run((sevenz_filename, "x", release_auto_tt_rec_7z_filename, "-orelease_working/*"), check=True)
+                    shutil.copy2("test_data/record_ghost_for_release_test.bat", f"{release_auto_tt_rec_directory}/record_ghost.bat")
 
                 temp_config_filename = f"{release_auto_tt_rec_directory}/config.yml"
             else:
                 temp_config_filename = f"temp/{config_basename}"
+                pathlib.Path("temp").mkdir(exist_ok=True, parents=True)
+
+            if on_wsl:
+                ffmpeg_name = "ffmpeg"
+                ffprobe_name = "ffprobe"
+            else:
+                ffmpeg_name = "bin/ffmpeg.exe"
+                ffprobe_name = "bin/ffprobe.exe"
+
+            config["ffmpeg-filename"] = ffmpeg_name
+            config["ffprobe-filename"] = ffprobe_name
 
             with open(temp_config_filename, "w+") as f:
                 yaml.dump(config, f)
@@ -389,7 +457,7 @@ def main():
             if test_release:
                 saved_cwd = os.getcwd()
                 os.chdir(release_auto_tt_rec_directory)
-                completed_process = subprocess.run(("./record_ghost.bat",))
+                completed_process = subprocess.run((".\\record_ghost.bat",))
                 os.chdir(saved_cwd)
             else:
                 if on_wsl:
@@ -397,14 +465,14 @@ def main():
                 else:
                     python_name = "python"
 
-                completed_process = subprocess.run(("python3", "record_ghost.py", "-cfg", temp_config_filename))
+                completed_process = subprocess.run((python_name, "record_ghost.py", "-cfg", temp_config_filename))
 
             if completed_process.returncode == 0:
                 cur_test_result_output = f"SUCCESS: region {region_filename_and_name.name}, config {config_basename}"
             else:
                 cur_test_result_output = f"FAILURE: region {region_filename_and_name.name}, config {config_basename}"
 
-            test_result_output += f"{cur_test_result_output}\n"
+            cur_test_result_output = f"\n===============================================\n{cur_test_result_output}\n===============================================\n\n\n\n\n"
             print(cur_test_result_output)
 
     with open("test_results.dump", "w+") as f:

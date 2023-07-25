@@ -167,7 +167,7 @@ class GeckoCodeConfig:
         else:
             gecko_code_config_filepath = pathlib.Path(gecko_code_config_filename)
             if gecko_code_config_filepath.suffix != ".ini":
-                raise RuntimeError(f"Extra gecko codes filename must be .ini! (Got: {pathlib.Path(extra_gecko_codes_filename).suffix})")
+                raise RuntimeError(f"Extra gecko codes filename must be .ini! (Got: {pathlib.Path(gecko_code_config_filename).suffix})")
             elif not gecko_code_config_filepath.is_file():
                 raise RuntimeError(f"Could not find extra gecko codes file \"{gecko_code_config_filename}\"")
 

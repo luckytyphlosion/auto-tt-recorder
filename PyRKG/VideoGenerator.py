@@ -24,7 +24,10 @@ class VideoGenerator:
         if output_filepath.suffix == "" or output_filepath.suffix[1:] != VIDEO_EXTENSION:
             raise RuntimeError(f"Expected file extension {VIDEO_EXTENSION}, got filename \"{output_filename}\" with other file extension instead!")
 
-        output_filepath.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            output_filepath.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            raise RuntimeError(f"Unknown error occurred when trying to make input display video folder at \"{str(output_filepath.parent)}\"")
 
         p = Popen([ffmpeg_filename, "-y", "-f", "image2pipe", "-framerate", str(VIDEO_FRAME_RATE), "-i", "-",
         "-vcodec", "png", "-framerate", str(VIDEO_FRAME_RATE), output_filename],

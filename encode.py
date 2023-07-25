@@ -439,9 +439,10 @@ class Encoder:
 
             ffmpeg_output_kwargs_pass1 = ffmpeg_output_kwargs.copy()
             ffmpeg_output_kwargs_pass1.update({
+                "acodec": encode_settings.audio_codec,
+                "audio_bitrate": encode_settings.audio_bitrate,
                 "pass": 1,
-                "format": "null",
-                "an": None
+                "format": "null"
             })
 
             output_stream_pass1 = ffmpeg.output(final_video_stream, dev_null, **ffmpeg_output_kwargs_pass1)
