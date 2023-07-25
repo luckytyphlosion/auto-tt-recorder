@@ -20,13 +20,6 @@ class RegionFilenameAndName:
         self.filename = filename
         self.name = name
 
-region_filenames_and_names = (
-    RegionFilenameAndName("RMCE01.iso", "NTSC-U"),
-    RegionFilenameAndName("RMCP01.wbfs", "PAL"),
-    RegionFilenameAndName("RMCJ01.wbfs", "NTSC-J"),
-    RegionFilenameAndName("RMCK01.wbfs", "NTSC-K")
-)
-
 region_names_except_selected = {
     "NTSC-U": ("PAL", "NTSC-J", "NTSC-K"),
     "PAL": ("NTSC-U", "NTSC-J", "NTSC-K"),
@@ -145,6 +138,13 @@ def main():
 
     test_release = options["test-release"]
     release_clean_install = release_clean_install_option_to_enum[options["release-clean-install"]]
+
+    region_filenames_and_names = (
+        RegionFilenameAndName(options["rmce01-iso"], "NTSC-U"),
+        RegionFilenameAndName(options["rmcp01-iso"], "PAL"),
+        RegionFilenameAndName(options["rmcj01-iso"], "NTSC-J"),
+        RegionFilenameAndName(options["rmck01-iso"], "NTSC-K")
+    )
 
     if on_wsl:
         iso_directory = wslpath(iso_directory)
