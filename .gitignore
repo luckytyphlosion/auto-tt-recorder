@@ -166,6 +166,8 @@ storage/
 
 temp/
 
+!data/extended_regions/*.szs
+
 !data/Race_U.szs
 !layouts/**/*
 !data/*.png

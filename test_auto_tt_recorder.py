@@ -7,6 +7,9 @@ import platform
 import shutil
 from wslpath import wslpath
 import os
+import sysconfig
+
+bin_dir = sysconfig.get_config_var("BINDIR")
 
 import package_release
 import build_options
@@ -469,6 +472,8 @@ def main():
                     python_name = "python3"
                 else:
                     python_name = "python"
+
+                python_filename = str(pathlib.Path(bin_dir, python_name))
 
                 completed_process = subprocess.run((python_name, "record_ghost.py", "-cfg", temp_config_filename))
 
