@@ -475,7 +475,7 @@ def main():
 
                 python_filename = str(pathlib.Path(bin_dir, python_name))
 
-                completed_process = subprocess.run((python_name, "record_ghost.py", "-cfg", temp_config_filename))
+                completed_process = subprocess.run((python_filename, "record_ghost.py", "-cfg", temp_config_filename))
 
             if completed_process.returncode == 0:
                 cur_test_result_output = f"SUCCESS: region {region_filename_and_name.name}, config {config_basename}"
