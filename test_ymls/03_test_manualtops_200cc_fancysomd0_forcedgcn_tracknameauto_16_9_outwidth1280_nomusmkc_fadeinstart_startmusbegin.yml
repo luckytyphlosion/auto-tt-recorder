@@ -8,7 +8,7 @@ input-display: gcn
 hq-textures: true
 mk-channel-ghost-description: "ロックマンエグ훈민정음"
 top-10-location: ww
-encode-type: crf
+encode-type: size
 video-codec: libx264
 audio-codec: libopus
 crf-value: 15

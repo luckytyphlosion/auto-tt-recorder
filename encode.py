@@ -362,8 +362,10 @@ class Encoder:
 
         if passlogfile_hyphen_1_filepath.is_file():
             passlogfile_hyphen_0_filepath.unlink(missing_ok=True)
-            passlogfile_hyphen_0_mbtree_filepath.unlink(missing_ok=True)
             os.rename(passlogfile_hyphen_1_filepath, passlogfile_hyphen_0_filepath)
+
+        if passlogfile_hyphen_1_mbtree_filepath.is_file():
+            passlogfile_hyphen_0_mbtree_filepath.unlink(missing_ok=True)
             os.rename(passlogfile_hyphen_1_mbtree_filepath, passlogfile_hyphen_0_mbtree_filepath)
 
 
