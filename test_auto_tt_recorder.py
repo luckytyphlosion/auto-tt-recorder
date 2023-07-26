@@ -323,6 +323,8 @@ def main():
     if random_seed != 0:
         random.shuffle(config_filenames)
 
+    first_run = True
+
     for config_filename in config_filenames:
         config_basename = pathlib.Path(config_filename).name
         config_index = int(config_basename.split("_", maxsplit=1)[0])
@@ -371,9 +373,11 @@ def main():
             config["output-video-filename"] = f"{filename_folder_prefix}/test_vids/{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
 
             extra_gecko_codes_filename = config.get("extra-gecko-codes-filename")
-            if extra_gecko_codes_filename is not None and not extra_gecko_codes_filename.endswith("malformed_gecko_codes.ini") and not extra_gecko_codes_filename.endswith("colliding_gecko_codes.ini"):
-                extra_gecko_codes_filepath = pathlib.Path(extra_gecko_codes_filename)
-                extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.with_suffix('')}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
+            if extra_gecko_codes_filename is not None:
+                if not extra_gecko_codes_filename.endswith("malformed_gecko_codes.ini") and not extra_gecko_codes_filename.endswith("colliding_gecko_codes.ini"):
+                    extra_gecko_codes_filepath = pathlib.Path(extra_gecko_codes_filename)
+                    extra_gecko_codes_filename = f"{extra_gecko_codes_filepath.with_suffix('')}_{region_filename_and_name.name}{extra_gecko_codes_filepath.suffix}"
+
                 config["extra-gecko-codes-filename"] = f"{filename_folder_prefix}/{extra_gecko_codes_filename}"
 
             top_10_gecko_code_filename = config.get("top-10-gecko-code-filename")
@@ -385,10 +389,10 @@ def main():
                     wrong_region_name = random.choice(region_names_except_selected[region_filename_and_name.name])
                     top_10_gecko_code_parent_filepath = top_10_gecko_code_filepath.parent
                     top_10_gecko_code_filename = str(top_10_gecko_code_parent_filepath / f"gba_bc3_tops_{wrong_region_name}.txt")
-                    config["top-10-gecko-code-filename"] = f"{filename_folder_prefix}/{top_10_gecko_code_filename}"
                 elif top_10_gecko_code_basename == "gba_bc3_tops.txt":
                     top_10_gecko_code_filename = f"{top_10_gecko_code_filepath.with_suffix('')}_{region_filename_and_name.name}{top_10_gecko_code_filepath.suffix}"
-                    config["top-10-gecko-code-filename"] = f"{filename_folder_prefix}/{top_10_gecko_code_filename}"
+
+                config["top-10-gecko-code-filename"] = f"{filename_folder_prefix}/{top_10_gecko_code_filename}"
 
             for cmd_folders in all_cmd_folders:
                 if cmd_folders.name == "extra-hq-textures-folder" and config.get("extra-hq-textures-folder") == "this_does_not_exist":
@@ -424,7 +428,8 @@ def main():
                     else:
                         raise RuntimeError()
 
-                    if clean_release:
+                    if first_run or clean_release:
+                        first_run = False
                         shutil.rmtree(release_auto_tt_rec_dirpath)
                         extract_release = True
                     else:

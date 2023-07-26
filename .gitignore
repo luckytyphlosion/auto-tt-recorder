@@ -178,13 +178,8 @@ legacy_records.yml
 music_cached/
 *.7z
 
-test_dolphin/
-bin2/
-storing/
 hq_textures/
 !test_data/*
-test_dol2phin/*
-sto2ring/*
 
 test_scratch/*
 

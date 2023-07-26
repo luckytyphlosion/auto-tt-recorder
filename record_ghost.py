@@ -421,6 +421,7 @@ def main():
     sys.stderr.reconfigure(encoding="utf-8")
 
     dir_config.set_dirnames(args.dolphin_folder, args.storage_folder, args.temp_folder, args.wiimm_folder)
+    pathlib.Path(args.temp_folder).mkdir(exist_ok=True, parents=True)
 
     # Cache purging
     if args.chadsoft_read_cache:

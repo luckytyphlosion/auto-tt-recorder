@@ -183,7 +183,11 @@ class CustomTop10AndGhostDescription:
 
     @classmethod
     def from_gecko_code_filename(cls, gecko_code_filename, globe_location, ghost_description, iso_region):
-        if pathlib.Path(gecko_code_filename).suffix == ".gct":
+        gecko_code_filepath = pathlib.Path(gecko_code_filename)
+        if not gecko_code_filepath.is_file():
+            raise RuntimeError(f"top-10-gecko-code-filename \"{gecko_code_filename}\" does not exist!")
+
+        if gecko_code_filepath.suffix == ".gct":
             raise RuntimeError(f"top-10-gecko-code-filename \"{gecko_code_filename}\" must not be .gct! (Paste the gecko code generated from tt-rec.com in a text file)")
 
         try:

@@ -23,7 +23,6 @@ import platform
 import dir_config
 
 import job_process
-import dir_config
 import PyRKG.VideoGenerator
 
 import transform2d
@@ -348,6 +347,26 @@ class Encoder:
 
         return self.encode_complex_common(tt_ghost_select_video_in_filename, tt_ghost_select_audio_in_filename)
 
+    def rename_passlogfile_hyphen_1(self, passlogfile_prefix_filepath):
+        # stupid fix due to ffmpeg update
+        # it seems that ffmpeg will set the ffmpeg2pass suffix to 1
+        # because there is an audio stream in the output
+        # even though `-an` is specified
+        # and I do not see a way to get rid of the audio stream in the output
+        # if you manually rename the passlogfile to have suffix 0 it works fine
+        # so just do that
+        passlogfile_hyphen_0_filepath = passlogfile_prefix_filepath.with_name("passlogfile-0.log")
+        passlogfile_hyphen_0_mbtree_filepath = passlogfile_prefix_filepath.with_name("passlogfile-0.log.mbtree")
+        passlogfile_hyphen_1_filepath = passlogfile_prefix_filepath.with_name("passlogfile-1.log")
+        passlogfile_hyphen_1_mbtree_filepath = passlogfile_prefix_filepath.with_name("passlogfile-1.log.mbtree")
+
+        if passlogfile_hyphen_1_filepath.is_file():
+            passlogfile_hyphen_0_filepath.unlink(missing_ok=True)
+            passlogfile_hyphen_0_mbtree_filepath.unlink(missing_ok=True)
+            os.rename(passlogfile_hyphen_1_filepath, passlogfile_hyphen_0_filepath)
+            os.rename(passlogfile_hyphen_1_mbtree_filepath, passlogfile_hyphen_0_mbtree_filepath)
+
+
     def encode_complex(self, output_video_filename):
         dolphin_resolution = self.dolphin_resolution
         music_option = self.music_option
@@ -437,12 +456,17 @@ class Encoder:
             if encode_settings.output_format == "mp4":
                 ffmpeg_output_kwargs["movflags"] = "+faststart"
 
+            passlogfile_prefix_filepath = pathlib.Path(dir_config.temp_dirname) / "passlogfile"
+            passlogfile_prefix = str(passlogfile_prefix_filepath)
+
             ffmpeg_output_kwargs_pass1 = ffmpeg_output_kwargs.copy()
             ffmpeg_output_kwargs_pass1.update({
-                "acodec": encode_settings.audio_codec,
-                "audio_bitrate": encode_settings.audio_bitrate,
+                #"acodec": encode_settings.audio_codec,
+                #"audio_bitrate": encode_settings.audio_bitrate,
                 "pass": 1,
-                "format": "null"
+                "format": "null",
+                "an": None,
+                "passlogfile": passlogfile_prefix
             })
 
             output_stream_pass1 = ffmpeg.output(final_video_stream, dev_null, **ffmpeg_output_kwargs_pass1)
@@ -451,7 +475,8 @@ class Encoder:
             ffmpeg_output_kwargs_pass2.update({
                 "acodec": encode_settings.audio_codec,
                 "audio_bitrate": encode_settings.audio_bitrate,
-                "pass": 2
+                "pass": 2,
+                "passlogfile": passlogfile_prefix
             })
 
             # ffmpeg segfaults when doing a 2 pass encoding with mp4???
@@ -467,6 +492,7 @@ class Encoder:
             if platform_system == "Windows":
                 pass1_command = ffmpeg.compile(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
                 job_process.run_subprocess_as_job(pass1_command)
+                self.rename_passlogfile_hyphen_1(passlogfile_prefix_filepath)
                 pass2_command = ffmpeg.compile(output_stream_pass2, cmd=self.ffmpeg_filename, overwrite_output=True)
                 job_process.run_subprocess_as_job(pass2_command)
 
@@ -474,6 +500,7 @@ class Encoder:
                 pass1_command = ffmpeg.compile(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
                 print(f"pass1_command: {pass1_command}")
                 ffmpeg.run(output_stream_pass1, cmd=self.ffmpeg_filename, overwrite_output=True)
+                self.rename_passlogfile_hyphen_1(passlogfile_prefix_filepath)
                 ffmpeg.run(output_stream_pass2, cmd=self.ffmpeg_filename, overwrite_output=True)
 
             if encode_settings.output_format == "mp4":
