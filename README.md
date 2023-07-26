@@ -34,7 +34,7 @@ Firstly, download the latest release of the modified Dolphin-Lua-Core [here](htt
 
 Alternatively, you may try building the modified Dolphin-Lua-Core yourself. There is no current comprehensive guide, but the installation notes on the Dolphin-Lua-Core repository state to "`use Microsoft Visual Studio 2015 Update 2 and Windows 10 SDK 10.0.10586.0`" (I have tried using "`Microsoft Visual Studio 2017 without any upgrades`" but it did not work for me).
 
-Download the latest version of Python [here](https://www.python.org/downloads/).
+Download the latest version of Python [here](https://www.python.org/downloads/). Just click the "Install Now" option. **You must check "Add python.exe to PATH"**.
 
 Download this set of HQ Textures [here](https://drive.google.com/drive/folders/1j5zqfHjxFsemcD93iarzCFuBnMEa4jnT), and extract it. You will need to remember the path of the extracted folder for later.
 
