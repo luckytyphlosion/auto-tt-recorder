@@ -2,12 +2,12 @@ timeline: ghostselect
 unbuffered-output: true
 main-ghost-filename: test_data/gv_tas_13_330.rkg
 comparison-ghost-filename: test_data/00m15s4246347 ニヤケ.rkg
-output-video-filename: mp4
+output-video-filename: webm
 track-name: auto
 input-display: null
 hq-textures: false
 encode-type: size
-video-codec: libx264
+video-codec: libvpx-vp9
 audio-codec: libopus
 crf-value: 15
 youtube-settings: true
