@@ -22,7 +22,7 @@ dolphin-resolution: 480p
 h26x-preset: veryfast
 game-volume: 1
 music-volume: 1
-output-width: 1280
+output-width: "1280"
 fade-in-at-start: true
 no-music-mkchannel: true
 start-music-at-beginning: true

@@ -409,6 +409,8 @@ def main():
     ap.add_argument("-mkd", "--mk-channel-ghost-description", dest="mk_channel_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines mkchannel and top10. Default is Ghost Data.")
     ap.add_argument("-nmmk", "--no-music-mkchannel", dest="no_music_mkchannel", action="store_true", default=False, help="Whether to disable music when on the Mario Kart Channel (for top10 or mkchannel timelines). Ignored if -smb/--start-music-at-beginning is true.")
     ap.add_argument("-uo", "--unbuffered-output", dest="unbuffered_output", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr to flush at every newline.")
+    ap.add_argument("-fc", "--form-complexity", dest="form_complexity", default=None, help="Special option indicating the form complexity of auto-tt-recorder-gui when importing/exporting. Goes unused in the program. Only exists so that configargparse does not error out.")
+
     #ap.add_argument("-sfu8", "--standard-streams-force-utf8", dest="standard_streams_force_utf8", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr as .")
 
     args = ap.parse_args()
