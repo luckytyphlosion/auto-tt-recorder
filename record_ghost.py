@@ -40,6 +40,7 @@ import msgeditor
 import wiimm
 import iso
 import dir_config
+from runtime_error_with_exit_code import RuntimeErrorWithExitCode
 
 from stateclasses.speedometer import *
 from stateclasses.timeline_classes import *
@@ -708,7 +709,10 @@ if __name__ == "__main__":
             output += f"{''.join(traceback.format_tb(e.__traceback__))}\n"
     
             print(output)
-            sys.exit(1)
+            if isinstance(e, RuntimeErrorWithExitCode):
+                sys.exit(e.exit_code)
+            else:
+                sys.exit(1)
     else:
         main()
 

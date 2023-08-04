@@ -16,6 +16,7 @@
 import platform
 import time
 import os
+from runtime_error_with_exit_code import RuntimeErrorWithExitCode
 
 if platform.system() == "Windows":
     import win32process
@@ -111,8 +112,10 @@ def run_subprocess_as_job(cmd_and_args):
         exit_code = win32process.GetExitCodeProcess(hProcess)
         if exit_code != STILL_ACTIVE:
             if exit_code != 0:
-                raise RuntimeError(f"The following command returned with non-zero exit code {exit_code}: {cmd_as_str}")
-
+                if exit_code == -1073741515:
+                    raise RuntimeErrorWithExitCode(f"Could not start Dolphin!\n\nPlease install \"Visual C++ Redistributable Packages for Visual Studio 2013\" at https://www.microsoft.com/en-us/download/details.aspx?id=40784 in order to run the program's version of Dolphin.\n\n(Technical details: exit code: {exit_code} (0x{exit_code & 0xffffffff:08x}), command: {cmd_as_str})", exit_code)
+                else:
+                    raise RuntimeErrorWithExitCode(f"The following command returned with non-zero exit code {exit_code} (0x{exit_code & 0xffffffff:08x}): {cmd_as_str}", exit_code)
             break
             
         time.sleep(1)

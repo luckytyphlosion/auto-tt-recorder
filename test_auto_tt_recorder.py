@@ -480,7 +480,7 @@ def main():
             if completed_process.returncode == 0:
                 cur_test_result_output = f"SUCCESS: region {region_filename_and_name.name}, config {config_basename}"
             else:
-                cur_test_result_output = f"FAILURE: region {region_filename_and_name.name}, config {config_basename}"
+                cur_test_result_output = f"FAILURE: region {region_filename_and_name.name}, config {config_basename}, code: {completed_process.returncode}"
 
             cur_test_result_output = f"\n===============================================\n{cur_test_result_output}\n===============================================\n\n\n\n\n"
             print(cur_test_result_output)
