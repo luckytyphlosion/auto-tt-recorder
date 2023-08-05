@@ -327,9 +327,9 @@ ghost_page_link_regex = re.compile(r"^https://(?:www\.)?chadsoft\.co\.uk/time-tr
 
 default_track_sha1s = {"1AE1A7D894960B38E09E7494373378D87305A163", "90720A7D57A7C76E2347782F6BDE5D22342FB7DD", "0E380357AFFCFD8722329994885699D9927F8276", "1896AEA49617A571C66FF778D8F2ABBE9E5D7479", "7752BB51EDBC4A95377C0A05B0E0DA1503786625", "E4BF364CB0C5899907585D731621CA930A4EF85C", "B02ED72E00B400647BDA6845BE387C47D251F9D1", "D1A453B43D6920A78565E65A4597E353B177ABD0", "72D0241C75BE4A5EBD242B9D8D89B1D6FD56BE8F", "52F01AE3AED1E0FA4C7459A648494863E83A548C", "48EBD9D64413C2B98D2B92E5EFC9B15ECD76FEE6", "ACC0883AE0CE7879C6EFBA20CFE5B5909BF7841B", "38486C4F706395772BD988C1AC5FA30D27CAE098", "B13C515475D7DA207DFD5BADD886986147B906FF", "B9821B14A89381F9C015669353CB24D7DB1BB25D", "FFE518915E5FAAA889057C8A3D3E439868574508", "8014488A60F4428EEF52D01F8C5861CA9565E1CA", "8C854B087417A92425110CC71E23C944D6997806", "071D697C4DDB66D3B210F36C7BF878502E79845B", "49514E8F74FEA50E77273C0297086D67E58123E8", "BA9BCFB3731A6CB17DBA219A8D37EA4D52332256", "E8ED31605CC7D6660691998F024EED6BA8B4A33F", "BC038E163D21D9A1181B60CF90B4D03EFAD9E0C5", "418099824AF6BF1CD7F8BB44F61E3A9CC3007DAE", "4EC538065FDC8ACF49674300CBDEC5B80CC05A0D", "A4BEA41BE83D816F793F3FAD97D268F71AD99BF9", "692D566B05434D8C66A55BDFF486698E0FC96095", "1941A29AD2E7B7BBA8A29E6440C95EF5CF76B01D", "077111B996E5C4F47D20EC29C2938504B53A8E76", "F9A62BEF04CC8F499633E4023ACC7675A92771F0", "B036864CF0016BE0581449EF29FB52B2E58D78A4", "15B303B288F4707E5D0AF28367C8CE51CDEAB490"}
 
-def get_szs_common(iso_filename, track_id):
+def get_szs_and_wbz_converter_common(iso_filename, track_id, wbz_settings):
     if track_id in default_track_sha1s:
-        return None
+        return None, None
 
     wit_filename, wszst_filename = wiimm.get_wit_wszst_filename()
 
@@ -338,16 +338,17 @@ def get_szs_common(iso_filename, track_id):
         original_track_files_dirname=f"{dir_config.storage_dirname}/original-race-course",
         wit_filename=wit_filename,
         wszst_filename=wszst_filename,
-        auto_add_containing_dirname=dir_config.storage_dirname
+        auto_add_containing_dirname=dir_config.storage_dirname,
+        wbz_settings=wbz_settings
     )
 
     szs_filename = wbz_converter.download_wbz_convert_to_szs_get_szs_filename(track_id, use_auto_add_containing_dirname_as_dest=True)
-    return szs_filename
+    return szs_filename, wbz_converter
 
 class GhostPage:
-    __slots__ = ("ghost_page_link", "ghost_id", "cache_settings", "ghost_info")
+    __slots__ = ("ghost_page_link", "ghost_id", "cache_settings", "ghost_info", "wbz_settings")
 
-    def __init__(self, ghost_page_link, cache_settings):
+    def __init__(self, ghost_page_link, cache_settings, wbz_settings):
         self.ghost_page_link = ghost_page_link
         match_obj = ghost_page_link_regex.match(ghost_page_link)
         if not match_obj:
@@ -356,6 +357,7 @@ class GhostPage:
         self.ghost_id = match_obj.group(1)
         self.cache_settings = cache_settings
         self.ghost_info = None
+        self.wbz_settings = wbz_settings
 
     def get_rkg(self):
         rkg_data, status_code = chadsoft.get(f"/rkgd/{self.ghost_id}.rkg", is_binary=True, cache_settings=self.cache_settings)
@@ -365,10 +367,10 @@ class GhostPage:
         else:
             raise RuntimeError(f"Chadsoft ghost page \"{self.ghost_page_link}\" doesn't exist or does exist but has no ghost!")
 
-    def get_szs(self, iso_filename):
+    def get_szs_and_wbz_converter(self, iso_filename):
         ghost_info = self.get_ghost_info()
         track_id = ghost_info["trackId"]
-        return get_szs_common(iso_filename, track_id)
+        return get_szs_and_wbz_converter_common(iso_filename, track_id, self.wbz_settings)
 
     def is_200cc(self):
         ghost_info = self.get_ghost_info()
@@ -400,14 +402,15 @@ class GhostPage:
 lb_href_regex = re.compile(r"^(/leaderboard/[0-1][0-9A-Fa-f]/[0-9A-Fa-f]{40}/)(00|01|02|04|05|06)((?:-fast-lap)?).json")
 
 class Leaderboard:
-    __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "cache_settings", "vehicle", "continent")
+    __slots__ = ("lb_link", "num_entries", "lb_info_and_entries", "cache_settings", "vehicle", "continent", "wbz_settings")
 
-    def __init__(self, lb_link, num_entries, cache_settings):
+    def __init__(self, lb_link, num_entries, cache_settings, wbz_settings):
         self.lb_link = lb_link
         self.num_entries = num_entries
         self.lb_info_and_entries = {}
         self.cache_settings = cache_settings
         self.vehicle = None
+        self.wbz_settings = wbz_settings
 
     def download_info_and_ghosts(self, do_not_download_ghosts=False):
         self.lb_info_and_entries, self.vehicle, self.continent = get_lb_from_lb_link(self.lb_link, self.num_entries, cache_settings=self.cache_settings)
@@ -423,11 +426,11 @@ class Leaderboard:
 
             lb_entry["rkg_data"] = rkg_data
 
-    def get_szs_if_not_default_track(self, iso_filename):
+    def get_szs_and_wbz_converter_if_not_default_track(self, iso_filename):
         if self.lb_info_and_entries["defaultTrack"]:
-            return None
+            return None, None
 
-        return get_szs_common(iso_filename, self.lb_info_and_entries["trackId"])
+        return get_szs_and_wbz_converter_common(iso_filename, self.lb_info_and_entries["trackId"], self.wbz_settings)
 
     def is_200cc(self):
         return self.lb_info_and_entries["200cc"]

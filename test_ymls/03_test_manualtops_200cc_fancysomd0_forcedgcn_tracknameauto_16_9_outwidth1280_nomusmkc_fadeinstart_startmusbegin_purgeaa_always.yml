@@ -26,6 +26,7 @@ output-width: "1280"
 fade-in-at-start: true
 no-music-mkchannel: true
 start-music-at-beginning: true
+purge-auto-add: always
 
 speedometer: fancy
 speedometer-metric: engine

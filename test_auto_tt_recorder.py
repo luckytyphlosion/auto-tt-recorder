@@ -8,13 +8,21 @@ import shutil
 from wslpath import wslpath
 import os
 import sysconfig
+from datetime import datetime, timezone
+
+on_wsl = "microsoft" in platform.uname()[3].lower()
+if on_wsl:
+    python_name = "python3"
+else:
+    python_name = "python"
 
 bin_dir = sysconfig.get_config_var("BINDIR")
+python_filename = str(pathlib.Path(bin_dir, python_name))
 
 import package_release
 import build_options
 
-on_wsl = "microsoft" in platform.uname()[3].lower()
+
 on_windows = platform.system() == "Windows"
 
 class RegionFilenameAndName:
@@ -145,6 +153,10 @@ def main():
     chadsoft_cache_folder_relative_no_parent = options["chadsoft-cache-folder-relative-no-parent"]
 
     test_release = options["test-release"]
+    #if test_release:
+    #    print("Packaging release before testing!")
+    #    subprocess.run((python_filename, "package_release.py"), check=True)
+
     release_clean_install = release_clean_install_option_to_enum[options["clean-install-on-test-release"]]
 
     force_delete_invalid_directories = options["force-delete-invalid-directories"]
@@ -327,6 +339,7 @@ def main():
         random.shuffle(config_filenames)
 
     first_run = True
+    datetime_now_str = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d_%I-%M-%p")
 
     for config_filename in config_filenames:
         config_basename = pathlib.Path(config_filename).name
@@ -373,7 +386,7 @@ def main():
                         config[auto_tt_rec_filename_cmd] = auto_tt_rec_filename_cmd_value
 
             config["iso-filename"] = str(iso_dirpath / region_filename_and_name.filename)
-            config["output-video-filename"] = f"{filename_folder_prefix}/test_vids/{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
+            config["output-video-filename"] = f"{filename_folder_prefix}/test_vids/{datetime_now_str}_{output_video_filepath_stem}_{region_filename_and_name.name}.{output_video_filepath_extension}"
 
             extra_gecko_codes_filename = config.get("extra-gecko-codes-filename")
             if extra_gecko_codes_filename is not None:
@@ -397,26 +410,39 @@ def main():
 
                 config["top-10-gecko-code-filename"] = f"{filename_folder_prefix}/{top_10_gecko_code_filename}"
 
-            for cmd_folders in all_cmd_folders:
-                if cmd_folders.name == "extra-hq-textures-folder" and config.get("extra-hq-textures-folder") == "this_does_not_exist":
-                    continue
+            debug_manual_auto_add = config.get("debug-manual-auto-add")
+            if debug_manual_auto_add is not None:
+                config["debug-manual-auto-add"] = f"{filename_folder_prefix}/{debug_manual_auto_add}"
 
-                cmd_folder = random.choice(cmd_folders.folders)
-                if cmd_folder.is_default:
-                    resulting_cmd_folder_name = None
-                    print(f"Chose default {cmd_folders.name} folder!")
-                else:
-                    resulting_cmd_folder_name = cmd_folder.name
-                    print(f"Chose {cmd_folders.name} \"{cmd_folder.name}\"!")
-                    if cmd_folder.is_relative:
-                        if random.randint(0, 1) == 0:
-                            relative_folder_additive = random.choice(relative_folder_additives)
-                            print(f"Added relative folder additive \"{relative_folder_additive}\"!")
-                            resulting_cmd_folder_name = f"{relative_folder_additive}/{resulting_cmd_folder_name}"
+            if not options["do-not-randomize-folders"] and debug_manual_auto_add is None:
+                for cmd_folders in all_cmd_folders:
+                    if cmd_folders.name == "extra-hq-textures-folder" and config.get("extra-hq-textures-folder") == "this_does_not_exist":
+                        continue
+    
+                    cmd_folder = random.choice(cmd_folders.folders)
+                    if cmd_folder.is_default:
+                        resulting_cmd_folder_name = None
+                        print(f"Chose default {cmd_folders.name} folder!")
+                    else:
+                        resulting_cmd_folder_name = cmd_folder.name
+                        print(f"Chose {cmd_folders.name} \"{cmd_folder.name}\"!")
+                        if cmd_folder.is_relative:
+                            if random.randint(0, 1) == 0:
+                                relative_folder_additive = random.choice(relative_folder_additives)
+                                print(f"Added relative folder additive \"{relative_folder_additive}\"!")
+                                resulting_cmd_folder_name = f"{relative_folder_additive}/{resulting_cmd_folder_name}"
+    
+                            resulting_cmd_folder_name = f"{filename_folder_prefix}/{resulting_cmd_folder_name}"
 
-                        resulting_cmd_folder_name = f"{filename_folder_prefix}/{resulting_cmd_folder_name}"
+                    config[cmd_folders.name] = resulting_cmd_folder_name
 
-                config[cmd_folders.name] = resulting_cmd_folder_name
+            storage_folder = config.get("storage-folder")
+            if storage_folder is None:
+                storage_folder = f"{release_auto_tt_rec_directory}/storage"
+
+            auto_add_dirname = f"{storage_folder}/auto-add"
+
+            ignore_auto_add_missing_files = config.get("ignore-auto-add-missing-files")
 
             if test_release:
                 release_auto_tt_rec_dirpath = pathlib.Path(release_auto_tt_rec_directory)
@@ -468,19 +494,20 @@ def main():
                 completed_process = subprocess.run((".\\record_ghost.bat",))
                 os.chdir(saved_cwd)
             else:
-                if on_wsl:
-                    python_name = "python3"
-                else:
-                    python_name = "python"
-
-                python_filename = str(pathlib.Path(bin_dir, python_name))
-
                 completed_process = subprocess.run((python_filename, "record_ghost.py", "-cfg", temp_config_filename))
 
             if completed_process.returncode == 0:
                 cur_test_result_output = f"SUCCESS: region {region_filename_and_name.name}, config {config_basename}"
             else:
-                cur_test_result_output = f"FAILURE: region {region_filename_and_name.name}, config {config_basename}, code: {completed_process.returncode}"
+                auto_add_dirpath = pathlib.Path(auto_add_dirname)
+                auto_add_dirpath_exists = auto_add_dirpath.is_dir()
+
+                cur_test_result_output = f"FAILURE: region {region_filename_and_name.name}, config {config_basename}, code: {completed_process.returncode}, auto-add {auto_add_dirname} exists: {auto_add_dirpath_exists}"
+                amanita_abyss_autogenerated_szs_filename = f"{storage_folder}/szs/3A2DCD337343E86EA688AE27BB409F892EFC5AAC.szs"
+                amanita_abyss_autogenerated_szs_filepath = pathlib.Path(amanita_abyss_autogenerated_szs_filename)
+
+                if ignore_auto_add_missing_files == "true":
+                    cur_test_result_output += f", autogenerated SZS {amanita_abyss_autogenerated_szs_filename} exists: {amanita_abyss_autogenerated_szs_filepath.is_file()}"
 
             cur_test_result_output = f"\n===============================================\n{cur_test_result_output}\n===============================================\n\n\n\n\n"
             print(cur_test_result_output)

@@ -43,6 +43,9 @@ Optionally, make a fork of the repository, if you want to submit pull requests.
 
 Clone the GitHub repository (either the main repo or the fork). You can either use GitHub Desktop to clone or use the command line. To clone with GitHub Desktop, firstly download the program [here](https://desktop.github.com/). Then, once the program is installed, open it, go to File (top left), click "Clone repository", go to the URL option, and paste in the URL of the GitHub repository you want to clone (either the main repo or the fork).
 
+## Resource prerequisites
+Download this zip file containing broken auto-add files [here](https://cdn.discordapp.com/attachments/528745839708078093/1137451933041430639/corrupt-auto-add.zip). Extract it to the `test_data` folder such that the `test_data/corrupt-auto-add` is created and `test_data/corrupt-auto-add` itself contains the folders `brasd`, `effect`, and `posteffect` and a bunch of `kcl` and `brres` files. This is required to properly test the case where people have ISOs with missing auto-add files.
+
 ## Repository build options
 In the location of the repository, create the following YAML file `build_options.yml`. Below is a description of how you should fill it in:
 
@@ -153,6 +156,9 @@ extra-hq-textures-folder-absolute: "C:/users/user/documents/GitHub/auto-tt-recor
 
 chadsoft-cache-folder-relative: "../not a git repo/chadsof"
 chadsoft-cache-folder-relative-no-parent: test_scratch/one_folder/cache_dir_c2hadsoft
+
+# Whether to actually perform the folder randomization as described above
+do-not-randomize-folders: false
 ```
 
 ## Repository setup

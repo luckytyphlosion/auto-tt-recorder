@@ -137,7 +137,7 @@ class CustomTop10AndGhostDescription:
         self.highlight_index = highlight_index
 
     @classmethod
-    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, track_name, cache_settings):
+    def from_chadsoft(cls, iso_region, chadsoft_lb, globe_location, top_10_title, highlight_index, ghost_description, censored_players, track_name, cache_settings, wbz_settings):
         if type(highlight_index) != int:
             raise RuntimeError(f"Highlight index not int!")
 
@@ -147,7 +147,7 @@ class CustomTop10AndGhostDescription:
         if top_10_title == "auto":
             top_10_title = "{trackName} {cc} {vehicle} {category} {continent} Top 10"
 
-        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10, cache_settings)
+        leaderboard = chadsoft.Leaderboard(chadsoft_lb, 10, cache_settings, wbz_settings)
         leaderboard.download_info_and_ghosts()
 
         top_10_entries = []
@@ -259,8 +259,8 @@ class CustomTop10AndGhostDescription:
 
         return rkg_data
 
-    def get_szs(self, iso_filename):
-        return self.leaderboard.get_szs_if_not_default_track(iso_filename)
+    def get_szs_and_wbz_converter(self, iso_filename):
+        return self.leaderboard.get_szs_and_wbz_converter_if_not_default_track(iso_filename)
 
     def is_200cc(self):
         return self.leaderboard.is_200cc()

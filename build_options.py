@@ -39,7 +39,8 @@ test_and_release_options_format = {
     "chadsoft-cache-folder-relative-no-parent": str_check,
     "force-delete-invalid-directories": bool_check,
     "assume-cmd-folders-exist": bool_check,
-    "randomize-tests-seed": int_check
+    "randomize-tests-seed": int_check,
+    "do-not-randomize-folders": bool_check
 }
 
 expected_option_names = set(test_and_release_options_format.keys())

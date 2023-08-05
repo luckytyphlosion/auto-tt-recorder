@@ -182,6 +182,7 @@ music_cached/
 
 hq_textures/
 !test_data/*
+test_data/corrupt-auto-add/*
 
 test_scratch/*
 

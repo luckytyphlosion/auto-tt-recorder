@@ -1,0 +1,32 @@
+unbuffered-output: true
+output-video-filename: mp4
+track-name: auto
+input-display: auto
+hq-textures: true
+
+timeline: ghostonly
+main-ghost-auto: https://chadsoft.co.uk/time-trials/rkgd/10/3D/3305A66DEA6FDB716D03458366A536DEAC2D.html
+
+encode-type: crf
+video-codec: libx264
+audio-codec: libopus
+crf-value: 15
+youtube-settings: true
+keep-window: true
+chadsoft-read-cache: true
+chadsoft-write-cache: true
+encode-only: false
+input-display-dont-create: false
+dolphin-resolution: 480p
+h26x-preset: veryfast
+game-volume: 1
+music-volume: 1
+output-width: null
+debug-manual-auto-add: test_data/corrupt-auto-add
+purge-auto-add: always
+no-bloom: false
+no-background-blur: false
+
+speedometer: regular
+speedometer-metric: xyz
+music-filename: bgm

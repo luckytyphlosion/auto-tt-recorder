@@ -47,8 +47,10 @@ from stateclasses.timeline_classes import *
 from stateclasses.encode_classes import *
 from stateclasses.music_option_classes import *
 from stateclasses.input_display import *
+from stateclasses.wbz_classes import *
 
 from constants.lua_params import *
+
 
 speedometer_option_none = SpeedometerOption(SOM_NONE)
 
@@ -111,20 +113,23 @@ def checkpoint_done(checkpoint_filename):
         checkpoint_filepath = pathlib.Path(checkpoint_filename)
         checkpoint_filepath.unlink(missing_ok=True)
 
-def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes=None, extra_hq_textures_folder=None, no_music_mkchannel=False, ending_delay=600):
+def record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=None, ffmpeg_filename="ffmpeg", ffprobe_filename="ffprobe", szs_filename=None, hide_window=True, dolphin_resolution="480p", use_ffv1=False, speedometer=None, encode_only=False, music_option=None, dolphin_volume=0, track_name=None, ending_message="Video recorded by Auto TT Recorder.", hq_textures=False, on_200cc=False, timeline_settings=None, checkpoint_filename=None, no_background_blur=False, no_bloom=False, extra_gecko_codes=None, extra_hq_textures_folder=None, no_music_mkchannel=False, ending_delay=600, wbz_converter=None):
 
     if szs_filename is not None:
         szs_filepath = pathlib.Path(szs_filename)
         if not szs_filepath.is_file():
             raise RuntimeError(f"Szs file \"{szs_filename}\" does not exist!")
 
-        if wiimm.check_track_has_speedmod(szs_filename):
+        if wiimm.check_track_has_speedmod(szs_filename, wbz_converter):
             if track_name is not None:
                 track_name_in_error_msg = f" \"{track_name}\" "
             else:
                 track_name_in_error_msg = ""
 
             raise RuntimeError(f"Track{track_name_in_error_msg}has speed modifier! (speed modified tracks are unsupported currently)")
+
+    if wbz_converter is not None and wbz_converter.wbz_settings.debug_manual_auto_add is not None:
+        wbz_converter.purge_auto_add()
 
     if speedometer is None:
         speedometer = speedometer_option_none
@@ -306,9 +311,6 @@ timeline_enum_arg_table = enumarg.EnumArgTable({
     "ghostonly": TIMELINE_GHOST_ONLY
 })
 
-#class NoEncodeTimelineArgs:
-#    __slots__ = ("no_music
-
 encode_type_enum_arg_table = enumarg.EnumArgTable({
     "crf": ENCODE_TYPE_CRF,
     "size": ENCODE_TYPE_SIZE_BASED
@@ -352,6 +354,7 @@ def main():
     ap.add_argument("-smd", "--speedometer-decimal-places", dest="speedometer_decimal_places", type=int, default=None, help="The number of decimal places in the speedometer. This option is ignored for the standard pretty speedometer. Default is 1 for the fancy speedometer and 2 for the regular speedometer.")
     ap.add_argument("-eo", "--encode-only", dest="encode_only", action="store_true", default=False, help="Assume that all necessary frame dumps already exist, instead of running Dolphin to dump out frames. Useful for testing in case an error occurs through the encoding stage.")
     ap.add_argument("-dv", "--dolphin-volume", dest="dolphin_volume", type=int, default=0, help="Volume of the Dolphin executable. Only relevant for debugging, has no impact on audiodump volume.")
+
     ap.add_argument("-cg", "--chadsoft-ghost-page", dest="chadsoft_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to record. Specifying this will fill in the options for -i/--main-ghost-filename and -s/--szs-filename if they are not set (and the track to record is a custom track for szs filename). This option is not valid if the chosen timeline is top10 and -ttg/--top-10-gecko-code-filename is not specified.")
     ap.add_argument("-ccg", "--chadsoft-comparison-ghost-page", dest="chadsoft_comparison_ghost_page", default=None, help="Link to the Chadsoft ghost page of the ghost to compare against. This cannot be specified with -c/--comparison-ghost-filename.")
     ap.add_argument("-mga", "--main-ghost-auto", dest="main_ghost_auto", default=None, help="Smart option which is just -i/--main-ghost-filename and -cg/--chadsoft-ghost-page combined. Will automatically detect which option to use, based on the option input (i.e. chadsoft link will use -cg/--chadsoft-ghost-page, otherwise assumes -i/--main-ghost-filename). Cannot be used with -i/--main-ghost-filename and -cg/--chadsoft-ghost-page.")
@@ -408,6 +411,11 @@ def main():
     ap.add_argument("-ttg", "--top-10-gecko-code-filename", dest="top_10_gecko_code_filename", default=None, help="The filename of the file containing the gecko code used to make a Custom Top 10. This cannot be specified with -ttc/--top-10-chadsoft. If your Top 10 is anything more complicated than a chadsoft leaderboard, then you're better off using https://www.tt-rec.com/customtop10/ to make your Custom Top 10. The program will do some basic validation to ensure that it actually is a top 10 gecko code and it is for the right region.") 
     ap.add_argument("-mkd", "--mk-channel-ghost-description", dest="mk_channel_ghost_description", default=None, help="The description of the ghost which appears on the top left of the Mario Kart Channel Race Ghost Screen. Applies for timelines mkchannel and top10. Default is Ghost Data.")
     ap.add_argument("-nmmk", "--no-music-mkchannel", dest="no_music_mkchannel", action="store_true", default=False, help="Whether to disable music when on the Mario Kart Channel (for top10 or mkchannel timelines). Ignored if -smb/--start-music-at-beginning is true.")
+
+    ap.add_argument("-paa", "--purge-auto-add", dest="purge_auto_add", default="onerror", help="Option which describes the conditions to purge the auto-add folder (if at all), which contains extracted game assets used for patching WBZ files automatically downloaded from Wiimm's Custom Track archive. This is necessary as some ISO dumps do not contain all of the game files. Valid options are \"never\" to never purge the auto-add directory, \"onerror\" to only purge the auto-add directory if an error related to WBZ patching occurs (e.g. missing or corrupt files), and \"always\" to always purge the auto-add directory. Default is \"onerror\".")
+    ap.add_argument("-iaam", "--ignore-auto-add-missing-files", dest="ignore_auto_add_missing_files", action="store_true", default=False, help="Whether to not error if the program detects that there are missing auto-add files. You may try this out to see if the program is still able to generate SZS files, but it may not work. Default is false.")
+    ap.add_argument("-dmaa", "--debug-manual-auto-add", dest="debug_manual_auto_add", default=None, help="Debug option to manually supply an auto-add folder for testing. You should never need to use this.")
+
     ap.add_argument("-uo", "--unbuffered-output", dest="unbuffered_output", action="store_true", default=False, help="Special option for use with auto-tt-recorder-gui. Forces stdout and stderr to flush at every newline.")
     ap.add_argument("-fc", "--form-complexity", dest="form_complexity", default=None, help="Special option indicating the form complexity of auto-tt-recorder-gui when importing/exporting. Goes unused in the program. Only exists so that configargparse does not error out.")
 
@@ -431,6 +439,8 @@ def main():
         chadsoft.purge_cache(args.chadsoft_cache_expiry, args.chadsoft_cache_folder)
 
     #error_occurred = False
+
+    wbz_settings = WbzSettings(args.purge_auto_add, args.ignore_auto_add_missing_files, args.debug_manual_auto_add)
 
     if args.on_200cc and args.no_200cc:
         raise RuntimeError("Only one of -o2/--on-200cc and -n2/--no-200cc can be specified!")
@@ -475,7 +485,7 @@ def main():
             main_ghost_filename = args.main_ghost_auto
 
     if chadsoft_ghost_page_link is not None:
-        ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, cache_settings)
+        ghost_page = chadsoft.GhostPage(chadsoft_ghost_page_link, cache_settings, wbz_settings)
         rkg_file_main = ghost_page.get_rkg()
         controller = ghost_page.get_controller()
         if track_name == "auto":
@@ -519,7 +529,7 @@ def main():
     if comparison_ghost_filename is not None:
         rkg_file_comparison = comparison_ghost_filename
     elif chadsoft_comparison_ghost_page_link is not None:
-        comparison_ghost_page = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, cache_settings)
+        comparison_ghost_page = chadsoft.GhostPage(chadsoft_comparison_ghost_page_link, cache_settings, wbz_settings)
         rkg_file_comparison = comparison_ghost_page.get_rkg()
         if track_name == "auto":
             track_name = comparison_ghost_page.get_track_name()
@@ -530,10 +540,13 @@ def main():
 
     ffmpeg_filename = args.ffmpeg_filename
     ffprobe_filename = args.ffprobe_filename
+
+    wbz_converter = None
+
     if args.szs_filename is not None:
         szs_filename = args.szs_filename
     elif ghost_page is not None:
-        szs_filename = ghost_page.get_szs(mkw_iso.iso_filename)
+        szs_filename, wbz_converter = ghost_page.get_szs_and_wbz_converter(mkw_iso.iso_filename)
     else:
         szs_filename = None
 
@@ -627,13 +640,14 @@ def main():
                     args.mk_channel_ghost_description,
                     args.top_10_censors,
                     track_name,
-                    cache_settings
+                    cache_settings,
+                    wbz_settings
                 )
 
                 if rkg_file_main is None:
                     rkg_file_main = custom_top_10_and_ghost_description.get_rkg_file_main()
                 if szs_filename is None:
-                    szs_filename = custom_top_10_and_ghost_description.get_szs(mkw_iso.iso_filename)
+                    szs_filename, wbz_converter = custom_top_10_and_ghost_description.get_szs_and_wbz_converter(mkw_iso.iso_filename)
                 if cc_option == CC_UNKNOWN:
                     cc_option = CC_200 if custom_top_10_and_ghost_description.is_200cc() else CC_150
                 if controller == CONTROLLER_UNKNOWN:
@@ -680,7 +694,7 @@ def main():
         else:
             raise RuntimeError("Could not automatically get track name! (must specify manually)")
 
-    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes=extra_gecko_codes, extra_hq_textures_folder=args.extra_hq_textures_folder, no_music_mkchannel=args.no_music_mkchannel, ending_delay=args.ending_delay)
+    record_ghost(rkg_file_main, output_video_filename, mkw_iso, rkg_file_comparison=rkg_file_comparison, ffmpeg_filename=ffmpeg_filename, ffprobe_filename=ffprobe_filename, szs_filename=szs_filename, hide_window=hide_window, dolphin_resolution=dolphin_resolution, use_ffv1=use_ffv1, speedometer=speedometer, encode_only=encode_only, music_option=music_option, dolphin_volume=dolphin_volume, track_name=track_name, ending_message=ending_message, hq_textures=hq_textures, on_200cc=on_200cc, timeline_settings=timeline_settings, no_background_blur=args.no_background_blur, no_bloom=args.no_bloom, extra_gecko_codes=extra_gecko_codes, extra_hq_textures_folder=args.extra_hq_textures_folder, no_music_mkchannel=args.no_music_mkchannel, ending_delay=args.ending_delay, wbz_converter=wbz_converter)
 
 def main2():
     popen = subprocess.Popen(("./dolphin/Dolphin.exe",))

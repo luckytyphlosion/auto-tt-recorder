@@ -21,19 +21,42 @@ import subprocess
 import os
 import requests
 
+from stateclasses.wbz_classes import *
+
 #ISO_FILE 
 #ORIGINAL_TRACK_FILES_DIR = "original-race-course"
 
 class WbzConverter:
-    __slots__ = ("iso_filename", "original_track_files_dirname", "wit_filename", "wszst_filename", "auto_add_dirname", "auto_add_containing_dirname")
+    __slots__ = ("iso_filename", "original_track_files_dirname", "wit_filename", "wszst_filename", "auto_add_dirname", "auto_add_containing_dirname", "wbz_settings")
 
-    def __init__(self, iso_filename, original_track_files_dirname, wit_filename, wszst_filename, auto_add_containing_dirname):
+    def __init__(self, iso_filename, original_track_files_dirname, wit_filename, wszst_filename, auto_add_containing_dirname, wbz_settings):
         self.iso_filename = iso_filename
         self.original_track_files_dirname = original_track_files_dirname
         self.wit_filename = wit_filename
         self.wszst_filename = wszst_filename
         self.auto_add_dirname = f"{auto_add_containing_dirname}/auto-add"
         self.auto_add_containing_dirname = auto_add_containing_dirname
+        self.wbz_settings = wbz_settings
+        self.purge_auto_add_if_always_purge()
+
+    def purge_auto_add_if_always_purge(self):
+        if self.wbz_settings.purge_auto_add == PURGE_AUTO_ADD_ALWAYS:
+            self.purge_auto_add()
+            print(f"Removing auto-add directory \"{self.auto_add_dirname}\" as specified by purge-auto-add: always!")
+
+    def purge_auto_add_if_onerror(self):
+        if self.wbz_settings.purge_auto_add == PURGE_AUTO_ADD_ON_ERROR:
+            self.purge_auto_add()
+            print(f"Removing auto-add directory \"{self.auto_add_dirname}\" as specified by purge-auto-add: onerror!")
+        else:
+            self.purge_auto_add_if_always_purge()
+
+    def purge_auto_add(self):
+        auto_add_dirpath = pathlib.Path(self.auto_add_dirname)
+        if auto_add_dirpath.is_dir():
+            shutil.rmtree(auto_add_dirpath)
+        elif auto_add_dirpath.is_file():
+            auto_add_dirpath.unlink()
 
     def are_auto_add_files_extracted(self):
         return self.calc_num_files_dirs_in_auto_add_dir() >= 288
@@ -57,41 +80,53 @@ class WbzConverter:
         if self.are_auto_add_files_extracted():
             return
 
-        # check if ISO is valid
-        try:
-            completed_process = subprocess.run((self.wit_filename, "imgfiles", self.iso_filename, "-1", "--include", "RMC.01"), capture_output=True, encoding="utf-8")
-        except OSError as e:
-            raise RuntimeError(f"Command ran was ({(self.wit_filename, 'imgfiles', self.iso_filename, '-1', '--include', 'RMC.01')}).") from e
-
-        print(completed_process.stdout)
-        if completed_process.returncode != 0:
-            raise RuntimeError(f"wit error occurred while checking for a valid ISO! error:\n\n{completed_process.stderr}")
-
         original_track_files_dirpath = pathlib.Path(self.original_track_files_dirname)
-        if original_track_files_dirpath.is_dir():
-            shutil.rmtree(original_track_files_dirpath)
 
-        completed_process = subprocess.run((self.wit_filename, "extract", self.iso_filename, "-q", "--DEST", self.original_track_files_dirname, "--flat", "--files", "+/files/Race/Course/*.szs"), capture_output=True, encoding="utf-8")
-        print(completed_process.stdout)
-        if completed_process.returncode != 0:
-            raise RuntimeError(f"wit error occurred during ISO file extraction! error:\n\n{completed_process.stderr}")
+        if self.wbz_settings.debug_manual_auto_add is None:
+            #if self.wbz
+            # check if ISO is valid
+            try:
+                completed_process = subprocess.run((self.wit_filename, "imgfiles", self.iso_filename, "-1", "--include", "RMC.01"), capture_output=True, encoding="utf-8")
+            except OSError as e:
+                raise RuntimeError(f"Command ran was ({(self.wit_filename, 'imgfiles', self.iso_filename, '-1', '--include', 'RMC.01')}).") from e
+    
+            print(completed_process.stdout)
+            if completed_process.returncode != 0:
+                raise RuntimeError(f"wit error occurred while checking for a valid ISO! error:\n\n{completed_process.stderr}")
 
-        num_szs_files_in_orig_track_files_dir = self.calc_num_szs_files_in_orig_track_files_dir()
+            if original_track_files_dirpath.is_dir():
+                shutil.rmtree(original_track_files_dirpath)
+    
+            completed_process = subprocess.run((self.wit_filename, "extract", self.iso_filename, "-q", "--DEST", self.original_track_files_dirname, "--flat", "--files", "+/files/Race/Course/*.szs"), capture_output=True, encoding="utf-8")
+            print(completed_process.stdout)
+            if completed_process.returncode != 0:
+                raise RuntimeError(f"wit error occurred during ISO file extraction! error:\n\n{completed_process.stderr}")
+    
+            num_szs_files_in_orig_track_files_dir = self.calc_num_szs_files_in_orig_track_files_dir()
+    
+            if num_szs_files_in_orig_track_files_dir < 99 and not self.wbz_settings.ignore_auto_add_missing_files:
+                self.purge_auto_add_if_onerror()
+                raise RuntimeError(f"Was not able to extract all files needed for automatic SZS download via WBZ -> SZS patching. Your ISO may be damaged. If you would like to see if this matters, enable ignore-auto-add-missing-files: true.\n(Technical info: Expected at least 99 szs files from original track files extracted from ISO, but found only {num_szs_files_in_orig_track_files_dir} instead!)")
+    
+            completed_process = subprocess.run((self.wszst_filename, "autoadd", self.original_track_files_dirname, "-q", "--DEST", self.auto_add_dirname, "--remove-dest", "--preserve"), capture_output=True, encoding="utf-8")
+            print(completed_process.stdout)
+            if completed_process.returncode != 0:
+                raise RuntimeError(f"wit error occurred during autoadd! error:\n\n{completed_process.stderr}")
+        else:
+            auto_add_dirpath = pathlib.Path(self.auto_add_dirname)
+            if auto_add_dirpath.is_dir():
+                shutil.rmtree(auto_add_dirpath)
 
-        if num_szs_files_in_orig_track_files_dir < 99:
-            raise RuntimeError(f"Expected at least 99 szs files from original track files extracted from ISO, but found only {num_szs_files_in_orig_track_files_dir} instead! ISO possibly damaged?")
-
-        completed_process = subprocess.run((self.wszst_filename, "autoadd", self.original_track_files_dirname, "-q", "--DEST", self.auto_add_dirname, "--remove-dest", "--preserve"), capture_output=True, encoding="utf-8")
-        print(completed_process.stdout)
-        if completed_process.returncode != 0:
-            raise RuntimeError(f"wit error occurred during autoadd! error:\n\n{completed_process.stderr}")
+            shutil.copytree(self.wbz_settings.debug_manual_auto_add, auto_add_dirpath)
 
         num_files_dirs_in_auto_add_dir = self.calc_num_files_dirs_in_auto_add_dir()
 
-        if num_files_dirs_in_auto_add_dir < 288:
-            raise RuntimeError(f"Expected at least 288 files and directories in auto-add extracted from original track files, but found only {num_files_dirs_in_auto_add_dir} instead! ISO possibly damaged?")
+        if num_files_dirs_in_auto_add_dir < 288 and not self.wbz_settings.ignore_auto_add_missing_files:
+            self.purge_auto_add_if_onerror()
+            raise RuntimeError(f"Was not able to extract all files needed for automatic SZS download via WBZ -> SZS patching. Your ISO may be damaged. If you would like to see if this matters, enable ignore-auto-add-missing-files: true.\n(Technical info: Expected at least 288 files and directories in auto-add extracted from original track files, but found only {num_files_dirs_in_auto_add_dir} instead!)")
 
-        shutil.rmtree(original_track_files_dirpath)
+        if self.wbz_settings.debug_manual_auto_add is None:
+            shutil.rmtree(original_track_files_dirpath)
 
     def get_wbz_filepath_from_track_id(self, track_id):
         return pathlib.Path(f"{self.auto_add_containing_dirname}/wbz/{track_id}.wbz")
@@ -123,7 +158,7 @@ class WbzConverter:
         r = requests.get(url, allow_redirects=True)
 
         if r.headers["content-type"] != "application/octet-stream":
-            raise RuntimeError("Wiimm's archive does not have track ID!")
+            raise RuntimeError("Wiimm's archive does not have track ID! You must supply the SZS file manually via the szs-filename command")
 
         wbz_filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(wbz_filepath, 'wb+') as f:
@@ -141,6 +176,7 @@ class WbzConverter:
             completed_process = subprocess.run((self.wszst_filename, "normalize", input_wbz_filename, "--autoadd-path", self.auto_add_dirname, "--DEST", output_szs_filepath, "--szs", "--overwrite"), capture_output=True, encoding="utf-8")
             print(completed_process.stdout)
             if completed_process.returncode != 0:
+                self.purge_auto_add_if_onerror()
                 raise RuntimeError(f"wszst error occurred during conversion from wbz to szs! error:\n\n{completed_process.stderr}")
 
         return output_szs_filepath
