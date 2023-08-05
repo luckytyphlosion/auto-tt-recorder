@@ -167,7 +167,10 @@ List of types and what they mean:
 | `chadsoft-write-cache` | string | Whether to save any data downloaded from Chadsoft to a local cache folder to avoid needing to redownload the same files.
 | `chadsoft-cache-expiry` | string | Duration until data downloaded from Chadsoft expires and is purged. Example formats: 1h23m46s, 24h, 3h30m, 1000 (seconds implied), 90m100s. The duration is applied on a per-file basis, so if the expiry time is 24h, each file will be deleted 24h after the specific file was downloaded. Note that the cache is purged when the program is run regardless of whether the purged files would have been requested or not. Default is 24h. Cache purging can be disabled if this option evaluates to 0 or if `chadsoft-read-cache` is unspecified or false.
 | `input-display-dont-create` | boolean | If enabled, assumes that the video file for the input display has already been created. Only relevant for debugging.
+| `purge-auto-add` | string | Option which describes the conditions to purge the `auto-add` folder (if at all), which contains extracted game assets used for patching the WBZ files that are automatically downloaded from Wiimm's Custom Track archive. This is necessary as some ISO dumps do not contain all of the game files. Valid options are `never` to never purge the auto-add directory, `onerror` to only purge the auto-add directory if an error related to WBZ patching occurs (e.g. missing or corrupt files), and `always` to always purge the auto-add directory. `onerror` fixes issues where swapping from a broken ISO to a non-broken ISO would still cause issues when patching to SZS files. Default is `onerror`.
+| `ignore-auto-add-missing-files` | boolean | Whether to not error if the program detects that there are missing `auto-add` files. You may try this out to see if the program is still able to generate SZS files, but it may not work (e.g. my tests with a broken ISO could create Envenom Snowstorm but not Amanita Abyss). Default is `false`.
 |<img width=250/>| |
+
 
 
 
