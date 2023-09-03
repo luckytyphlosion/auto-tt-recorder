@@ -85,9 +85,19 @@ def main():
     for_gui = options["for-gui"]
 
     print("Building record_ghost.exe!")
+
+    for_gui_module_filepath = pathlib.Path("for_gui_module.py")
+
+    if for_gui:
+        for_gui_module_filepath.touch()
+    else:
+        for_gui_module_filepath.unlink(missing_ok=True)
+
     package_type_flag = "-D" if for_gui else "-F"
 
     subprocess.run(("pyinstaller", package_type_flag, "--noconfirm", "record_ghost.py", "--paths", "virt_win/Lib/site-packages"), check=True)
+
+    for_gui_module_filepath.unlink(missing_ok=True)
 
     dolphin_lua_core_dirname = options["dolphin-lua-core-dirname"]
     release_name = options["release-name"]

@@ -20,6 +20,12 @@ import msgeditor
 import identifiers
 import re
 
+try:
+    import for_gui_module
+    for_gui = True
+except ImportError:
+    for_gui = False
+
 class GeckoParams:
     __slots__ = ("substitutions", "optional_enabled_codes", "dynamic_codes")
 
@@ -424,7 +430,12 @@ def create_gecko_code_params_for_custom_top_10(rkg, timeline_settings, track_nam
     msg_editor.add_subst(identifiers.MY_GHOST_MSG_ID, ghost_description)
     # Todo, multiple language support
     msg_editor.add_subst(identifiers.MKCHANNEL_GHOST_SCREEN_RACE_THIS_GHOST_MSG_ID, "Start This Race")
-    msg_editor.add_subst(identifiers.MKCHANNEL_GHOST_SCREEN_WATCH_REPLAY_MSG_ID, "Watch Replay")
+    if for_gui:
+        watch_replay_msg = "Watch the Replay"
+    else:
+        watch_replay_msg = "Watch Replay"
+
+    msg_editor.add_subst(identifiers.MKCHANNEL_GHOST_SCREEN_WATCH_REPLAY_MSG_ID, watch_replay_msg)
 
     msg_editor.add_track_name_subst(rkg.track_id, track_name)
     msg_editor_code = msg_editor.generate()
